@@ -184,46 +184,55 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[400px] relative">
+    <div className="mx-auto flex w-full flex-col justify-center space-y-8 sm:w-[450px] relative mt-12 mb-12">
       {loading && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-white rounded-xl">
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm rounded-2xl">
           <SpeedLoader text="Creating Profile" subtext="Securing your data..." />
         </div>
       )}
       
-      <div className="flex flex-col space-y-2 text-center">
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">Create an account</h1>
-        <p className="text-sm text-muted-foreground">
-          Join Savion to simplify your accommodation journey.
+      <div className="flex flex-col items-center space-y-4 text-center">
+        <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mb-2 shadow-inner border border-primary/20">
+          <svg className="w-8 h-8 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+            <circle cx="8.5" cy="7" r="4"></circle>
+            <line x1="20" y1="8" x2="20" y2="14"></line>
+            <line x1="23" y1="11" x2="17" y2="11"></line>
+          </svg>
+        </div>
+        <h1 className="text-4xl font-black tracking-tight bg-gradient-to-br from-foreground to-foreground/70 bg-clip-text text-transparent">Create Account</h1>
+        <p className="text-muted-foreground font-medium px-4">
+          Join Savion to simplify your accommodation journey. Get started in seconds.
         </p>
       </div>
 
-      <div className="flex justify-center gap-2 mb-4 overflow-x-auto pb-2">
-        <Button 
-          variant={role === "tenant" ? "default" : "outline"} 
-          onClick={() => setRole("tenant")}
-          className="rounded-full px-4 text-xs md:text-sm"
-          type="button"
-        >
-          Tenant
-        </Button>
-        <Button 
-          variant={role === "owner" ? "default" : "outline"} 
-          onClick={() => setRole("owner")}
-          className="rounded-full px-4 text-xs md:text-sm"
-          type="button"
-        >
-          Property Owner
-        </Button>
-      </div>
-      <p className="text-center text-xs text-muted-foreground -mt-2 mb-2">
-        Are you a <span className="font-semibold">caretaker</span>?{" "}
-        <Link href="/caretaker-login" className="text-primary font-semibold hover:underline">
-          Use the Staff Login →
-        </Link>
-      </p>
+      <div className="bg-card p-6 sm:p-8 rounded-2xl border shadow-sm">
+        <div className="flex justify-center gap-2 mb-6 overflow-x-auto pb-2">
+          <Button 
+            variant={role === "tenant" ? "default" : "outline"} 
+            onClick={() => setRole("tenant")}
+            className="rounded-full px-6 text-sm font-semibold"
+            type="button"
+          >
+            Tenant
+          </Button>
+          <Button 
+            variant={role === "owner" ? "default" : "outline"} 
+            onClick={() => setRole("owner")}
+            className="rounded-full px-6 text-sm font-semibold"
+            type="button"
+          >
+            Property Owner
+          </Button>
+        </div>
+        <p className="text-center text-xs text-muted-foreground -mt-2 mb-6">
+          Are you a <span className="font-semibold">caretaker</span>?{" "}
+          <Link href="/caretaker-login" className="text-primary font-semibold hover:underline">
+            Use the Staff Login →
+          </Link>
+        </p>
 
-      <div className="grid gap-6">
+        <div className="grid gap-6">
         {/* Error Banner */}
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3 flex items-start gap-2">
@@ -342,6 +351,7 @@ export default function SignupPage() {
           Log in
         </Link>
       </p>
+      </div>
     </div>
   );
 }

@@ -13,7 +13,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuGroup,
 } from "@/components/ui/dropdown-menu";
-import { Menu, Home, BookOpen, LogOut, PlusCircle, ShieldCheck, LayoutDashboard, Bell } from "lucide-react";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { Menu, Home, BookOpen, LogOut, PlusCircle, ShieldCheck, LayoutDashboard, Bell, Sun, Moon } from "lucide-react";
+import { useTheme } from "next-themes";
 import { signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase/client";
 import { useAuth } from "@/lib/context/AuthContext";
@@ -44,7 +52,9 @@ function getDashboardLink(role?: string) {
 export function Navbar() {
   const router = useRouter();
   const { user, profile } = useAuth();
+  const { theme, setTheme } = useTheme();
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -90,13 +100,19 @@ export function Navbar() {
         </div>
 
         {/* Right: Auth State */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1 sm:gap-3">
+          <Button variant="ghost" size="icon" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="mr-1">
+            <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+            <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+            <span className="sr-only">Toggle theme</span>
+          </Button>
+
           {user ? (
             /* ─── LOGGED IN: Notifications & Profile ─── */
             <div className="flex items-center gap-2 sm:gap-4">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="relative p-2 rounded-full hover:bg-slate-100 transition-colors focus:outline-none">
+                  <button className="relative p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus:outline-none">
                     <Bell className="w-5 h-5 text-slate-700" />
                     {notifications.filter(n => !n.read).length > 0 && (
                       <span className="absolute top-1 right-1.5 w-2 h-2 bg-red-500 rounded-full animate-pulse border border-white"></span>
@@ -246,10 +262,40 @@ export function Navbar() {
           )}
 
           {/* Mobile Hamburger */}
-          <Button variant="ghost" size="icon" className="md:hidden">
-            <Menu className="h-6 w-6" />
-            <span className="sr-only">Toggle menu</span>
-          </Button>
+          <Sheet open={isOpen} onOpenChange={setIsOpen}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon" className="md:hidden">
+                <Menu className="h-6 w-6" />
+                <span className="sr-only">Toggle menu</span>
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-[300px] sm:w-[400px]">
+              <SheetHeader>
+                <SheetTitle className="text-left">Navigation</SheetTitle>
+              </SheetHeader>
+              <div className="flex flex-col gap-4 mt-8">
+                <Link href="/search" onClick={() => setIsOpen(false)} className="text-lg font-medium hover:text-primary transition-colors">
+                  Destinations
+                </Link>
+                <Link href="/search" onClick={() => setIsOpen(false)} className="text-lg font-medium hover:text-primary transition-colors">
+                  Listings
+                </Link>
+                <Link href="/about" onClick={() => setIsOpen(false)} className="text-lg font-medium hover:text-primary transition-colors">
+                  About
+                </Link>
+                {!user && (
+                  <div className="flex flex-col gap-3 mt-4 pt-4 border-t">
+                    <Link href="/login" onClick={() => setIsOpen(false)}>
+                      <Button variant="outline" className="w-full">Log In</Button>
+                    </Link>
+                    <Link href="/signup" onClick={() => setIsOpen(false)}>
+                      <Button className="w-full">Sign Up</Button>
+                    </Link>
+                  </div>
+                )}
+              </div>
+            </SheetContent>
+          </Sheet>
         </div>
       </div>
     </header>

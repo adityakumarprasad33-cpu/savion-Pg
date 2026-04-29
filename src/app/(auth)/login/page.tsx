@@ -149,21 +149,27 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[400px] relative">
+    <div className="mx-auto flex w-full flex-col justify-center space-y-8 sm:w-[450px] relative mt-12 mb-12">
       {loading && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-white rounded-xl">
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm rounded-2xl">
           <SpeedLoader text="Authenticating" subtext="Verifying credentials..." />
         </div>
       )}
       
-      <div className="flex flex-col space-y-2 text-center">
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">Welcome back</h1>
-        <p className="text-sm text-muted-foreground">
-          Log in to your Savion account to manage your bookings.
+      <div className="flex flex-col items-center space-y-4 text-center">
+        <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mb-2 shadow-inner border border-primary/20">
+          <svg className="w-8 h-8 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+            <polyline points="9 22 9 12 15 12 15 22"></polyline>
+          </svg>
+        </div>
+        <h1 className="text-4xl font-black tracking-tight bg-gradient-to-br from-foreground to-foreground/70 bg-clip-text text-transparent">Welcome to Savion</h1>
+        <p className="text-muted-foreground font-medium px-4">
+          The easiest way to find and manage your premium PG accommodations. Log in to continue.
         </p>
       </div>
 
-      <div className="grid gap-6 mt-4">
+      <div className="grid gap-6 bg-card p-6 sm:p-8 rounded-2xl border shadow-sm">
         {/* Error Banner */}
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3 flex items-start gap-2">
