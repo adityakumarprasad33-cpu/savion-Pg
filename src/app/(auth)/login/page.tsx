@@ -16,8 +16,6 @@ import { auth, googleProvider, appleProvider } from "@/lib/firebase/client";
 import { 
   signInWithPopup,
   signInWithEmailAndPassword,
-  RecaptchaVerifier,
-  signInWithPhoneNumber,
   onAuthStateChanged
 } from "firebase/auth";
 
@@ -49,7 +47,6 @@ function friendlyError(code: string): string {
 
 export default function LoginPage() {
   const router = useRouter();
-  const [authMethod, setAuthMethod] = useState<"email" | "phone">("phone");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -57,23 +54,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   
-  const [phoneCode, setPhoneCode] = useState("+91");
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const [otp, setOtp] = useState("");
-  const [otpSent, setOtpSent] = useState(false);
-  const [confirmationResult, setConfirmationResult] = useState<any>(null);
-
   useEffect(() => {
-    // Re-initialize recaptcha fresh each time auth method switches
-    if ((window as any).recaptchaVerifier) {
-      // @ts-ignore
-      (window as any).recaptchaVerifier.clear?.();
-      (window as any).recaptchaVerifier = null;
-    }
-    (window as any).recaptchaVerifier = new RecaptchaVerifier(auth, 'login-recaptcha', {
-      'size': 'invisible'
-    });
-
     // Automatically navigate if user is already logged in or logging in
     const unsub = onAuthStateChanged(auth, (user) => {
       if (user) {
@@ -82,7 +63,7 @@ export default function LoginPage() {
     });
 
     return () => unsub();
-  }, [authMethod]);
+  }, []);
 
   const handleRoute = async (user: any) => {
     try {
@@ -167,36 +148,6 @@ export default function LoginPage() {
     }
   };
 
-  const onPhoneSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    try {
-      setLoading(true);
-      const fullNum = `${phoneCode}${phoneNumber}`;
-      const appVerifier = (window as any).recaptchaVerifier;
-      const confirmation = await signInWithPhoneNumber(auth, fullNum, appVerifier);
-      setConfirmationResult(confirmation);
-      setOtpSent(true);
-      setLoading(false);
-    } catch (e: any) {
-      setError(friendlyError(e.code));
-      setLoading(false);
-    }
-  };
-
-  const onVerifyOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    try {
-      setLoading(true);
-      await confirmationResult.confirm(otp);
-      // Auto-caught by onAuthStateChanged
-    } catch (e: any) {
-      setError(friendlyError(e.code));
-      setLoading(false);
-    }
-  };
-
   return (
     <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[400px] relative">
       {loading && (
@@ -204,8 +155,6 @@ export default function LoginPage() {
           <SpeedLoader text="Authenticating" subtext="Verifying credentials..." />
         </div>
       )}
-      
-      <div id="login-recaptcha"></div>
       
       <div className="flex flex-col space-y-2 text-center">
         <h1 className="text-3xl font-bold tracking-tight text-foreground">Welcome back</h1>
@@ -222,86 +171,32 @@ export default function LoginPage() {
             <span>{error}</span>
           </div>
         )}
-        <div className="flex p-1 bg-slate-100 rounded-lg">
-          <button 
-            onClick={() => { setAuthMethod("phone"); setOtpSent(false); setError(""); }}
-            className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${authMethod === 'phone' ? 'bg-white shadow text-foreground' : 'text-muted-foreground'}`}
-          >
-            Mobile Number
-          </button>
-          <button 
-            onClick={() => setAuthMethod("email")}
-            className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${authMethod === 'email' ? 'bg-white shadow text-foreground' : 'text-muted-foreground'}`}
-          >
-            Email Address
-          </button>
-        </div>
 
-        {authMethod === "phone" ? (
-          <form onSubmit={otpSent ? onVerifyOtp : onPhoneSubmit}>
-            <div className="grid gap-4">
-              {!otpSent ? (
-                <div className="flex gap-2">
-                  <Select value={phoneCode} onValueChange={(val) => setPhoneCode(val || "+91")}>
-                    <SelectTrigger className="w-[100px] h-12 bg-white">
-                      <SelectValue placeholder="Code" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="+91">🇮🇳 +91</SelectItem>
-                      <SelectItem value="+1">🇺🇸 +1</SelectItem>
-                      <SelectItem value="+44">🇬🇧 +44</SelectItem>
-                      <SelectItem value="+61">🇦🇺 +61</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Input 
-                    type="tel" 
-                    placeholder="Enter mobile number" 
-                    className="flex-1 h-12"
-                    value={phoneNumber}
-                    onChange={e=>setPhoneNumber(e.target.value)}
-                  />
-                </div>
-              ) : (
-                 <Input 
-                  type="text" 
-                  placeholder="Enter 6-digit OTP" 
-                  className="h-12 text-center text-lg tracking-widest font-bold"
-                  value={otp}
-                  onChange={e=>setOtp(e.target.value)}
-                  maxLength={6}
-                />
-              )}
-              
-              <Button type="submit" disabled={loading} className="h-12 font-bold w-full">
-                {loading ? "Processing..." : otpSent ? "Verify OTP" : "Send OTP"}
-              </Button>
-            </div>
-          </form>
-        ) : (
-          <form onSubmit={onEmailSubmit}>
-            <div className="grid gap-4">
-              <Input
-                  id="email"
-                  placeholder="name@example.com"
-                  type="email"
-                  className="h-12"
-                  value={email}
-                  onChange={e=>setEmail(e.target.value)}
-              />
-              <Input
-                  id="password"
-                  placeholder="Password"
-                  type="password"
-                  className="h-12"
-                  value={password}
-                  onChange={e=>setPassword(e.target.value)}
-              />
-              <Button type="submit" disabled={loading} className="h-12 font-bold w-full">
-                {loading ? "Processing..." : "Sign In"}
-              </Button>
-            </div>
-          </form>
-        )}
+        <form onSubmit={onEmailSubmit}>
+          <div className="grid gap-4">
+            <Input
+                id="email"
+                placeholder="name@example.com"
+                type="email"
+                className="h-12"
+                value={email}
+                onChange={e=>setEmail(e.target.value)}
+                required
+            />
+            <Input
+                id="password"
+                placeholder="Password"
+                type="password"
+                className="h-12"
+                value={password}
+                onChange={e=>setPassword(e.target.value)}
+                required
+            />
+            <Button type="submit" disabled={loading} className="h-12 font-bold w-full">
+              {loading ? "Processing..." : "Sign In"}
+            </Button>
+          </div>
+        </form>
 
         <div className="relative">
           <div className="absolute inset-0 flex items-center">
