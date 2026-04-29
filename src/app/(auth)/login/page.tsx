@@ -99,7 +99,11 @@ export default function LoginPage() {
         profile = await withTimeout(getUserProfile(user.uid), 3000, null);
       }
       
-      const role = profile?.role || "tenant";
+      if (!profile) {
+        throw new Error("db_timeout");
+      }
+      
+      const role = profile.role || "tenant";
 
       if (role === "admin") {
         router.push("/admin");
@@ -113,7 +117,11 @@ export default function LoginPage() {
       }
     } catch (e: any) {
       console.error("Routing error", e);
-      setError("Database connection error. Try turning off tracking protection.");
+      if (e.message === "db_timeout") {
+        setError("Database connection failed. Make sure you added your Firebase keys in Netlify and re-deployed your site.");
+      } else {
+        setError("Database connection error. Try turning off tracking protection.");
+      }
       setLoading(false);
     }
   };

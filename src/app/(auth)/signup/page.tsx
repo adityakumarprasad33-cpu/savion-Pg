@@ -104,7 +104,11 @@ export default function SignupPage() {
         profile = await withTimeout(getUserProfile(user.uid), 3000, null);
       }
 
-      if (profile!.role === "tenant" || profile!.role === "student") {
+      if (!profile) {
+        throw new Error("db_timeout");
+      }
+
+      if (profile.role === "tenant" || profile.role === "student") {
         const bookings = await withTimeout(getUserBookings(user.uid), 3000, []);
         router.push(bookings.length > 0 ? "/dashboard/tenant" : "/search");
       } else if (profile!.role === "caretaker") {
@@ -114,9 +118,13 @@ export default function SignupPage() {
       } else {
         router.push("/dashboard/owner");
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error("Profile creation error", e);
-      setError("Database connection error. Try turning off tracking protection.");
+      if (e.message === "db_timeout") {
+        setError("Database connection failed. Make sure you added your Firebase keys in Netlify and re-deployed your site.");
+      } else {
+        setError("Database connection error. Try turning off tracking protection.");
+      }
       setLoading(false);
     }
   };
