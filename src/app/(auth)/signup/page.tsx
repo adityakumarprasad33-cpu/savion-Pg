@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
@@ -58,6 +59,33 @@ export default function SignupPage() {
   
   const [phoneCode, setPhoneCode] = useState("+91");
   const [phoneNumber, setPhoneNumber] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+
+  // Strength check
+  const calculateStrength = (pass: string) => {
+    let score = 0;
+    if (!pass) return score;
+    if (pass.length >= 8) score += 1;
+    if (/[A-Z]/.test(pass)) score += 1;
+    if (/[a-z]/.test(pass)) score += 1;
+    if (/[0-9]/.test(pass)) score += 1;
+    if (/[^A-Za-z0-9]/.test(pass)) score += 1;
+    return score;
+  };
+  
+  const strengthScore = calculateStrength(password);
+  
+  const getStrengthColor = () => {
+    if (strengthScore <= 2) return "bg-red-500";
+    if (strengthScore <= 4) return "bg-amber-500";
+    return "bg-green-500";
+  };
+  const getStrengthText = () => {
+    if (strengthScore === 0) return "";
+    if (strengthScore <= 2) return "Weak";
+    if (strengthScore <= 4) return "Good";
+    return "Strong";
+  };
 
   const formState = useRef({ name, role, email, phoneCode, phoneNumber });
   useEffect(() => {
@@ -236,16 +264,44 @@ export default function SignupPage() {
                 onChange={e=>setPhoneNumber(e.target.value)}
               />
             </div>
-            <Input
-                id="password"
-                placeholder="Create Password"
-                type="password"
-                className="h-12"
-                value={password}
-                onChange={e=>setPassword(e.target.value)}
-                required
-            />
-            <Button type="submit" disabled={loading} className="h-12 font-bold w-full">
+            <div>
+              <div className="relative">
+                <Input
+                    id="password"
+                    placeholder="Create Password"
+                    type={showPassword ? "text" : "password"}
+                    className="h-12 pr-10"
+                    value={password}
+                    onChange={e=>setPassword(e.target.value)}
+                    required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-3 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
+              </div>
+              {password.length > 0 && (
+                <div className="mt-2 space-y-1.5">
+                  <div className="flex gap-1 h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                    {[1, 2, 3, 4, 5].map((level) => (
+                      <div 
+                        key={level} 
+                        className={`flex-1 transition-all duration-300 ${strengthScore >= level ? getStrengthColor() : 'bg-transparent'}`}
+                      />
+                    ))}
+                  </div>
+                  <p className={`text-xs font-medium text-right ${
+                    strengthScore <= 2 ? 'text-red-500' : strengthScore <= 4 ? 'text-amber-500' : 'text-green-500'
+                  }`}>
+                    {getStrengthText()}
+                  </p>
+                </div>
+              )}
+            </div>
+            <Button type="submit" disabled={loading || password.length < 6} className="h-12 font-bold w-full">
               {loading ? "Processing..." : "Create Account"}
             </Button>
           </div>
