@@ -267,27 +267,33 @@ export function Navbar() {
               <Menu className="h-6 w-6" />
               <span className="sr-only">Toggle menu</span>
             </SheetTrigger>
-            <SheetContent side="right" className="w-[300px] sm:w-[400px]">
-              <SheetHeader>
-                <SheetTitle className="text-left">Navigation</SheetTitle>
+            <SheetContent side="right" className="w-[300px] sm:w-[400px] border-l border-border/50 bg-background/95 backdrop-blur-xl">
+              <SheetHeader className="border-b border-border/50 pb-4">
+                <SheetTitle className="text-left text-2xl font-black bg-gradient-to-br from-foreground to-foreground/70 bg-clip-text text-transparent">Savion</SheetTitle>
               </SheetHeader>
-              <div className="flex flex-col gap-4 mt-8">
-                <Link href="/search" onClick={() => setIsOpen(false)} className="text-lg font-medium hover:text-primary transition-colors">
-                  Destinations
-                </Link>
-                <Link href="/search" onClick={() => setIsOpen(false)} className="text-lg font-medium hover:text-primary transition-colors">
-                  Listings
-                </Link>
-                <Link href="/about" onClick={() => setIsOpen(false)} className="text-lg font-medium hover:text-primary transition-colors">
-                  About
-                </Link>
+              <div className="flex flex-col gap-6 mt-8">
+                <div className="flex flex-col gap-4">
+                  <Link href="/search" onClick={() => setIsOpen(false)} className="text-lg font-semibold flex items-center gap-3 hover:text-primary transition-all hover:translate-x-2">
+                    <span className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-sm">📍</span>
+                    Destinations
+                  </Link>
+                  <Link href="/search" onClick={() => setIsOpen(false)} className="text-lg font-semibold flex items-center gap-3 hover:text-primary transition-all hover:translate-x-2">
+                    <span className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-sm">🏠</span>
+                    Listings
+                  </Link>
+                  <Link href="/about" onClick={() => setIsOpen(false)} className="text-lg font-semibold flex items-center gap-3 hover:text-primary transition-all hover:translate-x-2">
+                    <span className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-sm">✨</span>
+                    About
+                  </Link>
+                </div>
                 {!user && (
-                  <div className="flex flex-col gap-3 mt-4 pt-4 border-t">
+                  <div className="flex flex-col gap-3 mt-4 pt-6 border-t border-border/50">
+                    <p className="text-sm font-medium text-muted-foreground mb-2">Join to book & manage properties</p>
                     <Link href="/login" onClick={() => setIsOpen(false)}>
-                      <Button variant="outline" className="w-full">Log In</Button>
+                      <Button variant="outline" className="w-full justify-center h-12 text-md font-semibold border-border/60 hover:bg-slate-50 dark:hover:bg-slate-800">Log In</Button>
                     </Link>
                     <Link href="/signup" onClick={() => setIsOpen(false)}>
-                      <Button className="w-full">Sign Up</Button>
+                      <Button className="w-full justify-center h-12 text-md font-bold shadow-lg shadow-primary/20 dark:neon-shadow">Sign Up Free</Button>
                     </Link>
                   </div>
                 )}
