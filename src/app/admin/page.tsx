@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { onAuthStateChanged, signOut } from "firebase/auth";
-import { collection, getDocs, query, orderBy } from "firebase/firestore";
+import { collection, getDocs, query, orderBy, updateDoc, doc } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase/client";
 import { getUserProfile } from "@/lib/db/users";
 import { Button } from "@/components/ui/button";
@@ -41,6 +41,8 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<Stats | null>(null);
   const [users, setUsers] = useState<UserRecord[]>([]);
+  const [pgs, setPgs] = useState<any[]>([]);
+  const [bookings, setBookings] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<"overview" | "users" | "properties" | "bookings">("overview");
 
   useEffect(() => {
@@ -72,6 +74,12 @@ export default function AdminPage() {
       const usersData = usersSnap.docs.map(d => ({ uid: d.id, ...d.data() } as UserRecord));
       setUsers(usersData);
 
+      const pgsData = pgsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      setPgs(pgsData);
+
+      const bookingsData = bookingsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      setBookings(bookingsData);
+
       setStats({
         totalUsers: usersData.length,
         totalOwners: usersData.filter(u => u.role === "owner").length,
@@ -88,6 +96,16 @@ export default function AdminPage() {
   const handleSignOut = async () => {
     await signOut(auth);
     router.push("/");
+  };
+
+  const handleAssignCaretaker = async (pgId: string, caretakerId: string) => {
+    try {
+      await updateDoc(doc(db, "pgs", pgId), { caretakerId: caretakerId || null });
+      setPgs(prev => prev.map(pg => pg.id === pgId ? { ...pg, caretakerId } : pg));
+    } catch (e) {
+      console.error("Failed to assign caretaker", e);
+      alert("Failed to assign caretaker. Check permissions.");
+    }
   };
 
   if (loading) {
@@ -313,39 +331,103 @@ export default function AdminPage() {
 
         {/* Properties Tab */}
         {activeTab === "properties" && (
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 text-center animate-scale-in">
-            <Building2 className="w-12 h-12 text-slate-600 mx-auto mb-3" />
-            <h3 className="font-bold text-lg mb-1">Property Listings</h3>
-            <p className="text-slate-400 text-sm mb-4">View and manage all properties directly in Firestore.</p>
-            <a
-              href="https://console.firebase.google.com/project/savion-231006/firestore/data/pgs"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <Button className="bg-violet-600 hover:bg-violet-700 gap-2">
-                <ExternalLink className="w-4 h-4" />
-                Open PGs in Firestore
-              </Button>
-            </a>
+          <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden animate-scale-in">
+            <div className="px-6 py-4 border-b border-slate-800 flex justify-between items-center">
+              <h2 className="text-lg font-bold">All Properties <span className="text-slate-500 font-normal text-sm ml-2">({pgs.length})</span></h2>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-slate-800 text-slate-400 text-xs uppercase tracking-wider">
+                    <th className="text-left px-6 py-3">Property Name</th>
+                    <th className="text-left px-6 py-3">Owner UID</th>
+                    <th className="text-left px-6 py-3">Rooms</th>
+                    <th className="text-left px-6 py-3">Caretaker Assignment</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pgs.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="px-6 py-12 text-center text-slate-500">No properties found</td>
+                    </tr>
+                  ) : pgs.map((pg) => (
+                    <tr key={pg.id} className="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors">
+                      <td className="px-6 py-4">
+                        <p className="font-semibold">{pg.name}</p>
+                        <p className="text-xs text-slate-500">{pg.city}</p>
+                      </td>
+                      <td className="px-6 py-4 font-mono text-xs text-slate-400">{pg.ownerId}</td>
+                      <td className="px-6 py-4">
+                        <span className="bg-slate-800 text-slate-300 px-2 py-1 rounded text-xs">{pg.totalRooms || 0} Total</span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <select 
+                          className="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-sm text-slate-300 focus:outline-none focus:border-violet-500"
+                          value={pg.caretakerId || ""}
+                          onChange={(e) => handleAssignCaretaker(pg.id, e.target.value)}
+                        >
+                          <option value="">-- Unassigned --</option>
+                          {users.filter(u => u.role === "caretaker").map(c => (
+                            <option key={c.uid} value={c.uid}>{c.name || "Unknown"} ({c.uid.substring(0,6)}...)</option>
+                          ))}
+                        </select>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 
         {/* Bookings Tab */}
         {activeTab === "bookings" && (
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 text-center animate-scale-in">
-            <BookOpen className="w-12 h-12 text-slate-600 mx-auto mb-3" />
-            <h3 className="font-bold text-lg mb-1">Booking Records</h3>
-            <p className="text-slate-400 text-sm mb-4">View all bookings and their statuses directly in Firestore.</p>
-            <a
-              href="https://console.firebase.google.com/project/savion-231006/firestore/data/bookings"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <Button className="bg-violet-600 hover:bg-violet-700 gap-2">
-                <ExternalLink className="w-4 h-4" />
-                Open Bookings in Firestore
-              </Button>
-            </a>
+          <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden animate-scale-in">
+            <div className="px-6 py-4 border-b border-slate-800 flex justify-between items-center">
+              <h2 className="text-lg font-bold">All Bookings <span className="text-slate-500 font-normal text-sm ml-2">({bookings.length})</span></h2>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-slate-800 text-slate-400 text-xs uppercase tracking-wider">
+                    <th className="text-left px-6 py-3">Booking ID</th>
+                    <th className="text-left px-6 py-3">Property</th>
+                    <th className="text-left px-6 py-3">Tenant UID</th>
+                    <th className="text-left px-6 py-3">Status</th>
+                    <th className="text-left px-6 py-3">Date</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {bookings.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="px-6 py-12 text-center text-slate-500">No bookings found</td>
+                    </tr>
+                  ) : bookings.map((b) => (
+                    <tr key={b.id} className="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors">
+                      <td className="px-6 py-4 font-mono text-xs text-slate-400">{b.id}</td>
+                      <td className="px-6 py-4">
+                        <p className="font-semibold">{b.pgName || "Unknown PG"}</p>
+                        <p className="text-xs text-slate-500">Room {b.roomNumber || "?"}</p>
+                      </td>
+                      <td className="px-6 py-4 font-mono text-xs text-slate-400">{b.tenantId}</td>
+                      <td className="px-6 py-4">
+                        <span className={`inline-block text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full ${
+                          b.status === "active" ? "bg-green-900/50 text-green-400" :
+                          b.status === "pending" ? "bg-amber-900/50 text-amber-400" :
+                          b.status === "cancelled" ? "bg-red-900/50 text-red-400" :
+                          "bg-slate-800 text-slate-400"
+                        }`}>
+                          {b.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-slate-400 text-xs">
+                        {new Date(b.createdAt).toLocaleDateString()}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>
