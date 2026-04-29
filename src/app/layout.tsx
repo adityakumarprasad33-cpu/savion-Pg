@@ -10,6 +10,18 @@ const outfit = Outfit({
 export const metadata: Metadata = {
   title: "Savion - Premium PG Booking Platform",
   description: "Find and book the best PG accommodations easily.",
+  icons: [
+    {
+      media: "(prefers-color-scheme: light)",
+      url: "/favicon.ico",
+      href: "/favicon.ico",
+    },
+    {
+      media: "(prefers-color-scheme: dark)",
+      url: "/favicon-dark.ico",
+      href: "/favicon-dark.ico",
+    },
+  ],
 };
 
 import { ClientWrapper } from "@/components/layout/ClientWrapper";
