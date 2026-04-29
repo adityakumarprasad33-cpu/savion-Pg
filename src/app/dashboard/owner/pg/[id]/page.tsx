@@ -177,7 +177,13 @@ export default function ManagePGPage() {
     setIsAddingRoom(false);
   };
 
-  const handleBookingAction = async (bookingId: string, tenantId: string, action: "confirmed" | "cancelled", roomType: string, contractId?: string) => {
+  const handleBookingAction = async (
+    bookingId: string,
+    tenantId: string,
+    action: "confirmed" | "cancelled" | "notice_approved" | "disputed",
+    roomType: string,
+    contractId?: string
+  ) => {
     if (!pg) return;
     await updateBookingStatus(bookingId, action);
 
@@ -192,7 +198,15 @@ export default function ManagePGPage() {
     // Notify tenant
     await createNotification({
       userId: tenantId,
-      title: `Booking ${action === 'confirmed' ? 'Approved' : action === 'cancelled' ? 'Cancelled' : 'Update'}`,
+      title: `Booking ${
+        action === "confirmed"
+          ? "Approved"
+          : action === "cancelled"
+          ? "Cancelled"
+          : action === "notice_approved"
+          ? "Notice Approved"
+          : "Update"
+      }`,
       message: action === "cancelled"
         ? `Your booking for a ${roomType} room at ${pg.name} has been marked as vacated/cancelled.`
         : action === "notice_approved"
