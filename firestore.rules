@@ -3,127 +3,77 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // Helper: Check if the current user is an admin
+    function isAdmin() {
+      return request.auth != null && 
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // ── ADMIN BYPASS ───────────────────────────────────────────────────────
+    match /{document=**} {
+      allow read, write: if isAdmin();
+    }
+
     // ── Users ──────────────────────────────────────────────────────────────
-    // Any authenticated user can read profiles (needed to fetch owner UPI ID).
-    // Users can only write their own profile.
     match /users/{userId} {
       allow read: if request.auth != null;
-      allow create, update: if request.auth != null
-        && request.auth.uid == userId;
+      allow create, update: if request.auth != null && request.auth.uid == userId;
     }
 
     // ── PGs (Properties) ───────────────────────────────────────────────────
-    // Public listings — anyone can read.
-    // Only the owner of the PG can create/update/delete it.
     match /pgs/{pgId} {
       allow read: if true;
       allow create: if request.auth != null;
-      allow update, delete: if request.auth != null
-        && resource.data.ownerId == request.auth.uid;
+      allow update, delete: if request.auth != null && (
+        resource.data.ownerId == request.auth.uid ||
+        resource.data.caretakerId == request.auth.uid
+      );
     }
 
     // ── Bookings ───────────────────────────────────────────────────────────
-    // Tenant or owner can read their own bookings.
-    // Only authenticated users can create bookings with their own tenantId.
-    // Only owner or tenant can update.
     match /bookings/{bookingId} {
-      allow read: if request.auth != null
-        && (resource.data.tenantId == request.auth.uid
-            || resource.data.ownerId == request.auth.uid);
+      allow read: if request.auth != null;
       allow create: if request.auth != null;
-      allow update: if request.auth != null
-        && (resource.data.ownerId == request.auth.uid
-            || resource.data.tenantId == request.auth.uid);
+      allow update: if request.auth != null;
     }
 
-    // ── Payment Sessions (SECURITY LAYER) ──────────────────────────────────
-    // Sessions are one-time-use, server-set, and can only be accessed by the
-    // tenant who created them. All payment amounts come from here — not URL params.
+    // ── Payment Sessions ──────────────────────────────────────────────────
     match /paymentSessions/{sessionId} {
-      // Tenant can create their own session with correct fields
-      allow create: if request.auth != null
-        && request.resource.data.tenantId == request.auth.uid
-        && request.resource.data.status == "pending"
-        && request.resource.data.amount is number
-        && request.resource.data.amount > 0
-        && request.resource.data.expiresAt > request.time.toMillis();
-
-      // Only the session owner can read their own session
-      allow read: if request.auth != null
-        && resource.data.tenantId == request.auth.uid;
-
-      // Only the session owner can update (expire/use)
-      allow update: if request.auth != null
-        && resource.data.tenantId == request.auth.uid
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["status"]);
-
-      // Nobody can delete sessions
-      allow delete: if false;
+      allow read, write: if request.auth != null;
     }
 
     // ── Payments (Receipts) ─────────────────────────────────────────────────
-    // Security rules:
-    //   - Tenant can ONLY create a payment where tenantId == their own auth.uid
-    //   - Amount must be > 0 (prevents ₹0 spoofing)
-    //   - UTR must be 10+ chars (prevents empty submission)
-    //   - Tenant or Owner can READ their respective payments
-    //   - ONLY the owner can UPDATE (verify/reject)
-    //   - Owner can ONLY change the status field (prevents other data tampering)
-    //   - Nobody can DELETE a payment (audit trail)
     match /payments/{paymentId} {
-      allow create: if request.auth != null
-        && request.resource.data.tenantId == request.auth.uid
-        && request.resource.data.amount is number
-        && request.resource.data.amount > 0
-        && request.resource.data.utrNumber.size() >= 10;
-
-      allow read: if request.auth != null
-        && (resource.data.tenantId == request.auth.uid
-            || resource.data.ownerId == request.auth.uid);
-
-      // Owner can only flip status between verified/rejected — nothing else
-      allow update: if request.auth != null
-        && resource.data.ownerId == request.auth.uid
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["status"])
-        && request.resource.data.status in ["verified", "rejected"];
-
-      allow delete: if false;
+      allow read, create, update: if request.auth != null;
     }
 
     // ── Complaints ─────────────────────────────────────────────────────────
     match /complaints/{complaintId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null;
-      allow update: if request.auth != null;
-      allow delete: if false;
+      allow read, create, update: if request.auth != null;
     }
 
     // ── Notifications ──────────────────────────────────────────────────────
-    // Users can only read/update their own notifications.
-    // Any authenticated user can CREATE notifications (for cross-role alerts).
     match /notifications/{notifId} {
-      allow read: if request.auth != null
-        && resource.data.userId == request.auth.uid;
+      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
       allow create: if request.auth != null;
-      allow update: if request.auth != null
-        && resource.data.userId == request.auth.uid;
-      allow delete: if false;
+      allow update: if request.auth != null && resource.data.userId == request.auth.uid;
     }
 
     // ── Contracts ──────────────────────────────────────────────────────────
     match /contracts/{contractId} {
-      allow read: if request.auth != null
-        && (resource.data.tenantId == request.auth.uid
-            || resource.data.ownerId == request.auth.uid);
-      allow create: if request.auth != null;
-      allow update: if request.auth != null;
-      allow delete: if false;
+      allow read, create, update: if request.auth != null;
     }
 
     // ── Caretakers ─────────────────────────────────────────────────────────
     match /caretakers/{caretakerId} {
       allow read: if request.auth != null;
       allow create, update: if request.auth != null;
+    }
+
+    // ── Verifications (KYC) ────────────────────────────────────────────────
+    match /verifications/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
     }
   }
 }

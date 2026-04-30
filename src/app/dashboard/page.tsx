@@ -6,6 +6,7 @@ import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/lib/firebase/client";
 import { getUserProfile } from "@/lib/db/users";
 import { getUserBookings } from "@/lib/db/bookings";
+import { SpeedLoader } from "@/components/ui/SpeedLoader";
 
 /**
  * /dashboard — Smart router.
@@ -40,11 +41,8 @@ export default function DashboardRedirect() {
   }, [router]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="text-center">
-        <div className="w-10 h-10 rounded-full border-4 border-primary border-t-transparent animate-spin mx-auto mb-3" />
-        <p className="text-muted-foreground text-sm font-medium">Taking you to your dashboard...</p>
-      </div>
+    <div className="min-h-screen flex items-center justify-center bg-white">
+      <SpeedLoader text="Redirecting" subtext="Preparing your dashboard..." />
     </div>
   );
 }

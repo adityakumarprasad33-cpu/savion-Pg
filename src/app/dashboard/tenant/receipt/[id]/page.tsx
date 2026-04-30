@@ -7,6 +7,7 @@ import type { Payment } from "@/lib/db/payments";
 import Link from "next/link";
 import { ArrowLeft, Printer, CheckCircle2, XCircle, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { SpeedLoader } from "@/components/ui/SpeedLoader";
 
 function maskAadhaar(aadhaar: string) {
   if (!aadhaar) return "XXXX-XXXX-XXXX";
@@ -38,8 +39,8 @@ export default function ReceiptPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="w-10 h-10 rounded-full border-4 border-primary border-t-transparent animate-spin" />
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <SpeedLoader text="Fetching Receipt" subtext="Securing your payment details..." />
       </div>
     );
   }

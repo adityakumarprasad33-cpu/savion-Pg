@@ -11,13 +11,14 @@ import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import { submitPayment, getPaymentsByTenant } from "@/lib/db/payments";
 import { createNotification } from "@/lib/db/notifications";
-import { updateBookingStatus } from "@/lib/db/bookings";
+import { updateBooking } from "@/lib/db/bookings";
 import {
   getPaymentSession,
-  markSessionUsed,
   markSessionExpired,
+  markSessionUsed,
   type PaymentSession
 } from "@/lib/db/paymentSessions";
+import { SpeedLoader } from "@/components/ui/SpeedLoader";
 
 const TIMER_SECONDS = 600;
 
@@ -211,7 +212,7 @@ export default function UpiPayPage() {
       await markSessionUsed(session.id);
 
       // Auto-confirm the booking on first successful payment
-      await updateBookingStatus(session.bookingId, "confirmed");
+      await updateBooking(session.bookingId, { status: "confirmed" });
 
       // Notify TENANT — payment confirmed
       await createNotification({
@@ -258,12 +259,8 @@ export default function UpiPayPage() {
   // ── LOADING ──────────────────────────────────────────────────────────────
   if (initLoading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center gap-4 p-6">
-        <div className="w-12 h-12 rounded-full border-4 border-primary/30 border-t-primary animate-spin" />
-        <div className="text-center">
-          <p className="font-semibold text-slate-700">Verifying payment session...</p>
-          <p className="text-xs text-muted-foreground mt-1">Authenticating with server</p>
-        </div>
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <SpeedLoader text="Securing Session" subtext="Verifying payment environment..." />
       </div>
     );
   }

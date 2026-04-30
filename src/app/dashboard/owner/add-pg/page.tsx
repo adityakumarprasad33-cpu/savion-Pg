@@ -202,7 +202,7 @@ export default function AddPGPage() {
             roomImgUrl = await uploadToCloudinary(room.imageFile, "savion/rooms");
           }
           const { imageFile, imagePreview, ...dbRoomData } = room;
-          return { ...dbRoomData, image: roomImgUrl } as PGRoom;
+          return { ...dbRoomData, image: roomImgUrl || "" } as PGRoom;
         })
       );
 
@@ -224,6 +224,7 @@ export default function AddPGPage() {
         rules: rules.filter(Boolean),
         nearbyPlaces: nearbyPlaces.filter(Boolean),
         ownerId,
+        caretakerId: caretakerMode === "saved" ? selectedSavedId : undefined,
       });
 
       // Handle caretaker creation
@@ -240,9 +241,19 @@ export default function AddPGPage() {
           const ctResult = await createUserWithEmailAndPassword(secondaryAuth, caretakerEmail, ctPassword);
           await createUserProfile(ctResult.user.uid, { role: "caretaker", name: ctName || ctUid });
           await createCaretaker({ uid: ctUid.trim().toLowerCase(), name: ctName || ctUid, ownerId, pgIds: [newPG.id], saved: ctSaveToPool });
+          
+          // Link the new caretaker to the PG as well
+          const { updateDoc, doc } = await import("firebase/firestore");
+          await updateDoc(doc(db, "pgs", newPG.id), { caretakerId: ctResult.user.uid });
         } finally {
           await deleteApp(secondaryApp);
         }
+      } else if (caretakerMode === "saved" && selectedSavedId) {
+        // Update saved caretaker's pgIds
+        const { updateDoc, arrayUnion, doc } = await import("firebase/firestore");
+        await updateDoc(doc(db, "caretakers", selectedSavedId), {
+          pgIds: arrayUnion(newPG.id)
+        });
       }
 
       router.push("/dashboard/owner");
@@ -311,7 +322,7 @@ export default function AddPGPage() {
                   <span className={`text-xs font-semibold truncate ${isActive ? "text-primary" : "text-slate-400"}`}>{label}</span>
                 </div>
                 {i < STEP_LABELS.length - 1 && (
-                  <div className={`h-0.5 flex-1 mx-1 rounded ${step > sNum ? "bg-green-400" : "bg-slate-200"}`} />
+                  <div className={`h-0.5 flex-1 mx-1 rounded ${step > sNum ? "bg-primary/40" : "bg-slate-200"}`} />
                 )}
               </div>
             );
@@ -498,7 +509,7 @@ export default function AddPGPage() {
               </div>
               <p className="text-sm text-muted-foreground mb-2">Add each room in your building. Every room number must be unique within this building.</p>
               {duplicateRoomNumbers().size > 0 && (
-                <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-2.5 flex items-center gap-2">
+                <div className="bg-primary/5 border border-primary/20 text-primary text-sm rounded-xl px-4 py-2.5 flex items-center gap-2">
                   ⚠️ Duplicate room numbers detected: <strong>{[...duplicateRoomNumbers()].map(r => r.toUpperCase()).join(", ")}</strong>. Each room must have a unique number.
                 </div>
               )}
@@ -550,12 +561,12 @@ export default function AddPGPage() {
                       onChange={(e) => updateRoom(idx, "roomNumber", e.target.value)}
                       className={`h-10 font-mono ${
                         room.roomNumber.trim() && duplicateRoomNumbers().has(room.roomNumber.trim().toLowerCase())
-                          ? "border-red-400 focus-visible:ring-red-300 bg-red-50"
+                          ? "border-primary focus-visible:ring-primary/30 bg-primary/5"
                           : ""
                       }`}
                     />
                     {room.roomNumber.trim() && duplicateRoomNumbers().has(room.roomNumber.trim().toLowerCase()) && (
-                      <p className="text-xs text-red-600 mt-1 font-semibold">⚠️ Duplicate room number</p>
+                      <p className="text-xs text-primary mt-1 font-semibold">⚠️ Duplicate room number</p>
                     )}
                   </div>
                   <div>
@@ -711,7 +722,7 @@ export default function AddPGPage() {
 
             {caretakerMode === "new" && (
               <div className="space-y-3 pt-2">
-                <div className="bg-blue-50 border border-blue-200 text-blue-800 text-xs rounded-lg px-3 py-2">
+                <div className="bg-primary/5 border border-primary/10 text-primary text-xs rounded-lg px-3 py-2">
                   💡 These credentials are what the caretaker will use to log in at <strong>/caretaker-login</strong>.
                 </div>
                 <Input placeholder="Caretaker Name (optional)" value={ctName} onChange={(e) => setCtName(e.target.value)} className="h-11" />
@@ -785,7 +796,7 @@ export default function AddPGPage() {
             <Button
               onClick={handleSubmit}
               disabled={loading || ctUidTaken}
-              className="px-8 font-bold bg-green-600 hover:bg-green-700 text-white"
+              className="px-8 font-bold bg-primary hover:bg-primary/90 text-white"
             >
               {loading ? (
                 <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Publishing...</>

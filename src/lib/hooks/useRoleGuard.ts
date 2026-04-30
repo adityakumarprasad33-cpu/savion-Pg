@@ -49,13 +49,19 @@ export function useRoleGuard(requiredRole: UserRole): GuardResult {
 
         if (!profile) {
           setError(
-            "Could not load your profile. Please check your Firestore security rules or internet connection."
+            "Account deleted or disabled by Savion. Please contact support."
           );
           setLoading(false);
           return;
         }
 
         const role = profile.role;
+
+        if (role === "disabled") {
+          setError("Account deleted or disabled by Savion. Please contact support.");
+          setLoading(false);
+          return;
+        }
 
         // Accept both "tenant" and "student" for the tenant dashboard
         const effectiveRole = role === "student" ? "tenant" : role;

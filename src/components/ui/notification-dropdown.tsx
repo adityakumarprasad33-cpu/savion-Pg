@@ -15,7 +15,7 @@ export function NotificationDropdown({ userId }: { userId: string | null | undef
   
   useEffect(() => {
     if (userId) {
-      getUserNotifications(userId).then(setNotifications);
+      getUserNotifications(userId).catch(e => { console.error("Notifications error:", e); return []; }).then(setNotifications);
     }
   }, [userId]);
 

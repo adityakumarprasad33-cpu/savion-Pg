@@ -58,12 +58,23 @@ export default function BookingWizard() {
   const [contractId, setContractId] = useState<string | null>(null);
   const [paymentSessionId, setPaymentSessionId] = useState<string | null>(null);
 
+  const [isVerified, setIsVerified] = useState(false);
+  const [verifiedIdUrl, setVerifiedIdUrl] = useState<string>("");
+
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
       if (!user) { router.replace("/login"); return; }
       setUserId(user.uid);
       const profile = await getUserProfile(user.uid);
       setTenantName(profile?.name || "Tenant");
+
+      // Robust check: Always verify the actual verification record
+      const { getVerificationStatus } = await import("@/lib/db/verifications");
+      const v = await getVerificationStatus(user.uid);
+      if (v?.status === "verified" || profile?.isVerified) {
+        setIsVerified(true);
+        if (v?.idUrl) setVerifiedIdUrl(v.idUrl);
+      }
 
       // Check for active booking and block
       const bookings = await getUserBookings(user.uid);
@@ -100,17 +111,26 @@ export default function BookingWizard() {
   const roomType = selectedRoomDetails?.type || "Unknown Type";
   const roomNo = selectedRoomDetails?.roomNumber || "Unknown";
 
-  const next = () => setStep((s) => Math.min(s + 1, 4) as Step);
-  const back = () => setStep((s) => Math.max(s - 1, 1) as Step);
+  const next = () => {
+    if (step === 1 && isVerified) setStep(3); // Skip step 2 if verified
+    else setStep((s) => Math.min(s + 1, 4) as Step);
+  };
+  const back = () => {
+    if (step === 3 && isVerified) setStep(1); // Skip step 2 if verified
+    else setStep((s) => Math.max(s - 1, 1) as Step);
+  };
 
   const handleFinalSubmit = async () => {
-    if (!pg || !userId || !aadhaarFile || !signatureDataUrl) return;
+    if (!pg || !userId || (!isVerified && !aadhaarFile) || !signatureDataUrl) return;
 
     try {
       setSubmitting(true);
 
-      // 1. Upload Aadhaar
-      const aadhaarUrl = await uploadToCloudinary(aadhaarFile, "savion/kyc");
+      // 1. Upload Aadhaar or use existing
+      let aadhaarUrl = verifiedIdUrl;
+      if (!isVerified && aadhaarFile) {
+        aadhaarUrl = await uploadToCloudinary(aadhaarFile, "savion/kyc");
+      }
 
       // 2. Upload extra doc if provided
       let extraDocUrl: string | undefined;
@@ -132,8 +152,8 @@ export default function BookingWizard() {
         tenantId: userId,
         tenantName,
         tenantAadhaarUrl: aadhaarUrl,
-        tenantAadhaarNumber: aadhaarData?.aadhaarNumber || "Unknown",
-        tenantDob: aadhaarData?.dob || "Unknown",
+        tenantAadhaarNumber: isVerified ? "Verified User" : (aadhaarData?.aadhaarNumber || "Unknown"),
+        tenantDob: isVerified ? "Verified User" : (aadhaarData?.dob || "Unknown"),
         monthlyRent: `₹${finalAmount.toLocaleString("en-IN")}/mo`,
         moveInDate,
         securityDeposit: `₹${finalAmount.toLocaleString("en-IN")}`,
@@ -147,6 +167,7 @@ export default function BookingWizard() {
       // 5. Create booking with contractId — omit optional fields if undefined
       const booking = await createBooking({
         tenantId: userId,
+        tenantName,
         pgId: pg.id,
         pgName: pg.name,
         ownerId: pg.ownerId,
@@ -344,13 +365,28 @@ export default function BookingWizard() {
           {/* Step 2 — KYC Documents */}
           {step === 2 && (
             <div className="space-y-5">
-              <h2 className="text-xl font-bold">Identity Verification</h2>
-              <p className="text-sm text-muted-foreground">
-                Required by law. Your documents are encrypted and only shared with the property owner.
-              </p>
+              {isVerified ? (
+                <div className="text-center py-10 animate-fade-in">
+                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm shadow-green-100">
+                    <CheckCircle2 className="w-8 h-8 text-green-600" />
+                  </div>
+                  <h2 className="text-xl font-extrabold mb-2 text-slate-900">Identity Verified</h2>
+                  <p className="text-slate-500 mb-8 max-w-sm mx-auto text-sm">
+                    You have already completed your identity verification. Your documents are securely attached to this booking.
+                  </p>
+                  <Button onClick={next} className="px-8 font-bold bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-200">
+                    Continue to Signature <ChevronRight className="w-4 h-4 ml-1" />
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <h2 className="text-xl font-bold">Identity Verification</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Required by law. Your documents are encrypted and only shared with the property owner.
+                  </p>
 
-              {/* Aadhaar Verification */}
-              <div>
+                  {/* Aadhaar Verification */}
+                  <div>
                 <AadhaarVerifier 
                   onVerified={(data) => {
                     setAadhaarFile(data.file);
@@ -386,6 +422,8 @@ export default function BookingWizard() {
                   />
                 </label>
               </div>
+              </>
+              )}
             </div>
           )}
 

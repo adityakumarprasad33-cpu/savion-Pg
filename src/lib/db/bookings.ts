@@ -4,6 +4,7 @@ import { db } from "../firebase/client";
 export interface Booking {
   id: string;
   tenantId: string;        // Firebase Auth UID of the tenant
+  tenantName?: string;     // Full name of the resident
   pgId: string;
   pgName: string;
   ownerId: string;         // Owner's UID — for owner dashboard access
@@ -14,6 +15,7 @@ export interface Booking {
   amount: number;
   paymentChoice?: "payNow" | "payLater";
   status: "pending" | "approved" | "confirmed" | "cancelled" | "disputed" | "notice_given" | "notice_approved";
+  moveOutDate?: string; // ISO date string e.g. "2024-06-15"
   // KYC Documents
   aadhaarUrl: string;      // Required — Aadhaar or Govt ID
   extraDocUrl?: string;    // Optional extra document
@@ -65,7 +67,7 @@ export async function getBookingsByPG(pgId: string): Promise<Booking[]> {
   return snap.docs.map((d) => d.data() as Booking);
 }
 
-export async function updateBookingStatus(id: string, status: Booking["status"]): Promise<void> {
+export async function updateBooking(id: string, data: Partial<Booking>): Promise<void> {
   const ref = doc(db, "bookings", id);
-  await updateDoc(ref, { status });
+  await updateDoc(ref, data);
 }

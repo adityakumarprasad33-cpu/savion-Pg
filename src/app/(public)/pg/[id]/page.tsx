@@ -12,6 +12,7 @@ import { BookingSidebar } from "@/components/ui/BookingSidebar";
 import { auth } from "@/lib/firebase/client";
 import { onAuthStateChanged } from "firebase/auth";
 import { getUserBookings } from "@/lib/db/bookings";
+import { SpeedLoader } from "@/components/ui/SpeedLoader";
 
 export default function PGDetailsPage() {
   const params = useParams<{ id: string }>();
@@ -86,11 +87,8 @@ export default function PGDetailsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-10 h-10 rounded-full border-4 border-primary border-t-transparent animate-spin mx-auto mb-3" />
-          <p className="text-muted-foreground text-sm">Loading property...</p>
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <SpeedLoader text="Loading Property" subtext="Fetching the best rooms for you..." />
       </div>
     );
   }

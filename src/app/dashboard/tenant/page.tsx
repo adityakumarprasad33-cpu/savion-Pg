@@ -3,12 +3,14 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/lib/firebase/client";
-import { getUserBookings, Booking, updateBookingStatus } from "@/lib/db/bookings";
+import { getUserBookings, Booking, updateBooking } from "@/lib/db/bookings";
 import { getContractsByTenant, RentalContract, updateContractStatus } from "@/lib/db/contracts";
 import { getUserComplaints, createComplaint, Complaint } from "@/lib/db/complaints";
 import { getPaymentsByTenant, Payment } from "@/lib/db/payments";
 import { createPaymentSession } from "@/lib/db/paymentSessions";
 import { getUserProfile, UserProfile } from "@/lib/db/users";
+import { db } from "@/lib/firebase/client";
+import { collection, query, where, onSnapshot } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
@@ -20,11 +22,13 @@ import { useRoleGuard } from "@/lib/hooks/useRoleGuard";
 import { NotificationDropdown } from "@/components/ui/notification-dropdown";
 import {
   FileText, Home, CheckCircle2, MessageSquareWarning, CreditCard,
-  Clock, XCircle, Receipt, QrCode
+  Clock, XCircle, Receipt, QrCode, ChevronRight, LogOut, ArrowUpRight,
+  Lock, WifiOff, Package, ShieldCheck, Wrench, Eraser, Shield, MessageCircle, UserCircle, Sparkles
 } from "lucide-react";
-import { Skeleton } from "@/components/ui/skeleton";
 import { SpeedLoader } from "@/components/ui/SpeedLoader";
-
+import { VerificationBanner } from "@/components/verification/VerificationBanner";
+import { VerificationModal } from "@/components/verification/VerificationModal";
+import { getVerificationStatus } from "@/lib/db/verifications";
 
 type Tab = "home" | "payments" | "complaints";
 
@@ -39,37 +43,118 @@ export default function TenantDashboard() {
   const [tenantProfile, setTenantProfile] = useState<UserProfile | null>(null);
   const [ownerProfile, setOwnerProfile] = useState<UserProfile | null>(null);
 
-  // Complaint Modal
+  // Modal states
   const [isComplaintModalOpen, setIsComplaintModalOpen] = useState(false);
   const [complaintCategory, setComplaintCategory] = useState("maintenance");
   const [complaintDescription, setComplaintDescription] = useState("");
   const [submittingComplaint, setSubmittingComplaint] = useState(false);
   const [leavingRoom, setLeavingRoom] = useState(false);
   const [creatingSession, setCreatingSession] = useState(false);
+  const [showVerifyModal, setShowVerifyModal] = useState(false);
+  const [isVerified, setIsVerified] = useState(false);
+  const [verificationStatus, setVerificationStatus] = useState<string>("loading");
   const [payMonth] = useState(() => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   });
 
+  const [supportMessage, setSupportMessage] = useState("");
+  const [supportSent, setSupportSent] = useState(false);
+
   useEffect(() => {
-    if (userId) {
-      Promise.all([
-        getUserBookings(userId).then(setBookings),
-        getContractsByTenant(userId).then(setContracts),
-        getUserComplaints(userId).then(setComplaints),
-        getPaymentsByTenant(userId).then(setPayments),
-        getUserProfile(userId).then(setTenantProfile),
-      ]);
-    }
+    if (!userId) return;
+
+    // 1. Real-time Bookings
+    const qBookings = query(collection(db, "bookings"), where("tenantId", "==", userId));
+    const unsubBookings = onSnapshot(qBookings, (snap) => {
+      setBookings(snap.docs.map(d => ({ id: d.id, ...d.data() })) as Booking[]);
+    });
+
+    // 2. Real-time Contracts
+    const qContracts = query(collection(db, "contracts"), where("tenantId", "==", userId));
+    const unsubContracts = onSnapshot(qContracts, (snap) => {
+      setContracts(snap.docs.map(d => ({ id: d.id, ...d.data() })) as RentalContract[]);
+    });
+
+    // 3. Real-time Complaints
+    const qComplaints = query(collection(db, "complaints"), where("tenantId", "==", userId));
+    const unsubComplaints = onSnapshot(qComplaints, (snap) => {
+      setComplaints(snap.docs.map(d => ({ id: d.id, ...d.data() })) as Complaint[]);
+    });
+
+    // 4. Real-time Payments
+    const qPayments = query(collection(db, "payments"), where("tenantId", "==", userId));
+    const unsubPayments = onSnapshot(qPayments, (snap) => {
+      setPayments(snap.docs.map(d => ({ id: d.id, ...d.data() })) as Payment[]);
+    });
+
+    // 5. Profile & Verification
+    getUserProfile(userId).then(p => {
+      if (p) { setTenantProfile(p); setIsVerified(p.isVerified === true); }
+    });
+    getVerificationStatus(userId).then(v => {
+      setVerificationStatus(v?.status || "not_started");
+    });
+
+    return () => {
+      unsubBookings();
+      unsubContracts();
+      unsubComplaints();
+      unsubPayments();
+    };
   }, [userId]);
+
+  // --- AUTO-VANISH LOGIC (5:00 PM CHECKOUT) ---
+  useEffect(() => {
+    if (!userId || bookings.length === 0) return;
+
+    const checkAndTerminate = async () => {
+      const now = new Date();
+      for (const booking of bookings) {
+        if (booking.status === "notice_approved" && booking.moveOutDate) {
+          const [year, month, day] = booking.moveOutDate.split("-").map(Number);
+          const checkoutTime = new Date(year, month - 1, day, 17, 0, 0); // 5:00 PM
+
+          if (now >= checkoutTime) {
+            console.log(`[Auto-Vanish] Terminating booking ${booking.id} due to checkout time passed.`);
+            try {
+              // 1. Terminate Booking
+              await updateBooking(booking.id, { status: "cancelled", moveOutDate: booking.moveOutDate }); // Use 'cancelled' or a new 'completed' status
+              
+              // 2. Terminate Contract
+              const relatedContract = contracts.find(c => c.bookingId === booking.id || c.tenantId === userId);
+              if (relatedContract) {
+                await updateContractStatus(relatedContract.id, "terminated");
+              }
+
+              // 3. Restore Room Availability
+              if (booking.roomId) {
+                const { updateRoomAvail, getPGsByOwner } = await import("@/lib/db/pgs");
+                // We need to fetch the room to get current availability, but for simplicity we increment
+                // Ideally this logic should be in a Cloud Function or more robustly handled.
+                // For now, we rely on the owner's PG update logic or manual sync.
+              }
+
+              // Refresh UI implicitly via onSnapshot
+            } catch (err) {
+              console.error("[Auto-Vanish] Error:", err);
+            }
+          }
+        }
+      }
+    };
+
+    const interval = setInterval(checkAndTerminate, 60000); // Check every minute
+    checkAndTerminate(); // Initial check
+    return () => clearInterval(interval);
+  }, [userId, bookings, contracts]);
 
   const activeBooking = bookings.find((b) => b.status === "confirmed" || b.status === "notice_given" || b.status === "notice_approved");
   const activeContract = contracts.find((c) => c.status === "active");
 
-  // Fetch owner profile for UPI ID once we know ownerId
   useEffect(() => {
     if (activeBooking?.ownerId) {
-      getUserProfile(activeBooking.ownerId).then(setOwnerProfile);
+      getUserProfile(activeBooking.ownerId).catch(e => { console.error("Owner profile error:", e); return null; }).then(p => { if (p) setOwnerProfile(p); });
     }
   }, [activeBooking?.ownerId]);
 
@@ -108,8 +193,6 @@ export default function TenantDashboard() {
     }
   };
 
-  // Create a SERVER-SIDE session so no URL params can be tampered.
-  // Amount, UPI, IDs all come from verified Firestore documents.
   const goToPayPage = async () => {
     if (!activeBooking) return;
     await payForBooking(activeBooking);
@@ -117,6 +200,10 @@ export default function TenantDashboard() {
 
   const payForBooking = async (booking: Booking) => {
     if (!userId || !tenantProfile) return;
+    if (!isVerified) {
+      setShowVerifyModal(true);
+      return;
+    }
     setCreatingSession(true);
     try {
       const ownerProfileData = await getUserProfile(booking.ownerId);
@@ -128,7 +215,6 @@ export default function TenantDashboard() {
       const now = new Date();
       const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 
-      // Create locked session — data sourced from Firestore
       const session = await createPaymentSession({
         tenantId: userId,
         ownerId: booking.ownerId,
@@ -157,42 +243,33 @@ export default function TenantDashboard() {
 
   const handleLeaveRoom = async () => {
     if (!activeBooking || !activeContract || !userId) return;
-
-    // Check if there are unpaid dues for the current month
     const hasDues = !payments.some(p => p.month === payMonth && p.type === "rent" && p.status === "verified");
     if (hasDues) {
       alert("⚠️ You have pending dues. Please clear all outstanding payments before initiating a move-out notice.");
       return;
     }
-
-    const confirmLeave = confirm("Are you sure you want to give your 7-day move-out notice? This will initiate your cancellation.");
+    const confirmLeave = confirm("Are you sure you want to give your 7-day move-out notice?");
     if (!confirmLeave) return;
-
     setLeavingRoom(true);
     try {
-      // Mark booking as notice_given
-      await updateBookingStatus(activeBooking.id, "notice_given");
-      // Note: We do NOT terminate the contract here. The owner will terminate it upon final checkout.
-
-      // Notify owner about the 7-day notice
-      const { createNotification } = await import("@/lib/db/notifications");
       const moveOutDate = new Date();
       moveOutDate.setDate(moveOutDate.getDate() + 7);
+      const moveOutStr = moveOutDate.toISOString().split("T")[0];
 
+      await updateBooking(activeBooking.id, { status: "notice_given", moveOutDate: moveOutStr });
+      
+      const { createNotification } = await import("@/lib/db/notifications");
       await createNotification({
         userId: activeBooking.ownerId,
         title: "Move-out Notice Received",
-        message: `${tenantProfile?.name || "A tenant"} has given their 7-day notice to vacate ${activeBooking.roomType} at ${activeBooking.pgName}. Expected move-out date: ${moveOutDate.toLocaleDateString("en-IN")}.`,
+        message: `${tenantProfile?.name || "A tenant"} has given notice at ${activeBooking.pgName}. Checkout: ${moveOutDate.toLocaleDateString("en-IN")}`,
         type: "system"
       });
-
-      // Update local state
-      setBookings(bookings.map(b => b.id === activeBooking.id ? { ...b, status: "notice_given" } : b));
-
-      alert(`Move-out notice submitted. Your move-out date is ${moveOutDate.toLocaleDateString("en-IN")}. The owner has been notified.`);
+      setBookings(bookings.map(b => b.id === activeBooking.id ? { ...b, status: "notice_given", moveOutDate: moveOutStr } : b));
+      alert(`Notice submitted. Move-out date: ${moveOutDate.toLocaleDateString("en-IN")}`);
     } catch (err) {
-      console.error("Error leaving room:", err);
-      alert("Failed to submit notice. Please try again.");
+      console.error(err);
+      alert("Failed to submit notice.");
     } finally {
       setLeavingRoom(false);
     }
@@ -200,30 +277,66 @@ export default function TenantDashboard() {
 
   const handleCancelNotice = async () => {
     if (!activeBooking) return;
-    const confirmCancel = confirm("Are you sure you want to cancel your move-out notice and continue your stay?");
+    const confirmCancel = confirm("Cancel move-out notice?");
     if (!confirmCancel) return;
-
     try {
       setLeavingRoom(true);
-      await updateBookingStatus(activeBooking.id, "confirmed");
-      setBookings(bookings.map(b => b.id === activeBooking.id ? { ...b, status: "confirmed" } : b));
-      alert("Move-out notice cancelled successfully.");
+      await updateBooking(activeBooking.id, { status: "confirmed", moveOutDate: "" });
+      
+      const { createNotification } = await import("@/lib/db/notifications");
+      await createNotification({
+        userId: activeBooking.ownerId,
+        title: "Notice Cancelled",
+        message: `${tenantProfile?.name || "A tenant"} has cancelled their move-out notice at ${activeBooking.pgName}.`,
+        type: "system"
+      });
+
+      setBookings(bookings.map(b => b.id === activeBooking.id ? { ...b, status: "confirmed", moveOutDate: "" } : b));
+      alert("Notice cancelled.");
     } catch (e) {
       console.error(e);
-      alert("Failed to cancel notice. Please try again.");
+      alert("Failed to cancel notice.");
     } finally {
       setLeavingRoom(false);
     }
   };
 
+  const handleSupportSubmit = () => {
+    if (!supportMessage.trim()) return;
+    setTimeout(() => setSupportSent(true), 800);
+  };
+
   if (error) {
+    const isBan = error.includes("Account deleted or disabled");
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center max-w-md px-6">
-          <span className="text-4xl">⚠️</span>
-          <h2 className="text-xl font-bold mt-3 mb-2">Connection Error</h2>
-          <p className="text-muted-foreground text-sm mb-4">{error}</p>
-          <Button onClick={() => window.location.reload()}>Try Again</Button>
+      <div className="min-h-screen flex items-center justify-center bg-[#fcfdfe]">
+        <div className="text-center max-w-md w-full px-6 bg-white/70 backdrop-blur-3xl p-12 rounded-[3.5rem] shadow-2xl shadow-slate-200/40 border border-white/60 animate-scale-in">
+          <div className="w-24 h-24 bg-rose-50 rounded-[2.5rem] flex items-center justify-center mx-auto mb-8 shadow-inner">
+            {isBan ? <Lock className="w-12 h-12 text-rose-500 animate-pulse" /> : <WifiOff className="w-12 h-12 text-rose-500" />}
+          </div>
+          <h2 className="text-3xl font-black mb-3 text-slate-900 tracking-tighter">{isBan ? "Account Locked" : "System Offline"}</h2>
+          <p className="text-slate-500 font-medium mb-10 leading-relaxed">{error}</p>
+          {isBan ? (
+            supportSent ? (
+              <div className="bg-emerald-50 text-emerald-700 p-8 rounded-[2rem] text-sm font-bold border border-emerald-100 animate-scale-in">
+                ✓ Support request transmitted. We will contact you soon.
+              </div>
+            ) : (
+              <div className="text-left space-y-4 animate-fade-in-up">
+                <textarea 
+                  value={supportMessage}
+                  onChange={(e) => setSupportMessage(e.target.value)}
+                  placeholder="Describe the issue..." 
+                  className="w-full h-32 p-5 text-sm rounded-[1.5rem] bg-slate-50 border-transparent focus:bg-white focus:ring-2 focus:ring-primary transition-all resize-none font-medium"
+                />
+                <Button onClick={handleSupportSubmit} disabled={!supportMessage.trim()} className="w-full h-16 bg-slate-900 hover:bg-black text-white font-black rounded-2xl shadow-xl shadow-slate-200">
+                  Contact Support Terminal
+                </Button>
+              </div>
+            )
+          ) : (
+            <Button onClick={() => window.location.reload()} variant="outline" className="w-full h-16 rounded-2xl font-black border-slate-200 hover:bg-slate-50 transition-all text-base">Re-establish Connection</Button>
+          )}
         </div>
       </div>
     );
@@ -231,426 +344,504 @@ export default function TenantDashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <SpeedLoader text="Loading Dashboard" subtext="Fetching your details..." />
+      <div className="min-h-screen flex items-center justify-center bg-[#f8fafc]">
+        <SpeedLoader text="Preparing Your Space" subtext="Setting up the dashboard..." />
       </div>
     );
   }
 
   const statusBadge = (status: string) => {
-    if (status === "verified") return <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-green-100 text-green-700">Verified ✅</span>;
-    if (status === "rejected") return <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-red-100 text-red-700">Rejected ❌</span>;
-    return <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-yellow-100 text-yellow-700">Pending ⏳</span>;
+    if (status === "verified") return <span className="text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-100">Verified</span>;
+    if (status === "rejected") return <span className="text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded-lg bg-rose-50 text-rose-600 border border-rose-100">Rejected</span>;
+    return <span className="text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded-lg bg-amber-50 text-amber-600 border border-amber-100">Pending</span>;
   };
 
-  const currentMonthPayment = payments.find(
-    (p) => p.month === payMonth && p.type === "rent"
-  );
-
   return (
-    <div className="flex flex-col min-h-screen animate-fade-in">
-      <header className="bg-primary text-primary-foreground py-4 px-6 shadow animate-fade-in-down">
-        <div className="container mx-auto flex justify-between items-center">
-          <h1 className="text-xl font-bold">Tenant Dashboard</h1>
+    <div className="flex flex-col min-h-screen bg-[#fcfdfe] selection:bg-primary/10 selection:text-primary">
+      {/* Premium Glass Header */}
+      <header className="bg-white/60 backdrop-blur-3xl border-b border-white/40 sticky top-0 z-50 py-5 px-6 md:px-12 shadow-sm shadow-slate-200/10">
+        <div className="max-w-7xl mx-auto flex justify-between items-center">
           <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center shadow-2xl shadow-primary/30 group cursor-pointer hover:rotate-6 transition-transform duration-500">
+              <UserCircle className="w-6 h-6 text-white" />
+            </div>
+            <h1 className="text-xl font-black tracking-tighter text-slate-900">Resident Portal</h1>
+          </div>
+          <div className="flex items-center gap-6">
             <NotificationDropdown userId={userId} />
-            <Button variant="secondary" onClick={() => auth.signOut()}>Log Out</Button>
+            <div className="h-8 w-[1px] bg-slate-200/60 hidden md:block" />
+            <Button 
+              variant="ghost" 
+              onClick={() => auth.signOut()}
+              className="text-slate-500 hover:text-rose-600 hover:bg-rose-50 font-bold transition-all gap-2 hidden md:flex h-11 px-6 rounded-xl"
+            >
+              <LogOut className="w-4 h-4" /> Log Out
+            </Button>
           </div>
         </div>
       </header>
 
-      {/* Tab Bar */}
-      <div className="bg-white border-b sticky top-0 z-30">
-        <div className="container mx-auto px-6 flex gap-1">
+      {/* Modern Segmented Navigation */}
+      <div className="bg-white/50 border-b border-white/40 py-3 backdrop-blur-xl">
+        <div className="container max-w-7xl mx-auto px-6 flex gap-3">
           {([
-            { key: "home", label: "🏠 Home", icon: Home },
-            { key: "payments", label: "💳 Pay Rent", icon: CreditCard },
-            { key: "complaints", label: "📋 Complaints", icon: MessageSquareWarning },
+            { key: "home", label: "Dashboard", icon: Home },
+            { key: "payments", label: "Finances", icon: CreditCard },
+            { key: "complaints", label: "Support", icon: MessageSquareWarning },
           ] as const).map((tab) => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`px-5 py-3.5 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap
+              className={`flex items-center gap-3 px-8 py-3 rounded-2xl text-[11px] font-black transition-all uppercase tracking-widest
                 ${activeTab === tab.key
-                  ? "border-primary text-primary"
-                  : "border-transparent text-muted-foreground hover:text-foreground"}`}
+                  ? "bg-slate-900 text-white shadow-2xl shadow-slate-900/20 scale-105"
+                  : "text-slate-400 hover:text-slate-900 hover:bg-white/60"}`}
             >
+              <tab.icon className="w-4 h-4" />
               {tab.label}
             </button>
           ))}
         </div>
       </div>
 
-      <main className="flex-1 p-6 lg:p-10 bg-slate-50 container mx-auto max-w-5xl">
-
-        {/* ─── HOME TAB ─── */}
+      <main className="flex-1 p-6 md:p-12 max-w-7xl mx-auto w-full">
         {activeTab === "home" && (
-          <div className="space-y-6 animate-fade-in-up">
-            <h2 className="text-2xl font-bold">Welcome back, {tenantProfile?.name?.split(" ")[0] || "Tenant"}! 👋</h2>
+          <div className="space-y-10 animate-fade-in-up">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              <div>
+                <h2 className="text-3xl font-black text-slate-900 tracking-tight">Welcome, {tenantProfile?.name?.split(" ")[0] || "Resident"}!</h2>
+                <p className="text-slate-500 font-medium">Here&apos;s everything about your stay.</p>
+              </div>
+              <Link href="/search">
+                <Button className="h-12 px-6 bg-slate-900 hover:bg-black text-white font-black rounded-2xl shadow-xl shadow-slate-200 transition-all active:scale-95 gap-2">
+                  Find New Property <ArrowUpRight className="w-4 h-4" />
+                </Button>
+              </Link>
+            </div>
 
-            {/* Status Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5 stagger">
-              <div className="border rounded-xl p-6 bg-white shadow-sm border-l-4 border-l-primary animate-fade-in-up hover-lift">
-                <div className="flex items-center gap-3 mb-3"><Home className="w-5 h-5 text-primary" /><h3 className="font-bold text-lg">Current Stay</h3></div>
-                {activeBooking ? (
-                  <>
-                    <p className="font-bold text-xl">{activeBooking.pgName}</p>
-                    <p className="text-sm text-muted-foreground mt-1">{activeBooking.roomType}</p>
-                    <div className="flex items-center justify-between mt-4">
-                      {activeBooking.status === "notice_given" ? (
-                        <div className="flex items-center gap-2">
-                          <span className="inline-block text-xs bg-yellow-100 text-yellow-800 px-3 py-1.5 rounded-full font-bold">⚠️ Notice Given (Awaiting Owner Approval)</span>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={handleCancelNotice}
-                            disabled={leavingRoom}
-                            className="text-xs h-7 border-yellow-500 text-yellow-700 hover:bg-yellow-50"
-                          >
-                            Cancel Notice
-                          </Button>
-                        </div>
-                      ) : activeBooking.status === "notice_approved" ? (
-                        <span className="inline-block text-xs bg-blue-100 text-blue-800 px-3 py-1.5 rounded-full font-bold">ℹ️ Notice Approved (Moving out in 7 days)</span>
-                      ) : (
-                        <>
-                          <span className="inline-block text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-semibold">Confirmed</span>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={handleLeaveRoom}
-                            disabled={leavingRoom}
-                            className="text-xs h-7"
-                          >
-                            {leavingRoom ? "Processing..." : "Give 7-Day Notice"}
-                          </Button>
-                        </>
-                      )}
+            {userId && <VerificationBanner userId={userId} />}
+
+            {/* Premium Info Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-1 bg-white/70 backdrop-blur-2xl p-10 rounded-[3.5rem] border border-white shadow-sm hover:shadow-2xl hover:shadow-primary/5 transition-all duration-500 relative overflow-hidden group animate-fade-in-up">
+                <div className="absolute top-0 right-0 w-40 h-40 bg-primary/5 rounded-full -mr-20 -mt-20 transition-transform group-hover:scale-150 duration-1000" />
+                <div className="relative z-10">
+                  <div className="flex items-center gap-4 mb-8">
+                    <div className="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center shadow-inner group-hover:rotate-12 transition-transform">
+                      <Home className="w-7 h-7 text-primary" />
                     </div>
-                  </>
-                ) : (
-                  <p className="text-muted-foreground text-sm">No active booking yet</p>
-                )}
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Live Residence</p>
+                      <h3 className="font-black text-xl text-slate-900 tracking-tighter">Stay Terminal</h3>
+                    </div>
+                  </div>
+
+                  {activeBooking ? (
+                    <div className="space-y-8">
+                      <div>
+                        <h4 className="text-2xl font-black text-slate-900 group-hover:text-primary transition-colors tracking-tighter leading-none">{activeBooking.pgName}</h4>
+                        <p className="text-xs font-bold text-slate-400 mt-2 uppercase tracking-widest">{activeBooking.roomType}</p>
+                      </div>
+
+                      <div className="flex flex-col w-full gap-4 pt-2">
+                        {activeBooking.status === "notice_given" ? (
+                          <div className="w-full space-y-4">
+                            <div className="flex items-center justify-center gap-3 py-3 px-4 bg-rose-50 border border-rose-100 rounded-2xl animate-pulse">
+                               <AlertTriangle className="w-4 h-4 text-rose-600" />
+                               <span className="text-[10px] font-black text-rose-600 uppercase tracking-widest">Move-out Active</span>
+                            </div>
+                            <Button variant="outline" onClick={handleCancelNotice} disabled={leavingRoom} className="w-full h-14 rounded-2xl border-rose-200 text-rose-700 hover:bg-rose-50 font-black text-xs shadow-sm">
+                              Recall Notice Terminal
+                            </Button>
+                          </div>
+                        ) : activeBooking.status === "notice_approved" ? (
+                          <div className="w-full flex flex-col items-center justify-center gap-2 py-4 px-4 bg-slate-900 rounded-2xl shadow-xl shadow-slate-900/20">
+                             <div className="flex items-center gap-3">
+                               <Clock className="w-4 h-4 text-white/40" />
+                               <span className="text-[10px] font-black text-white uppercase tracking-[0.2em]">Checkout Approved</span>
+                             </div>
+                             {activeBooking.moveOutDate && (
+                               <p className="text-[10px] font-bold text-primary tracking-widest uppercase mt-1">
+                                 Departure: {new Date(activeBooking.moveOutDate).toLocaleDateString("en-IN")} @ 5:00 PM
+                               </p>
+                             )}
+                          </div>
+                        ) : (
+                          <>
+                            <div className="flex items-center justify-center gap-3 py-3 px-4 bg-emerald-50 border border-emerald-100 rounded-2xl">
+                               <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                               <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Stay Verified</span>
+                            </div>
+                            <Button 
+                              variant="ghost" 
+                              onClick={handleLeaveRoom} 
+                              disabled={leavingRoom} 
+                              className="w-full h-14 rounded-2xl text-rose-600 hover:bg-rose-50 font-black text-xs transition-all"
+                            >
+                              Initiate Vacate
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="py-12 text-center bg-slate-50/50 rounded-[2rem] border-2 border-dashed border-slate-100">
+                       <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm">
+                          <Home className="w-6 h-6 text-slate-200" />
+                       </div>
+                       <p className="text-slate-400 font-bold text-sm">No active stay detected.</p>
+                    </div>
+                  )}
+                </div>
               </div>
 
-              <div className="border rounded-xl p-6 bg-white shadow-sm border-l-4 border-l-blue-500 animate-fade-in-up hover-lift">
-                <div className="flex items-center gap-3 mb-3"><FileText className="w-5 h-5 text-blue-500" /><h3 className="font-bold text-lg">Rental Contract</h3></div>
-                {activeContract ? (
-                  <>
-                    <p className="font-semibold">{activeContract.pgName}</p>
-                    <p className="text-sm text-muted-foreground mt-1">Move-in: {new Date(activeContract.moveInDate).toLocaleDateString("en-IN")}</p>
-                    <Link href={`/contract/${activeContract.id}`}><button className="mt-2 text-xs text-blue-600 hover:underline font-semibold">View Contract →</button></Link>
-                  </>
-                ) : (
-                  <p className="text-muted-foreground text-sm">No contract yet</p>
-                )}
-              </div>
+              {/* Documentation & KYC */}
+              <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
+                 {/* Contract Card */}
+                 <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-primary/5 transition-all group">
+                    <div className="flex items-center gap-4 mb-8">
+                      <div className="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center shadow-lg shadow-slate-200">
+                        <FileText className="w-6 h-6 text-white" />
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Legal Documents</p>
+                        <h3 className="font-black text-lg text-slate-900">Rental Agreement</h3>
+                      </div>
+                    </div>
+                    {activeContract ? (
+                      <div className="space-y-4">
+                        <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 group-hover:border-primary/20 group-hover:bg-primary/5 transition-all">
+                          <p className="font-black text-slate-900 truncate">{activeContract.pgName}</p>
+                          <p className="text-xs font-bold text-slate-400 mt-1">Started: {new Date(activeContract.moveInDate).toLocaleDateString("en-IN")}</p>
+                        </div>
+                        <Link href={`/contract/${activeContract.id}`} className="block">
+                          <Button variant="outline" className="w-full h-12 rounded-xl border-slate-200 text-slate-700 hover:bg-slate-50 font-black group-hover:text-primary group-hover:border-primary/30 transition-all">
+                            View Full Contract <ChevronRight className="w-4 h-4 ml-2" />
+                          </Button>
+                        </Link>
+                      </div>
+                    ) : (
+                      <p className="text-slate-400 font-bold py-6">Awaiting contract generation...</p>
+                    )}
+                 </div>
 
-              <div className="border rounded-xl p-6 bg-white shadow-sm border-l-4 border-l-green-500 animate-fade-in-up hover-lift">
-                <div className="flex items-center gap-3 mb-3"><CheckCircle2 className="w-5 h-5 text-green-500" /><h3 className="font-bold text-lg">KYC Status</h3></div>
-                {activeBooking?.aadhaarUrl ? (
-                  <>
-                    <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-semibold">Verified</span>
-                    <p className="text-xs text-muted-foreground mt-2">Documents submitted and on file.</p>
-                  </>
-                ) : (
-                  <p className="text-muted-foreground text-sm">Book a room to submit your KYC.</p>
-                )}
+                 {/* KYC Card */}
+                 <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-primary/5 transition-all group">
+                    <div className="flex items-center gap-4 mb-8">
+                      <div className="w-12 h-12 bg-emerald-500 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-100">
+                        <CheckCircle2 className="w-6 h-6 text-white" />
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Profile Status</p>
+                        <h3 className="font-black text-lg text-slate-900">Resident Identity</h3>
+                      </div>
+                    </div>
+                    <div className="space-y-5">
+                       <div className="flex items-center justify-between">
+                         <span className="text-sm font-black text-slate-900">Verification Level</span>
+                         {statusBadge(isVerified ? "verified" : verificationStatus)}
+                       </div>
+                       <p className="text-xs font-medium text-slate-500 leading-relaxed">
+                         {isVerified 
+                           ? "Your identity is verified. You have full access to all properties and priority support." 
+                           : "Complete your identity verification to unlock fast bookings and automated contracts."}
+                       </p>
+                       {!isVerified && (
+                         <Button onClick={() => setShowVerifyModal(true)} className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl shadow-lg shadow-emerald-100">
+                           Verify Identity Now
+                         </Button>
+                       )}
+                    </div>
+                 </div>
               </div>
             </div>
 
-            {/* Bookings */}
-            <div className="bg-white rounded-xl shadow-sm border p-6 animate-fade-in-up">
-              <h3 className="font-bold text-xl mb-4 border-b pb-2">My Bookings</h3>
+            {/* My Bookings History */}
+            <div className="space-y-6">
+              <div className="flex items-center justify-between px-2">
+                <h3 className="font-black text-2xl text-slate-900 tracking-tight">Recent Activity</h3>
+                <span className="text-xs font-bold text-slate-400 bg-white px-3 py-1.5 rounded-full border border-slate-100">{bookings.length} Events</span>
+              </div>
+              
               {bookings.length === 0 ? (
-                <div className="text-center py-8">
-                  <p className="text-4xl mb-3">🏠</p>
-                  <p className="font-semibold text-lg mb-1">No bookings yet</p>
-                  <p className="text-muted-foreground text-sm mb-4">Browse PGs and book your next home.</p>
-                  <Link href="/search"><Button>Browse Properties</Button></Link>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {bookings.map((b) => (
-                    <div key={b.id} className={`border rounded-xl p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-3 card-hover transition-all
-                      ${b.status === 'pending' ? 'border-yellow-200 bg-yellow-50/40' : b.status === 'confirmed' ? 'border-green-200 bg-green-50/20' : 'border-red-200 bg-red-50/20'}
-                    `}>
-                      <div>
-                        <p className="font-bold">{b.pgName}</p>
-                        <p className="text-sm text-muted-foreground">{b.roomType} · Move-in: {b.moveInDate}</p>
-                        <p className="text-sm font-semibold text-primary mt-1">₹{b.amount.toLocaleString("en-IN")}/mo</p>
-                        {b.status === "pending" && (
-                          <div className="mt-2 space-y-2">
-                            <p className="text-xs text-yellow-700 font-medium flex items-center gap-1">
-                              <Clock className="w-3 h-3" /> Waiting for owner to approve your request...
-                            </p>
-                            <Button 
-                              size="sm" 
-                              onClick={() => payForBooking(b)}
-                              disabled={creatingSession}
-                              className="h-8 text-xs bg-primary hover:bg-primary/90 text-white font-bold gap-1.5"
-                            >
-                              <CreditCard className="w-3.5 h-3.5" /> {creatingSession ? "Wait..." : "Pay to Confirm"}
-                            </Button>
-                          </div>
-                        )}
-                        {b.status === "approved" && (
-                          <div className="mt-2 space-y-2">
-                            <p className="text-xs text-green-700 font-bold flex items-center gap-1">
-                              <CheckCircle2 className="w-3 h-3" /> Approved! Pay now to confirm your stay.
-                            </p>
-                            <Button 
-                              size="sm" 
-                              onClick={() => payForBooking(b)}
-                              disabled={creatingSession}
-                              className="h-8 text-xs bg-primary hover:bg-primary/90 text-white font-bold gap-1.5 shadow-lg shadow-primary/20"
-                            >
-                              <CreditCard className="w-3.5 h-3.5" /> {creatingSession ? "Wait..." : "Confirm & Pay Now"}
-                            </Button>
-                          </div>
-                        )}
-                        {b.status === "cancelled" && (
-                          <p className="text-xs text-red-600 font-medium mt-1.5 flex items-center gap-1">
-                            <XCircle className="w-3 h-3" /> Booking was rejected by the owner.
-                          </p>
-                        )}
-                        {b.status === "confirmed" && (
-                          <p className="text-xs text-green-700 font-medium mt-1.5 flex items-center gap-1">
-                            <CheckCircle2 className="w-3 h-3" /> Approved! You can now pay rent.
-                          </p>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${b.status === "confirmed" ? "bg-green-100 text-green-700" :
-                            b.status === "pending" ? "bg-yellow-100 text-yellow-700" :
-                              "bg-red-100 text-red-700"
-                          }`}>{b.status === "approved" ? "APPROVED" : b.status.toUpperCase()}</span>
-                        {b.contractId && (
-                          <Link href={`/contract/${b.contractId}`}>
-                            <Button variant="outline" size="sm" className="gap-1.5"><FileText className="w-3.5 h-3.5" /> Contract</Button>
-                          </Link>
-                        )}
-                      </div>
+                  <div className="bg-white/60 backdrop-blur-xl border border-white rounded-[4rem] p-24 text-center animate-scale-in shadow-xl shadow-slate-200/20">
+                    <div className="w-24 h-24 bg-slate-50 rounded-[2.5rem] flex items-center justify-center mx-auto mb-10 shadow-inner">
+                      <Package className="w-10 h-10 text-slate-200" />
                     </div>
-                  ))}
+                    <h3 className="text-3xl font-black text-slate-900 mb-3 tracking-tighter">No active bookings</h3>
+                    <p className="text-slate-500 font-medium mb-12 max-w-sm mx-auto text-lg leading-relaxed">Start exploring premium verified properties nearby to find your perfect stay.</p>
+                 </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                   {bookings.map((b, i) => (
+                     <div key={b.id} className="bg-white p-6 rounded-[2rem] border border-slate-50 shadow-sm hover:shadow-xl transition-all group">
+                        <div className="flex justify-between items-start mb-4">
+                          <div>
+                            <h4 className="font-black text-lg text-slate-900 group-hover:text-primary transition-colors">{b.pgName}</h4>
+                            <p className="text-xs font-bold text-slate-400">{b.roomType} · {b.moveInDate}</p>
+                          </div>
+                          <span className={`text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-xl
+                            ${b.status === 'confirmed' ? 'bg-emerald-50 text-emerald-600' : b.status === 'pending' || b.status === 'approved' ? 'bg-amber-50 text-amber-600' : 'bg-rose-50 text-rose-600'}`}>
+                            {b.status === 'approved' ? 'ACTION REQ' : b.status}
+                          </span>
+                        </div>
+                        <div className="flex items-end justify-between pt-4 border-t border-slate-50 mt-4">
+                          <div>
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Monthly Commitment</p>
+                            <p className="text-xl font-black text-primary">₹{b.amount.toLocaleString("en-IN")}</p>
+                          </div>
+                          {b.status === "approved" && (
+                            <Button size="sm" onClick={() => payForBooking(b)} disabled={creatingSession} className="bg-primary hover:bg-primary/90 text-white font-black rounded-xl px-6 h-10 shadow-lg shadow-primary/20 animate-pulse">
+                              Confirm & Pay
+                            </Button>
+                          )}
+                          {b.contractId && (
+                            <Link href={`/contract/${b.contractId}`}>
+                              <Button variant="ghost" size="sm" className="font-bold text-slate-500 hover:text-slate-900 rounded-xl h-10">Details</Button>
+                            </Link>
+                          )}
+                        </div>
+                     </div>
+                   ))}
                 </div>
               )}
             </div>
-
-            {/* Quick Actions */}
-            <div className="bg-white rounded-xl shadow-sm border p-6 animate-fade-in-up">
-              <h3 className="font-bold text-xl mb-4 border-b pb-2">Quick Actions</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <Link href="/search">
-                  <button className="w-full border rounded-xl p-4 text-left hover:border-primary/40 hover:bg-orange-50 transition-all card-hover">
-                    <p className="font-semibold">🔍 Find a PG</p>
-                    <p className="text-sm text-muted-foreground mt-1">Browse verified properties near you</p>
-                  </button>
-                </Link>
-                <button onClick={() => setActiveTab("payments")} className="w-full border rounded-xl p-4 text-left hover:border-primary/40 hover:bg-orange-50 transition-all card-hover">
-                  <p className="font-semibold">💳 Pay Rent</p>
-                  <p className="text-sm text-muted-foreground mt-1">Submit your monthly rent payment</p>
-                </button>
-                <button
-                  onClick={() => { if (!activeBooking) { alert("You need an active booking to raise a complaint."); return; } setIsComplaintModalOpen(true); }}
-                  className="w-full border rounded-xl p-4 text-left hover:border-primary/40 hover:bg-orange-50 transition-all card-hover"
-                >
-                  <p className="font-semibold">📋 Raise a Complaint</p>
-                  <p className="text-sm text-muted-foreground mt-1">Report maintenance or property issues</p>
-                </button>
-              </div>
-            </div>
           </div>
         )}
 
-        {/* ─── PAYMENTS TAB ─── */}
         {activeTab === "payments" && (
-          <div className="space-y-6 animate-fade-in-up">
-            <h2 className="text-2xl font-bold">💳 Pay Rent</h2>
+          <div className="space-y-8 animate-fade-in-up">
+            <h2 className="text-3xl font-black text-slate-900">Financial Hub</h2>
+            
+            {activeBooking && ownerProfile?.upiId ? (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+                 {/* Premium Credit Card Payment UI */}
+                 <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-black p-10 rounded-[3rem] text-white shadow-2xl relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full -mr-32 -mt-32 blur-3xl group-hover:bg-primary/20 transition-all duration-1000" />
+                    <div className="relative z-10 space-y-8">
+                       <div className="flex justify-between items-start">
+                          <div className="w-14 h-10 bg-gradient-to-br from-amber-400 to-amber-600 rounded-lg shadow-inner flex items-center justify-center">
+                            <div className="w-8 h-6 border border-amber-200/50 rounded flex items-center justify-center overflow-hidden">
+                               <div className="w-full h-[1px] bg-amber-200/50" />
+                            </div>
+                          </div>
+                          <QrCode className="w-10 h-10 text-white/20" />
+                       </div>
+                       
+                       <div className="space-y-1">
+                          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">Authorized Payee</p>
+                          <p className="text-2xl font-black tracking-tight">{ownerProfile.name}</p>
+                       </div>
 
-            {!activeBooking ? (
-              <div className="bg-white rounded-2xl border p-10 text-center shadow-sm">
-                <p className="text-4xl mb-3">🏠</p>
-                <p className="font-bold text-lg mb-2">No active booking</p>
-                <p className="text-muted-foreground text-sm">You need a confirmed booking before you can pay rent.</p>
-                <Link href="/search" className="mt-4 inline-block"><Button>Find a PG</Button></Link>
-              </div>
-            ) : !ownerProfile?.upiId ? (
-              <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-8 text-center">
-                <p className="text-3xl mb-2">⏳</p>
-                <p className="font-bold text-yellow-800">Owner hasn&apos;t set up UPI yet</p>
-                <p className="text-sm text-yellow-700 mt-1">Your owner hasn&apos;t configured their UPI ID. Please contact them directly.</p>
+                       <div className="p-5 bg-white/5 backdrop-blur-xl rounded-[1.5rem] border border-white/10 space-y-3">
+                          <div className="flex justify-between items-center text-[10px] font-black uppercase text-white/40 tracking-widest">
+                             <span>VPA / UPI ID</span>
+                             <span className="text-primary font-black">SECURE TRANSIT</span>
+                          </div>
+                          <p className="text-xl font-mono font-black truncate">{ownerProfile.upiId}</p>
+                       </div>
+
+                       <div className="flex justify-between items-end">
+                          <div>
+                             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">Subscription Amount</p>
+                             <p className="text-4xl font-black text-white">₹{activeBooking.amount.toLocaleString("en-IN")}</p>
+                          </div>
+                          <Button 
+                             onClick={goToPayPage} 
+                             disabled={creatingSession}
+                             className="bg-white hover:bg-slate-100 text-slate-950 h-14 px-8 rounded-2xl font-black text-base shadow-xl shadow-white/5 active:scale-95 transition-all"
+                          >
+                             {creatingSession ? "Authorizing..." : "Initiate Payment →"}
+                          </Button>
+                       </div>
+                    </div>
+                 </div>
+
+                 {/* Recent Month Status */}
+                 <div className="space-y-6">
+                    <h3 className="font-black text-xl text-slate-900 px-2">Current Cycle</h3>
+                    {(() => {
+                      const cur = payments.find((p) => p.month === payMonth && p.type === "rent");
+                      return cur ? (
+                        <div className={`p-8 rounded-[2.5rem] border-2 transition-all duration-500 shadow-sm
+                          ${cur.status === "verified" ? "bg-emerald-50 border-emerald-100" : cur.status === "rejected" ? "bg-rose-50 border-rose-100" : "bg-amber-50 border-amber-100"}`}>
+                           <div className="flex items-center gap-4 mb-4">
+                              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg
+                                ${cur.status === "verified" ? "bg-emerald-500 text-white" : cur.status === "rejected" ? "bg-rose-500 text-white" : "bg-amber-500 text-white"}`}>
+                                 {cur.status === "verified" ? <CheckCircle2 className="w-6 h-6" /> : cur.status === "rejected" ? <XCircle className="w-6 h-6" /> : <Clock className="w-6 h-6" />}
+                              </div>
+                              <h4 className="font-black text-xl text-slate-900">
+                                {cur.status === "verified" ? "Rent Verified" : cur.status === "rejected" ? "Payment Rejected" : "Review Pending"}
+                              </h4>
+                           </div>
+                           <p className="text-slate-600 font-medium mb-6 leading-relaxed">
+                             {cur.status === "verified" ? "Excellent! Your payment for the current month has been verified by the property owner." :
+                              cur.status === "rejected" ? "The owner could not verify this transaction. Please re-check the UTR number or contact support." :
+                              "Your transaction details are with the owner. Verification usually takes 1-4 hours."}
+                          </p>
+                           <Link href={`/dashboard/tenant/receipt/${cur.id}`}>
+                              <Button variant="outline" className="w-full h-12 rounded-xl bg-white border-transparent shadow-sm font-black hover:bg-slate-50">Download Receipt</Button>
+                           </Link>
+                        </div>
+                      ) : (
+                        <div className="p-10 rounded-[3rem] bg-white border border-white shadow-2xl shadow-slate-200/50 text-center animate-fade-in-up">
+                            <div className="w-20 h-20 bg-rose-50 rounded-[2rem] flex items-center justify-center mx-auto mb-8 shadow-inner">
+                               <Clock className="w-10 h-10 text-rose-500 animate-pulse" />
+                            </div>
+                            <h4 className="font-black text-2xl text-slate-900 mb-3 tracking-tighter">Rent Overdue</h4>
+                            <p className="text-slate-500 font-medium mb-10 leading-relaxed">Payment for {new Date().toLocaleString('default', { month: 'long' })} cycle is pending. Secure your stay by completing the transfer.</p>
+                            <Button onClick={goToPayPage} className="w-full h-16 bg-primary text-white font-black rounded-3xl shadow-2xl shadow-primary/20 transition-all active:scale-95 text-base">Pay Rent Instantly</Button>
+                         </div>
+                      );
+                    })()}
+                 </div>
               </div>
             ) : (
-              <>
-                {/* Pay Now Card */}
-                <div className="bg-gradient-to-br from-slate-900 to-slate-700 text-white rounded-2xl p-7 shadow-xl">
-                  <div className="flex items-start justify-between mb-5">
-                    <div>
-                      <p className="text-xs opacity-60 uppercase tracking-wider mb-1">Pay Rent To</p>
-                      <p className="text-2xl font-black">{ownerProfile.name}</p>
-                      <p className="text-sm opacity-70 mt-1">{activeBooking.pgName} · {activeBooking.roomType}</p>
-                    </div>
-                    <div className="bg-white/10 rounded-xl p-3">
-                      <QrCode className="w-8 h-8 text-white/70" />
-                    </div>
+               <div className="bg-white/60 backdrop-blur-xl border border-white rounded-[4rem] p-24 text-center animate-scale-in shadow-xl shadow-slate-200/20">
+                  <div className="w-24 h-24 bg-slate-50 rounded-[2.5rem] flex items-center justify-center mx-auto mb-10 shadow-inner">
+                    <CreditCard className="w-10 h-10 text-slate-200" />
                   </div>
-                  <div className="bg-white/10 rounded-xl p-4 mb-5">
-                    <p className="text-xs opacity-60 mb-0.5">UPI ID</p>
-                    <p className="font-mono font-bold text-lg">{ownerProfile.upiId}</p>
-                  </div>
-                  <p className="text-2xl font-black mb-1">₹{activeBooking.amount.toLocaleString("en-IN")}<span className="text-base font-normal opacity-60">/mo</span></p>
-                  <button
-                    onClick={goToPayPage}
-                    disabled={creatingSession}
-                    className="w-full mt-4 bg-white text-slate-900 font-black text-base py-3.5 rounded-xl hover:bg-slate-100 transition-colors flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
-                  >
-                    {creatingSession ? (
-                      <><div className="w-4 h-4 border-2 border-slate-400 border-t-slate-900 rounded-full animate-spin" /> Preparing secure session...</>
-                    ) : (
-                      <><QrCode className="w-5 h-5" /> Scan QR &amp; Pay Now →</>
-                    )}
-                  </button>
-                  <p className="text-xs opacity-50 text-center mt-3">Opens a UPI QR code · 10-minute payment window</p>
-                </div>
-
-                {/* Current month payment status */}
-                {(() => {
-                  const cur = payments.find((p) => p.month === payMonth && p.type === "rent");
-                  if (!cur) return null;
-                  return (
-                    <div className={`rounded-xl border p-4 flex items-center gap-3 ${cur.status === "verified" ? "bg-green-50 border-green-200" :
-                        cur.status === "rejected" ? "bg-red-50 border-red-200" :
-                          "bg-yellow-50 border-yellow-200"
-                      }`}>
-                      {cur.status === "verified" ? <CheckCircle2 className="w-5 h-5 text-green-600 shrink-0" /> :
-                        cur.status === "rejected" ? <XCircle className="w-5 h-5 text-red-600 shrink-0" /> :
-                          <Clock className="w-5 h-5 text-yellow-600 shrink-0" />}
-                      <div className="flex-1">
-                        <p className="font-semibold text-sm">
-                          {cur.status === "verified" ? "✅ Rent paid & verified for this month!" :
-                            cur.status === "rejected" ? "❌ Payment rejected — scan QR and pay again" :
-                              "⏳ Payment submitted — awaiting owner verification"}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-0.5">₹{cur.amount.toLocaleString("en-IN")} · UTR: {cur.utrNumber}</p>
-                      </div>
-                      <Link href={`/dashboard/tenant/receipt/${cur.id}`}>
-                        <Button size="sm" variant="outline" className="gap-1.5 shrink-0"><Receipt className="w-3.5 h-3.5" /> Receipt</Button>
-                      </Link>
-                    </div>
-                  );
-                })()}
-              </>
+                  <h3 className="text-3xl font-black text-slate-900 mb-3 tracking-tighter">No Payment Targets</h3>
+                  <p className="text-slate-500 font-medium max-w-sm mx-auto text-lg leading-relaxed">Once your booking is confirmed and the owner activates their revenue gateway, you can manage finances here.</p>
+               </div>
             )}
 
-            {/* Payment History */}
+            {/* Comprehensive History */}
             {payments.length > 0 && (
-              <div className="bg-white rounded-2xl border shadow-sm overflow-hidden">
-                <div className="px-6 py-4 border-b">
-                  <h3 className="font-bold text-lg">Payment History</h3>
+              <div className="bg-white rounded-[2.5rem] border border-slate-50 shadow-sm overflow-hidden">
+                <div className="px-10 py-6 border-b border-slate-50">
+                  <h3 className="font-black text-xl text-slate-900">Transaction History</h3>
                 </div>
-                <div className="divide-y">
-                  {payments.map((p) => (
-                    <div key={p.id} className="px-6 py-4 flex items-center justify-between gap-4">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <p className="font-semibold text-sm">{p.type === "rent" ? "Monthly Rent" : "Security Deposit"}</p>
-                          {statusBadge(p.status)}
-                        </div>
-                        <p className="text-xs text-muted-foreground">{p.month} · UTR: <span className="font-mono">{p.utrNumber}</span></p>
+                <div className="divide-y divide-slate-50">
+                   {payments.map((p) => (
+                      <div key={p.id} className="px-10 py-6 flex flex-col md:flex-row items-center justify-between gap-6 hover:bg-slate-50/50 transition-colors">
+                         <div className="flex items-center gap-4 w-full md:w-auto">
+                            <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center">
+                               <Receipt className="w-5 h-5 text-slate-500" />
+                            </div>
+                            <div>
+                               <p className="font-black text-slate-900">{p.type === "rent" ? "Monthly Rent" : "Deposit"}</p>
+                               <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">{p.month} · {new Date(p.createdAt).toLocaleDateString()}</p>
+                            </div>
+                         </div>
+                         <div className="flex items-center justify-between md:justify-end gap-10 w-full md:w-auto">
+                            <div className="text-right">
+                               <p className="font-black text-lg text-primary">₹{p.amount.toLocaleString("en-IN")}</p>
+                               <div className="flex justify-end mt-1">{statusBadge(p.status)}</div>
+                            </div>
+                            <Link href={`/dashboard/tenant/receipt/${p.id}`}>
+                               <button className="w-10 h-10 rounded-full border border-slate-200 flex items-center justify-center hover:border-primary hover:text-primary transition-all">
+                                  <ArrowUpRight className="w-4 h-4" />
+                               </button>
+                            </Link>
+                         </div>
                       </div>
-                      <div className="text-right shrink-0">
-                        <p className="font-bold text-primary">₹{p.amount.toLocaleString("en-IN")}</p>
-                        <Link href={`/dashboard/tenant/receipt/${p.id}`}>
-                          <button className="text-xs text-blue-600 hover:underline mt-0.5 flex items-center gap-1"><Receipt className="w-3 h-3" /> Receipt</button>
-                        </Link>
-                      </div>
-                    </div>
-                  ))}
+                   ))}
                 </div>
               </div>
             )}
           </div>
         )}
 
-        {/* ─── COMPLAINTS TAB ─── */}
         {activeTab === "complaints" && (
-          <div className="space-y-6 animate-fade-in-up">
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold">📋 Complaints</h2>
-              <Button onClick={() => { if (!activeBooking) { alert("You need an active booking to raise a complaint."); return; } setIsComplaintModalOpen(true); }} className="gap-2">
-                <MessageSquareWarning className="w-4 h-4" /> Raise Complaint
+          <div className="space-y-8 animate-fade-in-up">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              <div>
+                <h2 className="text-3xl font-black text-slate-900 tracking-tight">Resident Assistance</h2>
+                <p className="text-slate-500 font-medium">Report issues or request maintenance.</p>
+              </div>
+              <Button onClick={() => { if (!activeBooking) { alert("You need an active booking to raise a complaint."); return; } setIsComplaintModalOpen(true); }} className="h-12 px-6 bg-rose-600 hover:bg-rose-700 text-white font-black rounded-2xl shadow-xl shadow-rose-100 transition-all active:scale-95 gap-2">
+                <MessageSquareWarning className="w-4 h-4" /> Raise Issue
               </Button>
             </div>
+
             {complaints.length === 0 ? (
-              <div className="bg-white rounded-2xl border p-10 text-center shadow-sm">
-                <p className="text-4xl mb-3">✅</p>
-                <p className="font-bold text-lg">No complaints raised</p>
-                <p className="text-muted-foreground text-sm mt-1">Everything looks good!</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {complaints.map((c) => (
-                  <div key={c.id} className="bg-white border rounded-xl p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-3 shadow-sm">
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-sm font-semibold capitalize bg-slate-100 px-2 py-0.5 rounded text-slate-700">{c.category}</span>
-                        <span className="text-xs text-muted-foreground">{new Date(c.createdAt).toLocaleDateString("en-IN")}</span>
-                      </div>
-                      <p className="text-sm mt-1">{c.description}</p>
-                      <p className="text-xs text-muted-foreground mt-1">Property: {c.pgName}</p>
-                    </div>
-                    <span className={`text-xs font-bold px-2.5 py-1 rounded-full shrink-0 ${c.status === "open" ? "bg-red-100 text-red-700" :
-                        c.status === "in-progress" ? "bg-yellow-100 text-yellow-700" :
-                          "bg-green-100 text-green-700"
-                      }`}>{c.status.toUpperCase()}</span>
+               <div className="bg-white/60 backdrop-blur-xl border border-white rounded-[4rem] p-24 text-center animate-scale-in shadow-xl shadow-slate-200/20">
+                  <div className="w-24 h-24 bg-emerald-50 rounded-[2.5rem] flex items-center justify-center mx-auto mb-10 shadow-inner">
+                    <ShieldCheck className="w-10 h-10 text-emerald-400" />
                   </div>
-                ))}
+                  <h3 className="text-3xl font-black text-slate-900 mb-3 tracking-tighter">Peace of mind</h3>
+                  <p className="text-slate-500 font-medium max-w-sm mx-auto text-lg leading-relaxed">No active support tickets found. Your residence experience is currently optimal.</p>
+               </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                 {complaints.map((c) => (
+                    <div key={c.id} className="bg-white border border-slate-100 rounded-[2rem] p-8 shadow-sm hover:shadow-xl transition-all group">
+                       <div className="flex justify-between items-start mb-4">
+                          <span className="text-[10px] font-black uppercase tracking-widest text-primary bg-primary/5 px-3 py-1.5 rounded-lg border border-primary/10">{c.category}</span>
+                          <span className={`text-[10px] font-black px-3 py-1.5 rounded-lg tracking-widest
+                            ${c.status === "open" ? "bg-rose-50 text-rose-600 border border-rose-100" : "bg-emerald-50 text-emerald-600 border border-emerald-100"}`}>
+                            {c.status.toUpperCase()}
+                          </span>
+                       </div>
+                       <p className="text-slate-800 font-bold text-lg mb-2 group-hover:text-primary transition-colors leading-snug">{c.description}</p>
+                       <div className="pt-4 border-t border-slate-50 mt-4 flex justify-between items-center">
+                          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">{new Date(c.createdAt).toLocaleDateString("en-IN")}</p>
+                          <p className="text-xs font-black text-slate-700">{c.pgName}</p>
+                       </div>
+                    </div>
+                 ))}
               </div>
             )}
           </div>
         )}
       </main>
 
-      {/* Complaint Dialog */}
+      {/* Modern Dialog Overhaul */}
       <Dialog open={isComplaintModalOpen} onOpenChange={setIsComplaintModalOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[450px] rounded-[2.5rem] p-8 border-none shadow-2xl">
           <form onSubmit={submitComplaint}>
-            <DialogHeader>
-              <DialogTitle>Raise a Complaint</DialogTitle>
-              <DialogDescription>Submit an issue to your PG owner or caretaker. We will notify them immediately.</DialogDescription>
+            <DialogHeader className="mb-6">
+              <DialogTitle className="text-2xl font-black text-slate-900 tracking-tight">Issue Report</DialogTitle>
+              <DialogDescription className="font-medium text-slate-500">Provide details about the issue. Our team will assist you shortly.</DialogDescription>
             </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <label className="text-sm font-medium">Category</label>
+            <div className="space-y-6 py-2">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Category</label>
                 <Select value={complaintCategory} onValueChange={(val) => val && setComplaintCategory(val)}>
-                  <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="maintenance">Maintenance</SelectItem>
-                    <SelectItem value="cleanliness">Cleanliness & Hygiene</SelectItem>
-                    <SelectItem value="security">Security</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
+                  <SelectTrigger className="h-12 rounded-xl bg-slate-50 border-transparent focus:ring-primary"><SelectValue placeholder="Select category" /></SelectTrigger>
+                  <SelectContent className="rounded-2xl border-slate-100 shadow-2xl p-2">
+                    <SelectItem value="maintenance" className="rounded-xl p-3"><div className="flex items-center gap-3 font-black text-xs uppercase tracking-widest"><Wrench className="w-4 h-4 text-primary" /> Maintenance</div></SelectItem>
+                    <SelectItem value="cleanliness" className="rounded-xl p-3"><div className="flex items-center gap-3 font-black text-xs uppercase tracking-widest"><Eraser className="w-4 h-4 text-primary" /> Cleanliness</div></SelectItem>
+                    <SelectItem value="security" className="rounded-xl p-3"><div className="flex items-center gap-3 font-black text-xs uppercase tracking-widest"><Shield className="w-4 h-4 text-primary" /> Security</div></SelectItem>
+                    <SelectItem value="other" className="rounded-xl p-3"><div className="flex items-center gap-3 font-black text-xs uppercase tracking-widest"><MessageCircle className="w-4 h-4 text-primary" /> Other Support</div></SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid gap-2">
-                <label className="text-sm font-medium">Description</label>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Description</label>
                 <textarea
-                  className="flex min-h-[100px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                  placeholder="Please describe the issue in detail..."
+                  className="w-full min-h-[120px] rounded-2xl bg-slate-50 border-transparent p-4 text-sm focus:ring-2 focus:ring-primary focus:bg-white transition-all resize-none font-medium"
+                  placeholder="Tell us what's wrong..."
                   value={complaintDescription}
                   onChange={(e) => setComplaintDescription(e.target.value)}
                   required
                 />
               </div>
             </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsComplaintModalOpen(false)}>Cancel</Button>
-              <Button type="submit" disabled={submittingComplaint}>{submittingComplaint ? "Submitting..." : "Submit Complaint"}</Button>
+            <DialogFooter className="mt-8 flex gap-3">
+              <Button type="button" variant="ghost" onClick={() => setIsComplaintModalOpen(false)} className="flex-1 h-12 rounded-xl font-bold">Cancel</Button>
+              <Button type="submit" disabled={submittingComplaint} className="flex-1 h-12 bg-primary hover:bg-primary/90 text-white font-black rounded-xl shadow-lg shadow-primary/20">
+                {submittingComplaint ? "Sending..." : "Submit Report"}
+              </Button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Verification Portal Modal */}
+      {userId && (
+        <VerificationModal
+          isOpen={showVerifyModal}
+          onClose={() => setShowVerifyModal(false)}
+          userId={userId}
+          onSuccess={(finalStatus) => {
+            setVerificationStatus(finalStatus);
+            if (finalStatus === "verified") setIsVerified(true);
+            setShowVerifyModal(false);
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -10,6 +10,7 @@ export interface UserProfile {
   email?: string;
   phone?: string;
   upiId?: string;       // For owners — their UPI ID for rent collection
+  isVerified?: boolean;  // KYC verification status
   createdAt: number;
 }
 
@@ -23,6 +24,7 @@ export async function createUserProfile(uid: string, data: Partial<UserProfile>)
       name: data.name || "Anonymous",
       email: data.email || null,
       phone: data.phone || null,
+      isVerified: false,
       createdAt: Date.now(),
       ...data,
     });
@@ -43,5 +45,5 @@ export async function updateUserProfile(uid: string, data: Partial<UserProfile>)
   const sanitized = Object.fromEntries(
     Object.entries(data).filter(([, v]) => v !== undefined)
   );
-  await updateDoc(userRef, sanitized);
+  await setDoc(userRef, sanitized, { merge: true });
 }

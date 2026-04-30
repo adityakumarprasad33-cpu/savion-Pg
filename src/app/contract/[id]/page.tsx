@@ -8,6 +8,7 @@ import { getContractById, RentalContract } from "@/lib/db/contracts";
 import { CheckCircle2, FileText, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
+import { SpeedLoader } from "@/components/ui/SpeedLoader";
 
 export default function ContractViewer() {
   const params = useParams<{ id: string }>();
@@ -51,8 +52,8 @@ export default function ContractViewer() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="w-10 h-10 rounded-full border-4 border-primary border-t-transparent animate-spin" />
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <SpeedLoader text="Loading Agreement" subtext="Fetching your legal documents..." />
       </div>
     );
   }

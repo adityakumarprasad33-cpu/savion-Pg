@@ -1,22 +1,24 @@
 "use client";
-
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/lib/firebase/client";
 import { getPGById, updatePG, PG } from "@/lib/db/pgs";
-import { getBookingsByPG, updateBookingStatus } from "@/lib/db/bookings";
+import { getBookingsByPG, updateBooking, Booking } from "@/lib/db/bookings";
 import { updateContractStatus } from "@/lib/db/contracts";
 import { getComplaintsByPG, updateComplaintStatus, Complaint } from "@/lib/db/complaints";
 import { createNotification } from "@/lib/db/notifications";
 import { getPaymentsByPG, updatePaymentStatus, Payment } from "@/lib/db/payments";
+import { getUserProfile } from "@/lib/db/users";
+import { db } from "@/lib/firebase/client";
+import { collection, doc, query, where, onSnapshot } from "firebase/firestore";
 import { uploadToCloudinary } from "@/lib/cloudinary";
 import { Button } from "@/components/ui/button";
+import { SpeedLoader } from "@/components/ui/SpeedLoader";
 import { Input } from "@/components/ui/input";
 import Image from "next/image";
 import Link from "next/link";
-import { ChevronLeft, Users, Home, Edit3, Check, MapPin, Wifi, AlertTriangle, Receipt, CheckCircle2, XCircle, ImagePlus } from "lucide-react";
-import type { Booking } from "@/lib/db/bookings";
+import { ChevronLeft, Users, Home, Edit3, Check, MapPin, Wifi, AlertTriangle, Receipt, CheckCircle2, XCircle, ImagePlus, ArrowUpRight, DollarSign, ClipboardCheck, UserCircle, MessageSquare, LayoutDashboard, Database } from "lucide-react";
 
 export default function ManagePGPage() {
   const params = useParams<{ id: string }>();
@@ -29,6 +31,9 @@ export default function ManagePGPage() {
   const [ownerId, setOwnerId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"overview" | "rooms" | "tenants" | "complaints" | "payments">("overview");
   const [payments, setPayments] = useState<Payment[]>([]);
+  const [tenantNames, setTenantNames] = useState<Record<string, string>>({});
+  const [isLive, setIsLive] = useState(false);
+  const [syncError, setSyncError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -59,34 +64,112 @@ export default function ManagePGPage() {
   }, [router]);
 
   useEffect(() => {
-    if (params?.id) {
-      // Load PG data
-      getPGById(params.id).then((data) => {
-        if (data) {
-          setPg(data);
-          setEditName(data.name);
-          setEditDesc(data.description || "");
-          setEditLocation(data.location || "");
+    if (!params?.id) return;
+
+    setIsLive(false);
+    setSyncError(null);
+
+    // 1. Real-time PG Document
+    const unsubPg = onSnapshot(doc(db, "pgs", params.id), (snap) => {
+      if (snap.exists()) {
+        const data = { id: snap.id, ...snap.data() } as PG;
+        setPg(data);
+        setEditName(data.name);
+        setEditDesc(data.description || "");
+        setEditLocation(data.location || "");
+        setIsLive(true);
+      }
+      setLoading(false);
+    }, (err) => {
+      console.error("PG Sync Error:", err);
+      setSyncError("Failed to sync building profile.");
+    });
+
+    // 2. Real-time Relational Data (Bookings, Complaints, Payments)
+    setDataLoading(true);
+
+    const qBookings = query(collection(db, "bookings"), where("pgId", "==", params.id));
+    const unsubBookings = onSnapshot(qBookings, (snap) => {
+      setBookings(snap.docs.map(d => ({ id: d.id, ...d.data() })) as Booking[]);
+    }, (err) => console.error("Bookings sync error:", err));
+
+    const qComplaints = query(collection(db, "complaints"), where("pgId", "==", params.id));
+    const unsubComplaints = onSnapshot(qComplaints, (snap) => {
+      setComplaints(snap.docs.map(d => ({ id: d.id, ...d.data() })) as Complaint[]);
+    }, (err) => console.error("Complaints sync error:", err));
+
+    const qPayments = query(collection(db, "payments"), where("pgId", "==", params.id));
+    const unsubPayments = onSnapshot(qPayments, (snap) => {
+      setPayments(snap.docs.map(d => ({ id: d.id, ...d.data() })) as Payment[]);
+      setDataLoading(false);
+    }, (err) => console.error("Payments sync error:", err));
+
+    return () => {
+      unsubPg();
+      unsubBookings();
+      unsubComplaints();
+      unsubPayments();
+    };
+  }, [params?.id]);
+
+  // --- AUTO-VANISH MONITOR (5:00 PM CHECKOUT SYNC) ---
+  useEffect(() => {
+    if (bookings.length === 0) return;
+
+    const checkAndTerminate = async () => {
+      const now = new Date();
+      for (const booking of bookings) {
+        if (booking.status === "notice_approved" && booking.moveOutDate) {
+          const [year, month, day] = booking.moveOutDate.split("-").map(Number);
+          const checkoutTime = new Date(year, month - 1, day, 17, 0, 0); // 5:00 PM
+
+          if (now >= checkoutTime) {
+            console.log(`[Auto-Vanish Sync] Terminating booking ${booking.id} - Checkout passed.`);
+            try {
+              // 1. Terminate Booking
+              await updateBooking(booking.id, { status: "cancelled" }); // Move to history
+              
+              // 2. Terminate Contract
+              if (booking.contractId) {
+                await updateContractStatus(booking.contractId, "terminated");
+              }
+
+              // 3. Room Availability is usually handled manually or via a cloud function, 
+              // but we ensure the status change reflects in the UI.
+            } catch (err) {
+              console.error("[Auto-Vanish Sync] Error:", err);
+            }
+          }
         }
-        setLoading(false);
-      });
+      }
+    };
 
-      // Load all relational data in parallel — don't block on any one
-      setDataLoading(true);
-      Promise.all([
-        getBookingsByPG(params.id).then(setBookings),
-        getComplaintsByPG(params.id).then(setComplaints),
-        getPaymentsByPG(params.id).then(setPayments),
-      ]).finally(() => setDataLoading(false));
-    }
-  }, [params?.id, router]);
+    const interval = setInterval(checkAndTerminate, 60000); // Minute check
+    checkAndTerminate(); 
+    return () => clearInterval(interval);
+  }, [bookings]);
 
-  // Ensure only the owner can manage this PG
   useEffect(() => {
     if (pg && ownerId && pg.ownerId !== ownerId) {
       router.replace("/dashboard/owner");
     }
   }, [pg, ownerId, router]);
+
+  // Fetch names for tenants whose names aren't in the booking record
+  useEffect(() => {
+    if (bookings.length > 0) {
+      const uids = Array.from(new Set(bookings.map(b => b.tenantId)));
+      uids.forEach(uid => {
+        if (!tenantNames[uid]) {
+          getUserProfile(uid).then(profile => {
+            if (profile) {
+              setTenantNames(prev => ({ ...prev, [uid]: profile.name }));
+            }
+          });
+        }
+      });
+    }
+  }, [bookings]);
 
   const handleSave = async () => {
     if (!pg) return;
@@ -111,725 +194,420 @@ export default function ManagePGPage() {
 
   const handleAddRoom = async () => {
     if (!pg || !newRoomNumber.trim() || !newRoomRent) return;
-
-    // Duplicate room number check
-    const isDuplicate = (pg.rooms || []).some(
-      (r) => r.roomNumber.trim().toLowerCase() === newRoomNumber.trim().toLowerCase()
-    );
-    if (isDuplicate) {
-      setRoomNumberError(`Room "${newRoomNumber}" already exists in this building.`);
-      return;
-    }
-
+    const isDuplicate = (pg.rooms || []).some((r) => r.roomNumber.trim().toLowerCase() === newRoomNumber.trim().toLowerCase());
+    if (isDuplicate) { setRoomNumberError(`Room "${newRoomNumber}" already exists.`); return; }
     const capacityMap = { Single: 1, Double: 2, Triple: 3, Studio: 1, Dormitory: 8 };
     const capacity = capacityMap[newRoomType];
     const occupancy = Math.min(capacity, Number(newRoomOccupancy) || 0);
-
     setIsAddingRoom(true);
     let imageUrl: string | undefined = undefined;
-    try {
-      if (newRoomImageFile) {
-        imageUrl = await uploadToCloudinary(newRoomImageFile, "savion/rooms");
-      }
-    } catch (err) {
-      setRoomNumberError("Failed to upload room image. Please try again.");
-      setIsAddingRoom(false);
-      return;
-    }
-
-    const newRoom = {
-      id: `room_${Date.now()}`,
-      roomNumber: newRoomNumber.trim(),
-      type: newRoomType,
-      floor: newRoomFloor.trim() || undefined,
-      monthlyRent: Number(newRoomRent),
-      capacity,
-      currentOccupancy: occupancy,
-      available: Math.max(0, capacity - occupancy),
-      amenities: newRoomAmenities,
-      image: imageUrl,
-    };
-
+    try { if (newRoomImageFile) { imageUrl = await uploadToCloudinary(newRoomImageFile, "savion/rooms"); } } catch (err) { setRoomNumberError("Failed to upload image."); setIsAddingRoom(false); return; }
+    const newRoom = { id: `room_${Date.now()}`, roomNumber: newRoomNumber.trim(), type: newRoomType, floor: newRoomFloor.trim() || undefined, monthlyRent: Number(newRoomRent), capacity, currentOccupancy: occupancy, available: Math.max(0, capacity - occupancy), amenities: newRoomAmenities, image: imageUrl };
     const updatedRooms = [...(pg.rooms || []), newRoom];
-    const availableRooms = updatedRooms.filter((r) => r.available > 0).length;
-    const totalRooms = updatedRooms.length;
+    const availRooms = updatedRooms.filter((r) => r.available > 0).length;
     const lowestRent = Math.min(...updatedRooms.map((r) => r.monthlyRent));
-
-    await updatePG(pg.id, {
-      rooms: updatedRooms,
-      availableRooms,
-      totalRooms,
-      price: `₹${lowestRent.toLocaleString("en-IN")}`,
-    });
-    setPg({ ...pg, rooms: updatedRooms, availableRooms, totalRooms });
-
-    // Reset form
-    setShowAddRoom(false);
-    setNewRoomNumber("");
-    setNewRoomType("Single");
-    setNewRoomFloor("");
-    setNewRoomRent("");
-    setNewRoomOccupancy("0");
-    setNewRoomAmenities([]);
-    setRoomNumberError("");
-    setNewRoomImageFile(null);
-    setNewRoomImagePreview(null);
-    setIsAddingRoom(false);
+    await updatePG(pg.id, { rooms: updatedRooms, availableRooms: availRooms, totalRooms: updatedRooms.length, price: `₹${lowestRent.toLocaleString("en-IN")}` });
+    setPg({ ...pg, rooms: updatedRooms, availableRooms: availRooms, totalRooms: updatedRooms.length });
+    setShowAddRoom(false); setNewRoomNumber(""); setNewRoomRent(""); setRoomNumberError(""); setNewRoomImageFile(null); setNewRoomImagePreview(null); setIsAddingRoom(false);
   };
 
-  const handleBookingAction = async (
-    bookingId: string,
-    tenantId: string,
-    action: "approved" | "confirmed" | "cancelled" | "notice_approved" | "disputed",
-    roomType: string,
-    contractId?: string
-  ) => {
+  const handleBookingAction = async (bookingId: string, tenantId: string, action: any, roomType: string, contractId?: string) => {
     if (!pg) return;
-    await updateBookingStatus(bookingId, action);
-
-    // If cancelling (e.g. they vacated), also terminate the contract
-    if (action === "cancelled" && contractId) {
-      await updateContractStatus(contractId, "terminated");
-    }
-
-    // Update local bookings state
+    await updateBooking(bookingId, { status: action });
+    if (action === "cancelled" && contractId) await updateContractStatus(contractId, "terminated");
     setBookings(bookings.map(b => b.id === bookingId ? { ...b, status: action } : b));
-
-    // Notify tenant
-    await createNotification({
-      userId: tenantId,
-      title: `Booking ${
-        action === "approved"
-          ? "Pre-Approved"
-          : action === "confirmed"
-          ? "Approved"
-          : action === "cancelled"
-          ? "Cancelled"
-          : action === "notice_approved"
-          ? "Notice Approved"
-          : "Update"
-      }`,
-      message: action === "approved"
-        ? `Your inquiry for a ${roomType} room at ${pg.name} has been pre-approved! Please complete the payment to confirm your stay.`
-        : action === "cancelled"
-        ? `Your booking for a ${roomType} room at ${pg.name} has been marked as vacated/cancelled.`
-        : action === "notice_approved"
-          ? `Your move-out request for the ${roomType} room at ${pg.name} has been approved. Please hand over the keys by your scheduled date.`
-          : `Your booking for a ${roomType} room at ${pg.name} has been ${action}.`,
-      type: "booking"
-    });
-
-    // If confirmed, try to decrease the availability of that room type
+    await createNotification({ userId: tenantId, title: "Booking Update", message: `Your booking at ${pg.name} status: ${action}`, type: "booking" });
     if (action === "confirmed" && pg.rooms) {
       const targetRoom = pg.rooms.find(r => r.type === roomType && r.available > 0);
-      if (targetRoom) {
-        await updateRoomAvail(targetRoom.id, targetRoom.available - 1);
-      }
+      if (targetRoom) await updateRoomAvail(targetRoom.id, targetRoom.available - 1);
     }
   };
 
-  const handleComplaintAction = async (complaintId: string, tenantId: string, status: "open" | "in-progress" | "resolved", category: string) => {
+  const handleNoticeAction = async (bookingId: string, tenantId: string, action: "approve" | "reject") => {
+    if (!pg) return;
+    const newStatus = action === "approve" ? "notice_approved" : "confirmed";
+    await updateBooking(bookingId, { status: newStatus });
+    
+    await createNotification({
+      userId: tenantId,
+      title: action === "approve" ? "Notice Approved" : "Notice Reverted",
+      message: action === "approve" 
+        ? `Your move-out notice for ${pg.name} has been approved by the owner.`
+        : `Your move-out notice for ${pg.name} was not accepted. Please contact the owner for details.`,
+      type: "booking"
+    });
+  };
+
+  const handleComplaintAction = async (complaintId: string, tenantId: string, status: any, category: string) => {
     await updateComplaintStatus(complaintId, status);
     setComplaints(complaints.map(c => c.id === complaintId ? { ...c, status } : c));
-
-    let message = "";
-    if (status === "in-progress") message = `Your complaint regarding '${category}' is now being worked on.`;
-    if (status === "resolved") message = `Your complaint regarding '${category}' has been marked as resolved.`;
-
-    if (message) {
-      await createNotification({
-        userId: tenantId,
-        title: "Complaint Status Updated",
-        message,
-        type: "complaint"
-      });
-    }
+    await createNotification({ userId: tenantId, title: "Complaint Status", message: `Your ${category} complaint is now ${status}.`, type: "complaint" });
   };
 
   const handleExportCSV = () => {
     if (!pg) return;
     const headers = "Date,Tenant,Room,Type,Amount,Status,UTR\n";
-    const rows = payments.map(p => {
-      const date = new Date(p.createdAt).toLocaleDateString("en-IN");
-      return `"${date}","${p.tenantName || 'Unknown'}","${p.roomNo}","${p.type}","${p.amount}","${p.status}","${p.utrNumber}"`;
-    }).join("\n");
-
-    const csvContent = "data:text/csv;charset=utf-8," + headers + rows;
-    const encodedUri = encodeURI(csvContent);
+    const rows = payments.map(p => `"${new Date(p.createdAt).toLocaleDateString()}","${p.tenantName}","${p.roomNo}","${p.type}","${p.amount}","${p.status}","${p.utrNumber}"`).join("\n");
     const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `payments_${pg.name.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    link.setAttribute("href", encodeURI("data:text/csv;charset=utf-8," + headers + rows));
+    link.setAttribute("download", `payments_${pg.name.replace(/\s+/g, '_')}.csv`);
+    document.body.appendChild(link); link.click(); document.body.removeChild(link);
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="w-10 h-10 rounded-full border-4 border-primary border-t-transparent animate-spin" />
-      </div>
-    );
-  }
-
+  if (loading) return <div className="min-h-screen flex items-center justify-center bg-[#f8fafc]"><SpeedLoader text="Loading Property" subtext="Syncing your assets..." /></div>;
   if (!pg) return null;
 
   const confirmedBookings = bookings.filter((b) => b.status === "confirmed");
   const pendingBookings = bookings.filter((b) => b.status === "pending");
 
   return (
-    <div className="min-h-screen bg-slate-50 animate-fade-in">
-      {/* Header */}
-      <header className="bg-slate-900 text-white py-4 px-6 shadow sticky top-0 z-40">
-        <div className="container mx-auto flex items-center gap-4">
-          <Link href="/dashboard/owner">
-            <button className="opacity-70 hover:opacity-100 transition-opacity">
-              <ChevronLeft className="w-5 h-5" />
-            </button>
-          </Link>
-          <div className="flex-1">
-            <h1 className="font-bold text-lg">{pg.name}</h1>
-            <p className="text-xs text-slate-400 flex items-center gap-1"><MapPin className="w-3 h-3" />{pg.city}</p>
+    <div className="min-h-screen bg-[#f8fafc] selection:bg-primary/10 selection:text-primary">
+      {/* Premium Glass Header */}
+      <header className="bg-slate-950/90 backdrop-blur-3xl text-white py-6 px-6 md:px-12 shadow-2xl sticky top-0 z-50 border-b border-white/5">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-5">
+            <Link href="/dashboard/owner">
+              <button className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 hover:scale-110 transition-all duration-300">
+                <ChevronLeft className="w-6 h-6 text-white" />
+              </button>
+            </Link>
+            <div>
+              <h1 className="font-black text-2xl tracking-tighter leading-none mb-1.5">{pg.name}</h1>
+              <div className="flex items-center gap-3">
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 flex items-center gap-2">
+                  <MapPin className="w-3.5 h-3.5 text-primary" /> {pg.city} · {pg.location.split(',')[0]}
+                </p>
+                <div className="flex items-center gap-2 px-2 py-1 rounded-full bg-white/5 border border-white/10">
+                   <div className={`w-1.5 h-1.5 rounded-full ${isLive ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
+                   <span className="text-[8px] font-black text-white/60 uppercase tracking-widest">{isLive ? 'Live Feed' : 'Syncing'}</span>
+                </div>
+              </div>
+            </div>
           </div>
           <Link href={`/pg/${pg.id}`} target="_blank">
-            <button className="text-xs border border-slate-600 rounded-lg px-3 py-1.5 hover:border-slate-400 transition-all">
-              Public View →
-            </button>
+            <Button variant="outline" className="h-12 border-white/10 bg-white/5 hover:bg-white/10 text-white rounded-2xl text-xs font-black gap-2 px-6 transition-all active:scale-95">
+              Preview Terminal <ArrowUpRight className="w-4 h-4" />
+            </Button>
           </Link>
         </div>
       </header>
 
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
-        {/* Stats Row */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8 stagger">
+      <main className="max-w-7xl mx-auto px-6 md:px-12 py-10">
+        {/* Visual Stats Row */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 mb-16 stagger">
           {[
-            { label: "Total Rooms", value: pg.totalRooms || pg.rooms?.length || 0, color: "border-l-blue-500" },
-            { label: "Available Now", value: pg.availableRooms ?? 0, color: "border-l-green-500" },
-            { label: "Active Tenants", value: confirmedBookings.length, color: "border-l-primary" },
-            { label: "Awaiting Payment", value: pendingBookings.length, color: "border-l-yellow-500" },
-          ].map((s) => (
-            <div key={s.label} className={`bg-white rounded-xl border shadow-sm p-4 border-l-4 ${s.color} animate-fade-in-up hover-lift`}>
-              <p className="text-xs text-muted-foreground font-semibold uppercase">{s.label}</p>
-              <p className="text-3xl font-black mt-1">{s.value}</p>
+            { label: "Total Units", value: pg.totalRooms || pg.rooms?.length || 0, icon: LayoutDashboard, color: "text-slate-900", bg: "bg-slate-50" },
+            { label: "Available Now", value: pg.availableRooms ?? 0, icon: ClipboardCheck, color: "text-emerald-600", bg: "bg-emerald-50" },
+            { label: "Resident Count", value: confirmedBookings.length, icon: Users, color: "text-primary", bg: "bg-primary/5" },
+            { label: "Action Needed", value: pendingBookings.length, icon: AlertTriangle, color: "text-rose-600", bg: "bg-rose-50" },
+          ].map((s, i) => (
+            <div key={s.label} className="bg-white/70 backdrop-blur-xl rounded-[2.5rem] border border-white p-8 shadow-sm flex items-center gap-6 group hover:shadow-2xl hover:shadow-slate-200/50 transition-all duration-500 animate-fade-in-up">
+              <div className={`w-14 h-14 rounded-[1.25rem] ${s.bg} flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform duration-500`}>
+                <s.icon className={`w-7 h-7 ${s.color}`} />
+              </div>
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-1">{s.label}</p>
+                <p className="text-3xl font-black text-slate-900 tracking-tighter">{s.value}</p>
+              </div>
             </div>
           ))}
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-1 bg-slate-100 rounded-xl p-1 mb-6 overflow-x-auto scroller">
+        {/* Modern Segmented Tabs */}
+        <div className="flex gap-2 bg-white/40 border border-white p-2 rounded-[1.75rem] mb-12 overflow-x-auto scroller backdrop-blur-2xl shadow-xl shadow-slate-200/20">
           {(["overview", "rooms", "tenants", "complaints", "payments"] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`whitespace-nowrap px-4 py-2 rounded-lg text-sm font-semibold capitalize transition-all shrink-0
-                 ${activeTab === tab ? "bg-white shadow text-primary" : "text-slate-500 hover:text-slate-700"}`}
+              className={`whitespace-nowrap px-8 py-3.5 rounded-2xl text-[11px] font-black transition-all shrink-0 uppercase tracking-[0.2em]
+                 ${activeTab === tab 
+                    ? "bg-slate-900 text-white shadow-2xl shadow-slate-900/20 scale-105" 
+                    : "text-slate-500 hover:text-slate-900 hover:bg-white/60"}`}
             >
-              {tab === "overview" ? "📋 Overview" : tab === "rooms" ? "🛏️ Rooms" : tab === "tenants" ? "👤 Tenants" : tab === "complaints" ? "⚠️ Complaints" : "💳 Payments"}
+              {tab}
             </button>
           ))}
         </div>
 
-        {/* OVERVIEW TAB */}
-        {activeTab === "overview" && (
-          <div className="space-y-5 animate-fade-in-up">
-            <div className="bg-white rounded-2xl border shadow-sm p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="font-bold text-lg flex items-center gap-2"><Edit3 className="w-4 h-4" /> Edit Details</h3>
-                <Button size="sm" onClick={handleSave} disabled={saving} className={`gap-1.5 ${saved ? "bg-green-600 hover:bg-green-600" : ""}`}>
-                  {saved ? <><Check className="w-4 h-4" /> Saved!</> : saving ? "Saving..." : "Save Changes"}
-                </Button>
-              </div>
-              <div className="space-y-3">
-                <div>
-                  <label className="text-xs font-semibold text-slate-500 uppercase block mb-1">Property Name</label>
-                  <Input value={editName} onChange={(e) => setEditName(e.target.value)} className="h-11" />
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-slate-500 uppercase block mb-1">Address</label>
-                  <Input value={editLocation} onChange={(e) => setEditLocation(e.target.value)} className="h-11" />
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-slate-500 uppercase block mb-1">Description</label>
-                  <textarea
-                    value={editDesc}
-                    onChange={(e) => setEditDesc(e.target.value)}
-                    rows={3}
-                    className="w-full border rounded-xl px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Facilities */}
-            {pg.facilities?.length > 0 && (
-              <div className="bg-white rounded-2xl border shadow-sm p-6">
-                <h3 className="font-bold text-lg mb-4 flex items-center gap-2"><Wifi className="w-4 h-4" /> Facilities</h3>
-                <div className="flex flex-wrap gap-2">
-                  {pg.facilities.map((f) => (
-                    <span key={f} className="bg-orange-50 text-orange-700 px-3 py-1 rounded-full text-xs font-semibold">{f}</span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Map */}
-            {pg.lat && pg.lng && (
-              <div className="bg-white rounded-2xl border shadow-sm overflow-hidden">
-                <div className="p-4 border-b flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-primary" />
-                  <span className="font-semibold text-sm">Property Location</span>
-                </div>
-                <iframe
-                  title="Property Map"
-                  width="100%"
-                  height="220"
-                  src={`https://www.openstreetmap.org/export/embed.html?bbox=${pg.lng - 0.005},${pg.lat - 0.005},${pg.lng + 0.005},${pg.lat + 0.005}&layer=mapnik&marker=${pg.lat},${pg.lng}`}
-                  style={{ border: 0 }}
-                />
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ROOMS TAB */}
-        {activeTab === "rooms" && (
-          <div className="space-y-4 animate-fade-in-up">
-
-            <div className="flex justify-between items-center bg-white p-4 rounded-2xl border shadow-sm">
-              <h3 className="font-bold text-lg">Manage Inventory</h3>
-              <Button onClick={() => setShowAddRoom(!showAddRoom)} variant={showAddRoom ? "outline" : "default"} size="sm">
-                {showAddRoom ? "Cancel" : "+ Add Room"}
-              </Button>
-            </div>
-
-            {showAddRoom && (
-              <div className="bg-white border-2 border-primary/20 rounded-2xl p-6 animate-scale-in space-y-5">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-bold text-base">Add New Room</h4>
-                  <span className="text-xs text-muted-foreground">Building: <strong>{pg.name}</strong></span>
-                </div>
-
-                {roomNumberError && (
-                  <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-2.5">
-                    ⚠️ {roomNumberError}
+        {/* Dynamic Content */}
+        <div className="animate-fade-in-up">
+          {activeTab === "overview" && (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              <div className="lg:col-span-2 space-y-6">
+                <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-10">
+                  <div className="flex justify-between items-center mb-8">
+                    <h3 className="font-black text-2xl text-slate-900 tracking-tight">Property Profile</h3>
+                    <Button onClick={handleSave} disabled={saving} className={`h-11 rounded-xl font-black gap-2 px-6 ${saved ? "bg-emerald-600 hover:bg-emerald-700" : "bg-primary hover:bg-primary/90"}`}>
+                      {saved ? <><Check className="w-4 h-4" /> Updated</> : saving ? "Saving..." : "Save Changes"}
+                    </Button>
                   </div>
-                )}
-
-                {/* Row 1: Room Number + Type + Floor */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div>
-                    <label className="text-xs font-semibold text-slate-600 block mb-1">Room Number <span className="text-red-500">*</span></label>
-                    <Input
-                      placeholder="e.g. 101, A1, GF-2"
-                      value={newRoomNumber}
-                      onChange={(e) => { setNewRoomNumber(e.target.value); setRoomNumberError(""); }}
-                      className={`h-10 font-mono ${roomNumberError ? "border-red-400 bg-red-50" : ""}`}
-                    />
-                    <p className="text-[11px] text-muted-foreground mt-1">Must be unique in this building</p>
-                  </div>
-                  <div>
-                    <label className="text-xs font-semibold text-slate-600 block mb-1">Room Type <span className="text-red-500">*</span></label>
-                    <select
-                      value={newRoomType}
-                      onChange={(e) => setNewRoomType(e.target.value as any)}
-                      className="w-full border rounded-lg h-10 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-                    >
-                      <option value="Single">Single (1 person)</option>
-                      <option value="Double">Double (2 persons)</option>
-                      <option value="Triple">Triple (3 persons)</option>
-                      <option value="Studio">Studio (1 person)</option>
-                      <option value="Dormitory">Dormitory (8 persons)</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-xs font-semibold text-slate-600 block mb-1">Floor <span className="text-slate-400 font-normal">(optional)</span></label>
-                    <Input
-                      placeholder="e.g. G, 1, 2, Terrace"
-                      value={newRoomFloor}
-                      onChange={(e) => setNewRoomFloor(e.target.value)}
-                      className="h-10"
-                    />
-                  </div>
-                </div>
-
-                {/* Row 2: Rent + Occupancy */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-xs font-semibold text-slate-600 block mb-1">Monthly Rent (₹) <span className="text-red-500">*</span></label>
-                    <Input
-                      type="number" min="0"
-                      placeholder="e.g. 8000"
-                      value={newRoomRent}
-                      onChange={(e) => setNewRoomRent(e.target.value)}
-                      className="h-10"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-semibold text-slate-600 block mb-1">Current Occupancy</label>
-                    <Input
-                      type="number" min="0"
-                      placeholder="0"
-                      value={newRoomOccupancy}
-                      onChange={(e) => setNewRoomOccupancy(e.target.value)}
-                      className="h-10"
-                    />
-                    <p className="text-[11px] text-muted-foreground mt-1">How many people are currently living here?</p>
-                  </div>
-                </div>
-
-                {/* Row 3: Amenities + Image */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="text-xs font-semibold text-slate-600 block mb-2">Room Amenities</label>
-                    <div className="flex flex-wrap gap-2">
-                      {["AC", "Attached Bathroom", "Balcony", "Study Desk", "Wardrobe", "TV"].map((a) => (
-                        <button
-                          key={a} type="button"
-                          onClick={() => setNewRoomAmenities((prev) =>
-                            prev.includes(a) ? prev.filter((x) => x !== a) : [...prev, a]
-                          )}
-                          className={`px-3 py-1 rounded-full border text-xs font-semibold transition-all ${
-                            newRoomAmenities.includes(a)
-                              ? "bg-primary text-white border-primary"
-                              : "border-slate-300 hover:border-primary/40"
-                          }`}
-                        >
-                          {newRoomAmenities.includes(a) ? "✓ " : ""}{a}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <div>
-                    <label className="text-xs font-semibold text-slate-600 block mb-2">Room Photo</label>
-                    <label className={`flex flex-col items-center justify-center h-28 border-2 border-dashed rounded-xl cursor-pointer transition-all overflow-hidden relative
-                      ${newRoomImagePreview ? "border-green-400" : "border-slate-300 hover:border-primary/50 hover:bg-slate-50"}`}>
-                      {newRoomImagePreview ? (
-                        <>
-                           <img src={newRoomImagePreview} alt="preview" className="h-full w-full object-cover" />
-                           <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity text-white text-xs font-bold">
-                             Change Image
-                           </div>
-                        </>
-                      ) : (
-                        <>
-                          <ImagePlus className="w-6 h-6 text-slate-400 mb-1" />
-                          <span className="text-[11px] font-medium text-muted-foreground text-center px-4">Upload room specific photo</span>
-                        </>
-                      )}
-                      <input type="file" accept="image/*" className="hidden" onChange={(e) => { 
-                        if (e.target.files?.[0]) {
-                          setNewRoomImageFile(e.target.files[0]);
-                          setNewRoomImagePreview(URL.createObjectURL(e.target.files[0]));
-                        }
-                      }} />
-                    </label>
-                  </div>
-                </div>
-
-                <div className="flex justify-end gap-3 pt-2 border-t">
-                  <Button variant="outline" onClick={() => { setShowAddRoom(false); setRoomNumberError(""); }}>Cancel</Button>
-                  <Button
-                    onClick={handleAddRoom}
-                    disabled={!newRoomNumber.trim() || !newRoomRent || isAddingRoom}
-                    className="px-6 font-semibold"
-                  >
-                    {isAddingRoom ? "Saving..." : "+ Save Room"}
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {(!pg.rooms || pg.rooms.length === 0) ? (
-              <div className="bg-white rounded-2xl border p-10 text-center">
-                <p className="text-3xl mb-2">🛏️</p>
-                <p className="font-semibold">No rooms configured</p>
-                <p className="text-sm text-muted-foreground mt-1">Click Add Room above to start inventory.</p>
-              </div>
-            ) : (
-              pg.rooms.map((room) => (
-                <div key={room.id} className="bg-white rounded-2xl border shadow-sm p-5 flex flex-col md:flex-row justify-between gap-4 hover-lift">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-bold text-lg">{room.type} Room</span>
-                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${room.available > 0 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
-                        {room.available > 0 ? `${room.available} available` : "Full"}
-                      </span>
-                    </div>
-                    <p className="text-sm text-muted-foreground mb-2">Room: {room.roomNumber} · Capacity: {room.capacity}</p>
-                    {room.amenities?.length > 0 && (
-                      <div className="flex flex-wrap gap-1">
-                        {room.amenities.map((a) => (
-                          <span key={a} className="text-xs bg-slate-100 px-2 py-0.5 rounded-full">{a}</span>
-                        ))}
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Building Name</label>
+                        <Input value={editName} onChange={(e) => setEditName(e.target.value)} className="h-14 bg-slate-50 border-transparent rounded-2xl font-bold text-slate-900 focus:bg-white focus:ring-primary" />
                       </div>
-                    )}
-                  </div>
-                  <div className="flex flex-col items-end gap-3">
-                    <p className="text-xl font-extrabold text-primary">₹{room.monthlyRent.toLocaleString("en-IN")}<span className="text-xs font-normal text-muted-foreground">/mo</span></p>
-                    <div className="flex items-center gap-2 text-sm">
-                      <span className="text-muted-foreground">Available:</span>
-                      <div className="flex items-center gap-1">
-                        <button type="button" onClick={() => updateRoomAvail(room.id, Math.max(0, room.available - 1))} className="w-7 h-7 rounded-lg border flex items-center justify-center font-bold hover:bg-slate-100">−</button>
-                        <span className="w-8 text-center font-bold">{room.available}</span>
-                        <button type="button" onClick={() => updateRoomAvail(room.id, Math.min(room.capacity, room.available + 1))} className="w-7 h-7 rounded-lg border flex items-center justify-center font-bold hover:bg-slate-100">+</button>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Location Details</label>
+                        <Input value={editLocation} onChange={(e) => setEditLocation(e.target.value)} className="h-14 bg-slate-50 border-transparent rounded-2xl font-bold text-slate-900 focus:bg-white focus:ring-primary" />
                       </div>
                     </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">About the Property</label>
+                      <textarea
+                        value={editDesc}
+                        onChange={(e) => setEditDesc(e.target.value)}
+                        rows={4}
+                        className="w-full border-transparent bg-slate-50 rounded-[1.5rem] p-5 text-sm font-medium resize-none focus:outline-none focus:ring-2 focus:ring-primary/30 focus:bg-white transition-all"
+                      />
+                    </div>
                   </div>
                 </div>
-              ))
-            )}
-          </div>
-        )}
 
-        {activeTab === "tenants" && (
-          <div className="space-y-3 animate-fade-in-up">
-
-
-            {dataLoading ? (
-              <div className="bg-white rounded-2xl border p-10 text-center">
-                <div className="w-8 h-8 rounded-full border-4 border-primary border-t-transparent animate-spin mx-auto mb-3" />
-                <p className="text-sm text-muted-foreground">Loading bookings...</p>
-              </div>
-            ) : bookings.length === 0 ? (
-              <div className="bg-white rounded-2xl border p-10 text-center">
-                <p className="text-3xl mb-2">👤</p>
-                <p className="font-semibold">No tenants yet</p>
-                <p className="text-sm text-muted-foreground mt-1">Bookings for this PG will appear here.</p>
-              </div>
-            ) : (
-              bookings.map((b) => (
-                <div key={b.id} className={`bg-white rounded-2xl border shadow-sm p-5 flex justify-between items-center hover-lift ${b.status === 'pending' ? 'border-yellow-300 bg-yellow-50/30' : ''
-                  }`}>
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <p className="font-bold">{b.roomType} Room</p>
-                      <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${b.status === "confirmed" ? "bg-green-100 text-green-700" :
-                          b.status === "notice_given" ? "bg-orange-100 text-orange-700" :
-                            b.status === "notice_approved" ? "bg-blue-100 text-blue-700" :
-                              b.status === "pending" ? "bg-yellow-100 text-yellow-700" : "bg-red-100 text-red-700"
-                        }`}>
-                        {b.status === "notice_given" ? "NOTICE GIVEN" : b.status === "notice_approved" ? "NOTICE APPROVED" : b.status.toUpperCase()}
-                      </span>
-                    </div>
-                    <p className="text-sm text-muted-foreground">Move-in: {b.moveInDate} · ₹{b.amount.toLocaleString("en-IN")}/mo</p>
-                    <p className="text-xs text-muted-foreground font-mono mt-0.5">Tenant: {b.tenantId.slice(0, 16)}…</p>
-                    {b.status === "pending" && (
-                      <p className="text-xs text-yellow-700 font-semibold mt-1.5 bg-yellow-100 px-2 py-0.5 rounded-md inline-block">
-                        ⏳ Awaiting Payment
-                      </p>
-                    )}
-                    {b.status === "notice_given" && (
-                      <p className="text-xs text-orange-700 font-semibold mt-1.5 bg-orange-100 px-2 py-0.5 rounded-md inline-block">
-                        ⚠️ 7-Day Move-out Notice Received
-                      </p>
-                    )}
-                    {b.status === "notice_approved" && (
-                      <p className="text-xs text-blue-700 font-semibold mt-1.5 bg-blue-100 px-2 py-0.5 rounded-md inline-block">
-                        ℹ️ Notice Approved (Awaiting Vacate)
-                      </p>
-                    )}
-                  </div>
-                  <div className="flex flex-col sm:flex-row items-end sm:items-center gap-3">
-                    {b.status === "pending" && (
-                      <Button 
-                        size="sm" 
-                        className="bg-primary hover:bg-primary/90 text-white font-bold"
-                        onClick={() => handleBookingAction(b.id, b.tenantId, "approved", b.roomType)}
-                      >
-                        Approve Inquiry
-                      </Button>
-                    )}
-                    {b.status === "notice_given" && (
-                      <Button size="sm" className="bg-orange-600 hover:bg-orange-700 text-white font-bold" onClick={() => handleBookingAction(b.id, b.tenantId, "notice_approved" as any, b.roomType)}>
-                        Approve Notice
-                      </Button>
-                    )}
-                    {b.status === "notice_approved" && (
-                      <Button size="sm" className="bg-red-600 hover:bg-red-700 text-white font-bold" onClick={() => handleBookingAction(b.id, b.tenantId, "cancelled", b.roomType, b.contractId)}>
-                        Mark as Vacated
-                      </Button>
-                    )}
-                    {b.contractId && (
-                      <Link href={`/contract/${b.contractId}`}>
-                        <Button variant="outline" size="sm">Contract</Button>
-                      </Link>
-                    )}
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        )}
-        {/* COMPLAINTS TAB */}
-        {activeTab === "complaints" && (
-          <div className="space-y-4 animate-fade-in-up">
-            {complaints.length === 0 ? (
-              <div className="bg-white rounded-2xl border p-10 text-center">
-                <p className="text-3xl mb-2">✅</p>
-                <p className="font-semibold">No complaints filed</p>
-                <p className="text-sm text-muted-foreground mt-1">Everything is running smoothly.</p>
-              </div>
-            ) : (
-              complaints.map((c) => (
-                <div key={c.id} className="bg-white rounded-2xl border shadow-sm p-6 flex flex-col lg:flex-row justify-between gap-6 hover-lift relative overflow-hidden">
-                  {/* Color Accent bar */}
-                  <div className={`absolute left-0 top-0 bottom-0 w-1 ${c.status === "resolved" ? "bg-green-500" :
-                      c.status === "in-progress" ? "bg-blue-500" : "bg-red-500"
-                    }`} />
-
-                  <div className="flex-1 pl-2">
-                    <div className="flex items-center gap-3 mb-4">
-                      <span className={`text-[10px] font-black tracking-wider uppercase px-2.5 py-1 rounded-md ${c.status === "resolved" ? "bg-green-100 text-green-700" :
-                          c.status === "in-progress" ? "bg-blue-100 text-blue-700" : "bg-red-100 text-red-700"
-                        }`}>{c.status}</span>
-                      <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-slate-300 inline-block"></span>
-                        {c.category.toUpperCase()}
-                      </h4>
-                    </div>
-
-                    <div className="mb-5 pl-1 text-slate-700">
-                      <p className="text-base leading-relaxed">{c.description}</p>
-                    </div>
-
-                    <div className="flex flex-wrap gap-x-6 gap-y-3 p-4 bg-slate-50 border rounded-xl">
-                      <div className="space-y-1">
-                        <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Tenant Name</p>
-                        <p className="text-sm font-semibold text-slate-900">{c.tenantName || "Unknown Profile"}</p>
-                      </div>
-                      <div className="border-l border-slate-200 hidden sm:block"></div>
-                      <div className="space-y-1">
-                        <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Room</p>
-                        <p className="text-sm font-semibold text-slate-900">{c.roomNo || "Unspecified"}</p>
-                      </div>
-                      <div className="border-l border-slate-200 hidden sm:block"></div>
-                      <div className="space-y-1">
-                        <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Reg-ID</p>
-                        <p className="text-sm font-mono font-bold text-primary">{c.regId ? c.regId.slice(0, 10) : c.id.slice(0, 10)}</p>
-                      </div>
-                      <div className="border-l border-slate-200 hidden sm:block"></div>
-                      <div className="space-y-1">
-                        <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Filed On</p>
-                        <p className="text-sm font-medium text-slate-700">{new Date(c.createdAt).toLocaleDateString()}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col items-end gap-2 w-full md:w-auto">
-                    <label className="text-xs font-semibold text-slate-500 uppercase">Update Status</label>
-                    <select
-                      value={c.status}
-                      onChange={(e) => handleComplaintAction(c.id, c.tenantId, e.target.value as any, c.category)}
-                      className="border rounded-lg bg-slate-50 text-sm p-2 w-full md:w-40 focus:outline-none focus:ring-2 focus:ring-primary/50"
-                    >
-                      <option value="open">Open</option>
-                      <option value="in-progress">Working</option>
-                      <option value="resolved">Done</option>
-                    </select>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* PAYMENTS TAB */}
-      {activeTab === "payments" && (
-        <div className="bg-white rounded-xl shadow-sm border overflow-hidden animate-scale-in">
-          <div className="px-6 py-4 border-b bg-slate-50 flex items-center justify-between">
-            <div>
-              <h2 className="text-lg font-bold">Payment History</h2>
-              <p className="text-sm text-muted-foreground">All transactions related to this PG.</p>
-            </div>
-            <Button onClick={handleExportCSV} variant="outline" size="sm" className="gap-2">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-              Export CSV
-            </Button>
-          </div>
-          {payments.length === 0 ? (
-            <div className="bg-white rounded-2xl border p-10 text-center shadow-sm">
-              <p className="text-4xl mb-3">💳</p>
-              <p className="font-bold text-lg">No payments yet</p>
-              <p className="text-muted-foreground text-sm mt-1">Payments submitted by tenants will appear here.</p>
-            </div>
-          ) : (
-            <div className="bg-white rounded-2xl border shadow-sm overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="bg-slate-50 border-b">
-                      <th className="text-left px-5 py-3 font-semibold text-slate-600">Tenant</th>
-                      <th className="text-left px-5 py-3 font-semibold text-slate-600">Room</th>
-                      <th className="text-left px-5 py-3 font-semibold text-slate-600">Month</th>
-                      <th className="text-left px-5 py-3 font-semibold text-slate-600">Amount</th>
-                      <th className="text-left px-5 py-3 font-semibold text-slate-600">UTR</th>
-                      <th className="text-left px-5 py-3 font-semibold text-slate-600">Status</th>
-                      <th className="text-left px-5 py-3 font-semibold text-slate-600">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y">
-                    {payments.map((p) => (
-                      <tr key={p.id} className="hover:bg-slate-50 transition-colors">
-                        <td className="px-5 py-4">
-                          <p className="font-semibold">{p.tenantName}</p>
-                          <p className="text-xs text-muted-foreground">{p.type === "rent" ? "Rent" : "Security Deposit"}</p>
-                        </td>
-                        <td className="px-5 py-4 text-muted-foreground">{p.roomNo}</td>
-                        <td className="px-5 py-4">{p.month}</td>
-                        <td className="px-5 py-4 font-bold text-primary">₹{p.amount.toLocaleString("en-IN")}</td>
-                        <td className="px-5 py-4 font-mono text-xs">{p.utrNumber}</td>
-                        <td className="px-5 py-4">
-                          {p.status === "verified" && <span className="text-xs font-bold px-2 py-1 rounded-full bg-green-100 text-green-700">Verified ✅</span>}
-                          {p.status === "submitted" && <span className="text-xs font-bold px-2 py-1 rounded-full bg-yellow-100 text-yellow-700">Pending ⏳</span>}
-                          {p.status === "rejected" && <span className="text-xs font-bold px-2 py-1 rounded-full bg-red-100 text-red-700">Rejected ❌</span>}
-                        </td>
-                        <td className="px-5 py-4">
-                          <div className="flex items-center gap-2">
-                            {p.status === "submitted" && (
-                              <>
-                                <button
-                                  onClick={async () => {
-                                    await updatePaymentStatus(p.id, "verified");
-                                    setPayments(payments.map(pay => pay.id === p.id ? { ...pay, status: "verified" } : pay));
-                                    await createNotification({ userId: p.tenantId, title: "✅ Payment Verified", message: `Your ${p.month} rent of ₹${p.amount.toLocaleString("en-IN")} at ${p.pgName} has been verified.`, type: "booking" });
-                                  }}
-                                  className="flex items-center gap-1 text-xs bg-green-100 text-green-700 hover:bg-green-200 px-3 py-1.5 rounded-lg font-semibold transition-colors"
-                                >
-                                  <CheckCircle2 className="w-3.5 h-3.5" /> Verify
-                                </button>
-                                <button
-                                  onClick={async () => {
-                                    await updatePaymentStatus(p.id, "rejected");
-                                    setPayments(payments.map(pay => pay.id === p.id ? { ...pay, status: "rejected" } : pay));
-                                    await createNotification({ userId: p.tenantId, title: "❌ Payment Rejected", message: `Your ${p.month} payment of ₹${p.amount.toLocaleString("en-IN")} at ${p.pgName} was rejected. Please resubmit with correct details.`, type: "booking" });
-                                  }}
-                                  className="flex items-center gap-1 text-xs bg-red-100 text-red-700 hover:bg-red-200 px-3 py-1.5 rounded-lg font-semibold transition-colors"
-                                >
-                                  <XCircle className="w-3.5 h-3.5" /> Reject
-                                </button>
-                              </>
-                            )}
-                            <Link href={`/dashboard/tenant/receipt/${p.id}`} target="_blank">
-                              <button className="flex items-center gap-1 text-xs text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded-lg font-semibold transition-colors border border-blue-200">
-                                <Receipt className="w-3.5 h-3.5" /> Receipt
-                              </button>
-                            </Link>
-                          </div>
-                        </td>
-                      </tr>
+                <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-10">
+                  <h3 className="font-black text-2xl text-slate-900 tracking-tight mb-8">Amenities</h3>
+                  <div className="flex flex-wrap gap-3">
+                    {pg.facilities?.map((f) => (
+                      <span key={f} className="bg-primary/5 text-primary px-5 py-2.5 rounded-2xl text-sm font-black border border-primary/10">{f}</span>
                     ))}
-                  </tbody>
-                </table>
+                  </div>
+                </div>
               </div>
-              <div className="px-5 py-3 bg-slate-50 border-t flex justify-between items-center">
-                <p className="text-xs text-muted-foreground">Total collected (verified only):</p>
-                <p className="font-bold text-primary">₹{payments.filter(p => p.status === "verified").reduce((a, p) => a + p.amount, 0).toLocaleString("en-IN")}</p>
+
+              <div className="lg:col-span-1">
+                 <div className="bg-slate-900 rounded-[2.5rem] shadow-xl overflow-hidden sticky top-32">
+                    <div className="p-8 border-b border-white/5">
+                       <h4 className="text-white font-black text-lg flex items-center gap-2"><MapPin className="w-5 h-5 text-primary" /> Geo-Location</h4>
+                    </div>
+                    {pg.lat && pg.lng && (
+                      <iframe title="Map" width="100%" height="300" src={`https://www.openstreetmap.org/export/embed.html?bbox=${pg.lng-0.002},${pg.lat-0.002},${pg.lng+0.002},${pg.lat+0.002}&layer=mapnik&marker=${pg.lat},${pg.lng}`} style={{ border: 0, opacity: 0.8 }} />
+                    )}
+                 </div>
               </div>
             </div>
           )}
+
+          {activeTab === "rooms" && (
+            <div className="space-y-6">
+              <div className="flex justify-between items-center px-4">
+                <h3 className="font-black text-2xl text-slate-900 tracking-tight">Inventory Management</h3>
+                <Button onClick={() => setShowAddRoom(!showAddRoom)} className={`h-11 rounded-xl font-black gap-2 ${showAddRoom ? "bg-slate-100 text-slate-900" : "bg-primary text-white"}`}>
+                  {showAddRoom ? "Close Form" : "Create New Room"}
+                </Button>
+              </div>
+
+              {showAddRoom && (
+                <div className="bg-white border-2 border-primary/20 rounded-[2.5rem] p-10 animate-scale-in space-y-8 shadow-2xl shadow-primary/5">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Room ID / No.</label>
+                      <Input placeholder="e.g. 101" value={newRoomNumber} onChange={(e) => { setNewRoomNumber(e.target.value); setRoomNumberError(""); }} className={`h-14 rounded-2xl font-black ${roomNumberError ? "border-rose-400 bg-rose-50" : "bg-slate-50 border-transparent"}`} />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Type</label>
+                      <select value={newRoomType} onChange={(e) => setNewRoomType(e.target.value as any)} className="w-full bg-slate-50 border-transparent rounded-2xl h-14 px-5 text-sm font-black focus:ring-2 focus:ring-primary/50">
+                        {["Single", "Double", "Triple", "Studio", "Dormitory"].map(t => <option key={t} value={t}>{t} Room</option>)}
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Monthly Rent</label>
+                      <Input type="number" placeholder="₹ Amount" value={newRoomRent} onChange={(e) => setNewRoomRent(e.target.value)} className="h-14 rounded-2xl font-black bg-slate-50 border-transparent" />
+                    </div>
+                  </div>
+                  <div className="flex justify-end gap-3">
+                    <Button variant="ghost" onClick={() => setShowAddRoom(false)} className="rounded-xl font-bold h-12 px-8">Discard</Button>
+                    <Button onClick={handleAddRoom} disabled={isAddingRoom} className="bg-primary text-white font-black rounded-xl h-12 px-10 shadow-lg shadow-primary/20">
+                      {isAddingRoom ? "Syncing..." : "Confirm & Add"}
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {pg.rooms?.map((room) => (
+                  <div key={room.id} className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-8 flex flex-col justify-between hover:shadow-xl transition-all group">
+                    <div className="flex justify-between items-start mb-6">
+                      <div>
+                        <h4 className="font-black text-xl text-slate-900 group-hover:text-primary transition-colors">{room.type} Suite</h4>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mt-1">Room {room.roomNumber} · Max {room.capacity} Pax</p>
+                      </div>
+                      <span className={`text-[10px] font-black px-4 py-2 rounded-xl border tracking-widest
+                        ${room.available > 0 ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-rose-50 text-rose-600 border-rose-100"}`}>
+                        {room.available > 0 ? `${room.available} VACANT` : "FULL"}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between border-t border-slate-50 pt-6">
+                      <div className="flex items-center gap-3">
+                        <button onClick={() => updateRoomAvail(room.id, Math.max(0, room.available - 1))} className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center font-black hover:bg-primary/10 hover:text-primary transition-all">−</button>
+                        <span className="w-6 text-center font-black text-lg">{room.available}</span>
+                        <button onClick={() => updateRoomAvail(room.id, Math.min(room.capacity, room.available + 1))} className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center font-black hover:bg-primary/10 hover:text-primary transition-all">+</button>
+                      </div>
+                      <p className="text-2xl font-black text-primary tracking-tight">₹{room.monthlyRent.toLocaleString()}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {activeTab === "tenants" && (
+            <div className="space-y-6">
+              <h3 className="font-black text-2xl text-slate-900 tracking-tight px-4">Resident List</h3>
+              {bookings.length === 0 ? (
+                 <div className="bg-white rounded-[2.5rem] border p-20 text-center text-slate-400 font-bold italic shadow-sm">No residents found for this building.</div>
+              ) : (
+                <div className="grid grid-cols-1 gap-4">
+                  {bookings.map((b) => (
+                    <div key={b.id} className={`bg-white rounded-[2rem] border p-8 shadow-sm flex flex-col md:flex-row justify-between items-center transition-all hover:shadow-xl
+                      ${b.status === 'pending' ? 'border-primary/20 bg-primary/[0.02]' : 'border-slate-100'}`}>
+                      <div className="flex items-center gap-6 w-full">
+                        <div className="w-16 h-16 bg-slate-100 rounded-3xl flex items-center justify-center shadow-inner shrink-0 group-hover:bg-primary/10 transition-colors duration-500">
+                           <UserCircle className="w-8 h-8 text-slate-300 group-hover:text-primary transition-colors" />
+                        </div>
+                          <div>
+                            <div className="flex items-center gap-3 mb-1">
+                              <p className="font-black text-lg text-slate-900 uppercase tracking-tight">
+                                {b.tenantName || tenantNames[b.tenantId] || `${b.roomType} Resident`}
+                              </p>
+                               <span className={`text-[10px] font-black px-3 py-1.5 rounded-lg border tracking-widest
+                                ${b.status === "confirmed" ? "bg-emerald-50 text-emerald-600 border-emerald-100" : 
+                                  b.status === "notice_given" ? "bg-rose-50 text-rose-600 border-rose-100 animate-pulse" :
+                                  b.status === "notice_approved" ? "bg-slate-900 text-white border-slate-800" :
+                                  "bg-amber-50 text-amber-600 border-amber-100"}`}>
+                                {b.status.replace("_", " ").toUpperCase()}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-4">
+                              <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Joined: {new Date(b.createdAt).toLocaleDateString()} · ID: {b.id.slice(0, 8)}</p>
+                              {b.status === "notice_approved" && b.moveOutDate && (
+                                <div className="flex items-center gap-2 text-rose-600">
+                                   <Clock className="w-3.5 h-3.5" />
+                                   <p className="text-[10px] font-black uppercase tracking-widest">Out: {new Date(b.moveOutDate).toLocaleDateString("en-IN")} @ 5:00 PM</p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                      </div>
+                      <div className="flex flex-col sm:flex-row items-center gap-3 mt-6 md:mt-0 w-full md:w-auto">
+                        {b.status === "pending" && (
+                          <Button onClick={() => handleBookingAction(b.id, b.tenantId, "approved", b.roomType)} className="h-12 px-6 bg-primary text-white font-black rounded-xl shadow-lg shadow-primary/20 flex-1">Approve Inquiry</Button>
+                        )}
+                        
+                        {b.status === "notice_given" && (
+                          <div className="flex gap-2 w-full sm:w-auto">
+                            <Button 
+                              onClick={() => handleNoticeAction(b.id, b.tenantId, "approve")}
+                              className="h-12 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl shadow-lg shadow-emerald-900/10 flex-1 text-xs"
+                            >
+                              Approve Checkout
+                            </Button>
+                            <Button 
+                              onClick={() => handleNoticeAction(b.id, b.tenantId, "reject")}
+                              variant="outline"
+                              className="h-12 px-4 border-rose-200 text-rose-600 hover:bg-rose-50 font-black rounded-xl flex-1 text-xs"
+                            >
+                              Stay Active
+                            </Button>
+                          </div>
+                        )}
+
+                        {b.contractId && (
+                          <Link href={`/contract/${b.contractId}`} className="flex-1 w-full sm:w-auto">
+                            <Button variant="outline" className="h-12 w-full rounded-xl font-black border-slate-200">Contract File</Button>
+                          </Link>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === "complaints" && (
+            <div className="space-y-6">
+              <h3 className="font-black text-2xl text-slate-900 tracking-tight px-4">Support Tickets</h3>
+              {complaints.length === 0 ? (
+                <div className="bg-white rounded-[2.5rem] border p-20 text-center text-slate-400 font-bold italic shadow-sm">No active complaints. Everything is perfect!</div>
+              ) : (
+                <div className="grid grid-cols-1 gap-6">
+                  {complaints.map((c) => (
+                    <div key={c.id} className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-10 flex flex-col lg:flex-row gap-10 hover:shadow-xl transition-all group">
+                      <div className="flex-1">
+                         <div className="flex items-center gap-4 mb-6">
+                            <span className={`text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-xl border
+                              ${c.status === 'resolved' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-rose-50 text-rose-600 border-rose-100'}`}>
+                              {c.status}
+                            </span>
+                            <h4 className="font-black text-primary uppercase tracking-widest text-xs">{c.category} Issue</h4>
+                         </div>
+                         <p className="text-xl font-bold text-slate-900 mb-6 leading-snug">{c.description}</p>
+                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-5 bg-slate-50 rounded-2xl">
+                            <div><p className="text-[10px] font-black text-slate-400 uppercase mb-1">Resident</p><p className="text-xs font-black text-slate-900 truncate">{c.tenantName || 'Resident'}</p></div>
+                            <div><p className="text-[10px] font-black text-slate-400 uppercase mb-1">Room</p><p className="text-xs font-black text-slate-900">{c.roomNo}</p></div>
+                            <div><p className="text-[10px] font-black text-slate-400 uppercase mb-1">Reported</p><p className="text-xs font-black text-slate-900">{new Date(c.createdAt).toLocaleDateString()}</p></div>
+                            <div><p className="text-[10px] font-black text-slate-400 uppercase mb-1">Priority</p><p className="text-xs font-black text-rose-600">HIGH</p></div>
+                         </div>
+                      </div>
+                      <div className="lg:w-48 space-y-4">
+                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block ml-1">Quick Action</label>
+                         <select value={c.status} onChange={(e) => handleComplaintAction(c.id, c.tenantId, e.target.value as any, c.category)} className="w-full bg-slate-50 border-transparent rounded-2xl h-14 px-5 text-xs font-black focus:ring-2 focus:ring-primary/50 transition-all">
+                            <option value="open">Open</option>
+                            <option value="in-progress">In Progress</option>
+                            <option value="resolved">Resolved</option>
+                         </select>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === "payments" && (
+            <div className="space-y-6">
+               <div className="flex justify-between items-center px-4">
+                  <h3 className="font-black text-2xl text-slate-900 tracking-tight">Ledger</h3>
+                  <Button onClick={handleExportCSV} variant="outline" className="rounded-xl font-black gap-2 border-slate-200">Export Ledger <Receipt className="w-4 h-4" /></Button>
+               </div>
+               {payments.length === 0 ? (
+                  <div className="bg-white rounded-[2.5rem] border p-20 text-center text-slate-400 font-bold italic shadow-sm">No transactions recorded yet.</div>
+               ) : (
+                  <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
+                     <table className="w-full text-left border-collapse">
+                        <thead>
+                           <tr className="bg-slate-50/50 border-b border-slate-100">
+                              <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Resident</th>
+                              <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Period</th>
+                              <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Amount</th>
+                              <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Status</th>
+                           </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-50">
+                           {payments.map(p => (
+                              <tr key={p.id} className="hover:bg-slate-50/50 transition-colors">
+                                 <td className="p-6">
+                                    <p className="font-black text-slate-900">{p.tenantName}</p>
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Room {p.roomNo}</p>
+                                 </td>
+                                 <td className="p-6 font-black text-sm text-slate-600 uppercase">{p.month}</td>
+                                 <td className="p-6 font-black text-xl text-primary tracking-tight">₹{p.amount.toLocaleString()}</td>
+                                 <td className="p-6 text-right">
+                                    <span className={`text-[10px] font-black px-3 py-1.5 rounded-lg border tracking-widest
+                                       ${p.status === 'verified' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-amber-50 text-amber-600 border-amber-100'}`}>
+                                       {p.status.toUpperCase()}
+                                    </span>
+                                 </td>
+                              </tr>
+                           ))}
+                        </tbody>
+                     </table>
+                  </div>
+               )}
+            </div>
+          )}
         </div>
-      )}
+      </main>
     </div>
   );
 }

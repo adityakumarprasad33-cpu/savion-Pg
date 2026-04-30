@@ -57,11 +57,19 @@ export interface PG {
   createdAt?: number;
 }
 
-// Sanitize — strip undefined before writing to Firestore
-function sanitize<T extends object>(obj: T): T {
-  return Object.fromEntries(
-    Object.entries(obj).filter(([, v]) => v !== undefined)
-  ) as T;
+// Recursive Sanitize — strip undefined values from objects and arrays before Firestore writes
+function sanitize(obj: any): any {
+  if (Array.isArray(obj)) {
+    return obj.map(v => sanitize(v));
+  }
+  if (obj !== null && typeof obj === 'object' && !(obj instanceof Date)) {
+    return Object.fromEntries(
+      Object.entries(obj)
+        .filter(([, v]) => v !== undefined)
+        .map(([k, v]) => [k, sanitize(v)])
+    );
+  }
+  return obj;
 }
 
 export async function getPGs(): Promise<PG[]> {

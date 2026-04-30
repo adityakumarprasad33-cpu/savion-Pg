@@ -17,10 +17,12 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase safely for Next.js SSR
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+const app = !getApps().length 
+  ? (firebaseConfig.apiKey ? initializeApp(firebaseConfig) : null) 
+  : getApp();
 
-export const auth = getAuth(app);
-export const db = getFirestore(app);
+export const auth = app ? getAuth(app) : ({} as any);
+export const db = app ? getFirestore(app) : ({} as any);
 
 // Auth Providers
 export const googleProvider = new GoogleAuthProvider();
