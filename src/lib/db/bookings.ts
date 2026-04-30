@@ -12,6 +12,7 @@ export interface Booking {
   roomType: string;
   moveInDate: string;      // ISO date string e.g. "2024-06-01"
   amount: number;
+  paymentChoice?: "payNow" | "payLater";
   status: "pending" | "confirmed" | "cancelled" | "disputed" | "notice_given" | "notice_approved";
   // KYC Documents
   aadhaarUrl: string;      // Required — Aadhaar or Govt ID

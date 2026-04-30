@@ -51,6 +51,8 @@ export default function BookingWizard() {
   // Step 3
   const [signatureDataUrl, setSignatureDataUrl] = useState<string | null>(null);
   const [signatureSaved, setSignatureSaved] = useState(false);
+  const [paymentChoice, setPaymentChoice] = useState<"payNow" | "payLater">("payNow");
+  const discountRate = 0.05; // 5% discount
 
   // Result
   const [contractId, setContractId] = useState<string | null>(null);
@@ -93,6 +95,8 @@ export default function BookingWizard() {
 
   const selectedRoomDetails = pg?.rooms?.find(r => r.id === selectedRoomId);
   const selectedRent = selectedRoomDetails?.monthlyRent || parseInt(pg?.price.replace(/[^0-9]/g, "") || "0");
+  const discount = paymentChoice === "payNow" ? Math.round(selectedRent * discountRate) : 0;
+  const finalAmount = selectedRent - discount;
   const roomType = selectedRoomDetails?.type || "Unknown Type";
   const roomNo = selectedRoomDetails?.roomNumber || "Unknown";
 
@@ -130,9 +134,9 @@ export default function BookingWizard() {
         tenantAadhaarUrl: aadhaarUrl,
         tenantAadhaarNumber: aadhaarData?.aadhaarNumber || "Unknown",
         tenantDob: aadhaarData?.dob || "Unknown",
-        monthlyRent: `₹${selectedRent.toLocaleString("en-IN")}/mo`,
+        monthlyRent: `₹${finalAmount.toLocaleString("en-IN")}/mo`,
         moveInDate,
-        securityDeposit: `₹${selectedRent.toLocaleString("en-IN")}`,
+        securityDeposit: `₹${finalAmount.toLocaleString("en-IN")}`,
         lockInMonths: 3,
         noticePeriodDays: 30,
         signatureUrl,
@@ -150,7 +154,8 @@ export default function BookingWizard() {
         roomNo: selectedRoomDetails?.roomNumber,
         roomType,
         moveInDate,
-        amount: selectedRent,
+        amount: finalAmount,
+        paymentChoice,
         status: "pending", // Will be verified upon payment
         aadhaarUrl,
         ...(extraDocUrl ? { extraDocUrl } : {}),
@@ -166,26 +171,36 @@ export default function BookingWizard() {
         type: "booking"
       });
 
-      // 6. Generate Payment Session
-      const ownerProfile = await getUserProfile(pg.ownerId);
-      const session = await createPaymentSession({
-        tenantId: userId,
-        ownerId: pg.ownerId,
-        ownerUpiId: ownerProfile?.upiId || "unknown@upi",
-        ownerName: ownerProfile?.name || "Owner",
-        pgId: pg.id,
-        pgName: pg.name,
-        roomNo: roomType,
-        bookingId: booking.id,
-        contractId: contract.id,
-        tenantName: tenantName,
-        tenantAadhaar: aadhaarData?.aadhaarNumber || "Unknown",
-        amount: selectedRent,
-        month: new Date().toISOString().slice(0, 7), // e.g. "2024-06"
-        type: "rent"
-      });
+      // 6. Generate Payment Session ONLY if payNow
+      if (paymentChoice === "payNow") {
+        const ownerProfile = await getUserProfile(pg.ownerId);
+        const session = await createPaymentSession({
+          tenantId: userId,
+          ownerId: pg.ownerId,
+          ownerUpiId: ownerProfile?.upiId || "unknown@upi",
+          ownerName: ownerProfile?.name || "Owner",
+          pgId: pg.id,
+          pgName: pg.name,
+          roomNo: roomType,
+          bookingId: booking.id,
+          contractId: contract.id,
+          tenantName: tenantName,
+          tenantAadhaar: aadhaarData?.aadhaarNumber || "Unknown",
+          amount: finalAmount,
+          month: new Date().toISOString().slice(0, 7), // e.g. "2024-06"
+          type: "rent"
+        });
+        setPaymentSessionId(session.id);
+      } else {
+        // Inquiry case notification for owner
+        await createNotification({
+          userId: pg.ownerId,
+          title: "New Booking Inquiry",
+          message: `${tenantName} has sent a booking inquiry for ${pg.name}. Check your dashboard to review documents.`,
+          type: "booking"
+        });
+      }
 
-      setPaymentSessionId(session.id);
       setContractId(contract.id);
       setStep(4);
     } catch (err) {
@@ -274,10 +289,54 @@ export default function BookingWizard() {
                   className="h-12"
                 />
               </div>
+
+              <div>
+                <label className="text-sm font-semibold text-slate-700 block mb-3">Select Booking Method</label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div 
+                    onClick={() => setPaymentChoice("payNow")}
+                    className={`cursor-pointer p-4 rounded-2xl border-2 transition-all flex flex-col gap-1
+                    ${paymentChoice === "payNow" ? "border-primary bg-primary/5 shadow-md" : "border-slate-200 hover:border-slate-300"}`}
+                  >
+                    <div className="flex justify-between items-center">
+                      <span className="font-bold text-sm">Pay Now</span>
+                      {paymentChoice === "payNow" && <CheckCircle2 className="w-4 h-4 text-primary" />}
+                    </div>
+                    <p className="text-xs text-muted-foreground">Get instant confirmation & <strong>5% DISCOUNT</strong></p>
+                    <span className="inline-block mt-2 text-xs font-black text-primary bg-primary/10 px-2 py-0.5 rounded w-fit">BEST VALUE</span>
+                  </div>
+                  <div 
+                    onClick={() => setPaymentChoice("payLater")}
+                    className={`cursor-pointer p-4 rounded-2xl border-2 transition-all flex flex-col gap-1
+                    ${paymentChoice === "payLater" ? "border-primary bg-primary/5 shadow-md" : "border-slate-200 hover:border-slate-300"}`}
+                  >
+                    <div className="flex justify-between items-center">
+                      <span className="font-bold text-sm">Pay Later</span>
+                      {paymentChoice === "payLater" && <CheckCircle2 className="w-4 h-4 text-primary" />}
+                    </div>
+                    <p className="text-xs text-muted-foreground">Inquiry first, pay after owner approval (No discount)</p>
+                  </div>
+                </div>
+              </div>
+
               <div className="bg-orange-50 rounded-xl p-4 text-sm text-orange-800">
-                <strong>Monthly Rent:</strong> ₹{selectedRent.toLocaleString("en-IN")}/mo &nbsp;|&nbsp;
-                <strong>Security Deposit:</strong> ₹{selectedRent.toLocaleString("en-IN")} &nbsp;|&nbsp;
-                <strong>Lock-in:</strong> 3 months
+                <div className="flex justify-between mb-1">
+                  <span>Base Monthly Rent:</span>
+                  <span>₹{selectedRent.toLocaleString("en-IN")}</span>
+                </div>
+                {discount > 0 && (
+                  <div className="flex justify-between text-green-700 font-bold mb-1">
+                    <span>Pay Now Discount (5%):</span>
+                    <span>-₹{discount.toLocaleString("en-IN")}</span>
+                  </div>
+                )}
+                <div className="flex justify-between font-black text-lg border-t border-orange-200 pt-2 mt-2">
+                  <span>Final Rent:</span>
+                  <span>₹{finalAmount.toLocaleString("en-IN")}/mo</span>
+                </div>
+                <div className="text-[10px] mt-2 text-orange-600/70">
+                  Security Deposit of ₹{finalAmount.toLocaleString("en-IN")} will be collected separately.
+                </div>
               </div>
             </div>
           )}
@@ -362,30 +421,51 @@ export default function BookingWizard() {
           )}
 
           {/* Step 4 — Success (Payment Prompt) */}
-          {step === 4 && contractId && paymentSessionId && (
+          {step === 4 && contractId && (
             <div className="text-center space-y-6 py-4 animate-scale-in">
               <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto">
                 <FileText className="w-10 h-10 text-green-600" />
               </div>
               <div>
-                <h2 className="text-2xl font-extrabold mb-2">Contract Signed! ✍️</h2>
-                <p className="text-muted-foreground">Your rental agreement is ready. Pay the first month's rent to gain instant access.</p>
+                <h2 className="text-2xl font-extrabold mb-2">
+                  {paymentChoice === "payNow" ? "Contract Signed! ✍️" : "Inquiry Sent! 📩"}
+                </h2>
+                <p className="text-muted-foreground">
+                  {paymentChoice === "payNow" 
+                    ? "Your rental agreement is ready. Pay the first month's rent to gain instant access."
+                    : "Your documents and inquiry have been shared with the owner. We'll notify you once approved."}
+                </p>
               </div>
               <div className="bg-slate-50 border rounded-2xl p-5 text-sm text-left space-y-2">
                 <div className="flex justify-between"><span className="text-slate-500">Property</span><strong>{pg.name}</strong></div>
                 <div className="flex justify-between"><span className="text-slate-500">Room</span><strong>{roomNo} ({roomType})</strong></div>
-                <div className="flex justify-between"><span className="text-slate-500">Monthly Rent</span><strong>₹{selectedRent.toLocaleString("en-IN")}</strong></div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Final Monthly Rent</span>
+                  <div className="text-right">
+                    <strong className={paymentChoice === "payNow" ? "text-green-600" : ""}>₹{finalAmount.toLocaleString("en-IN")}</strong>
+                    {paymentChoice === "payNow" && <div className="text-[10px] text-green-600 font-bold">(5% Discount Applied)</div>}
+                  </div>
+                </div>
               </div>
               <div className="flex flex-col gap-3">
-                <Button
-                  className="w-full font-bold h-12 bg-primary hover:bg-primary/90 text-white"
-                  onClick={() => router.push(`/pay?session=${paymentSessionId}`)}
-                >
-                  Proceed to Payment →
-                </Button>
+                {paymentChoice === "payNow" ? (
+                  <Button
+                    className="w-full font-bold h-12 bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/20"
+                    onClick={() => router.push(`/pay?session=${paymentSessionId}`)}
+                  >
+                    Proceed to Payment →
+                  </Button>
+                ) : (
+                  <Button
+                    className="w-full font-bold h-12 bg-green-600 hover:bg-green-700 text-white"
+                    onClick={() => router.push("/dashboard/tenant")}
+                  >
+                    Go to Dashboard
+                  </Button>
+                )}
                 <Button
                   variant="outline"
-                  className="w-full"
+                  className="w-full border-slate-200"
                   onClick={() => router.push(`/contract/${contractId}`)}
                 >
                   View Digital Contract
