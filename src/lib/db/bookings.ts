@@ -65,7 +65,7 @@ export async function getBookingsByPG(pgId: string): Promise<Booking[]> {
   return snap.docs.map((d) => d.data() as Booking);
 }
 
-export async function updateBookingStatus(id: string, status: "pending" | "confirmed" | "cancelled" | "disputed" | "notice_given" | "notice_approved"): Promise<void> {
+export async function updateBookingStatus(id: string, status: Booking["status"]): Promise<void> {
   const ref = doc(db, "bookings", id);
   await updateDoc(ref, { status });
 }
