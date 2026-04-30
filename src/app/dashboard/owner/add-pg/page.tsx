@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { onAuthStateChanged, createUserWithEmailAndPassword, getAuth as getFirebaseAuth } from "firebase/auth";
 import { initializeApp, deleteApp } from "firebase/app";
-import { auth } from "@/lib/firebase/client";
+import { auth, db } from "@/lib/firebase/client";
 import { uploadToCloudinary } from "@/lib/cloudinary";
 import { createPG, PGRoom, PGRoomInput, getRoomCapacity } from "@/lib/db/pgs";
 import { createCaretaker, getSavedCaretakersByOwner, checkCaretakerUidExists, Caretaker } from "@/lib/db/caretakers";
