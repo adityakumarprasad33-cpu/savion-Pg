@@ -23,7 +23,7 @@ import { NotificationDropdown } from "@/components/ui/notification-dropdown";
 import {
   FileText, Home, CheckCircle2, MessageSquareWarning, CreditCard,
   Clock, XCircle, Receipt, QrCode, ChevronRight, LogOut, ArrowUpRight,
-  Lock, WifiOff, Package, ShieldCheck, Wrench, Eraser, Shield, MessageCircle, UserCircle, Sparkles
+  Lock, WifiOff, Package, ShieldCheck, Wrench, Eraser, Shield, MessageCircle, UserCircle, Sparkles, AlertTriangle
 } from "lucide-react";
 import { SpeedLoader } from "@/components/ui/SpeedLoader";
 import { VerificationBanner } from "@/components/verification/VerificationBanner";
@@ -129,7 +129,6 @@ export default function TenantDashboard() {
 
               // 3. Restore Room Availability
               if (booking.roomId) {
-                const { updateRoomAvail, getPGsByOwner } = await import("@/lib/db/pgs");
                 // We need to fetch the room to get current availability, but for simplicity we increment
                 // Ideally this logic should be in a Cloud Function or more robustly handled.
                 // For now, we rely on the owner's PG update logic or manual sync.
