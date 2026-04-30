@@ -111,31 +111,41 @@ export default function TenantDashboard() {
   // Create a SERVER-SIDE session so no URL params can be tampered.
   // Amount, UPI, IDs all come from verified Firestore documents.
   const goToPayPage = async () => {
-    if (!activeBooking || !ownerProfile?.upiId || !userId || !tenantProfile) return;
+    if (!activeBooking) return;
+    await payForBooking(activeBooking);
+  };
+
+  const payForBooking = async (booking: Booking) => {
+    if (!userId || !tenantProfile) return;
     setCreatingSession(true);
     try {
+      const ownerProfileData = await getUserProfile(booking.ownerId);
+      if (!ownerProfileData?.upiId) {
+        alert("The owner has not set up their UPI ID yet. Please contact them.");
+        return;
+      }
+
       const now = new Date();
       const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 
-      // Create locked session — data sourced from Firestore, NOT from URL
+      // Create locked session — data sourced from Firestore
       const session = await createPaymentSession({
-        tenantId: userId,                              // auth.uid — cannot be spoofed
-        ownerId: activeBooking.ownerId,                // from booking document
-        ownerUpiId: ownerProfile.upiId,               // from owner's Firestore profile
-        ownerName: ownerProfile.name,
-        pgId: activeBooking.pgId,
-        pgName: activeBooking.pgName,
-        roomNo: activeBooking.roomType,
-        bookingId: activeBooking.id,
-        contractId: activeBooking.contractId || "",
+        tenantId: userId,
+        ownerId: booking.ownerId,
+        ownerUpiId: ownerProfileData.upiId,
+        ownerName: ownerProfileData.name,
+        pgId: booking.pgId,
+        pgName: booking.pgName,
+        roomNo: booking.roomType,
+        bookingId: booking.id,
+        contractId: booking.contractId || "",
         tenantName: tenantProfile.name,
-        tenantAadhaar: activeContract?.tenantAadhaarUrl || "",
-        amount: activeBooking.amount,                  // from booking — not URL-changeable
+        tenantAadhaar: booking.aadhaarUrl || "",
+        amount: booking.amount,
         month,
         type: "rent",
       });
 
-      // Navigate with ONLY the opaque session ID
       router.push(`/pay?session=${session.id}`);
     } catch (err) {
       console.error("Failed to create payment session:", err);
@@ -370,9 +380,34 @@ export default function TenantDashboard() {
                         <p className="text-sm text-muted-foreground">{b.roomType} · Move-in: {b.moveInDate}</p>
                         <p className="text-sm font-semibold text-primary mt-1">₹{b.amount.toLocaleString("en-IN")}/mo</p>
                         {b.status === "pending" && (
-                          <p className="text-xs text-yellow-700 font-medium mt-1.5 flex items-center gap-1">
-                            <Clock className="w-3 h-3" /> Waiting for owner to approve your request...
-                          </p>
+                          <div className="mt-2 space-y-2">
+                            <p className="text-xs text-yellow-700 font-medium flex items-center gap-1">
+                              <Clock className="w-3 h-3" /> Waiting for owner to approve your request...
+                            </p>
+                            <Button 
+                              size="sm" 
+                              onClick={() => payForBooking(b)}
+                              disabled={creatingSession}
+                              className="h-8 text-xs bg-primary hover:bg-primary/90 text-white font-bold gap-1.5"
+                            >
+                              <CreditCard className="w-3.5 h-3.5" /> {creatingSession ? "Wait..." : "Pay to Confirm"}
+                            </Button>
+                          </div>
+                        )}
+                        {b.status === "approved" && (
+                          <div className="mt-2 space-y-2">
+                            <p className="text-xs text-green-700 font-bold flex items-center gap-1">
+                              <CheckCircle2 className="w-3 h-3" /> Approved! Pay now to confirm your stay.
+                            </p>
+                            <Button 
+                              size="sm" 
+                              onClick={() => payForBooking(b)}
+                              disabled={creatingSession}
+                              className="h-8 text-xs bg-primary hover:bg-primary/90 text-white font-bold gap-1.5 shadow-lg shadow-primary/20"
+                            >
+                              <CreditCard className="w-3.5 h-3.5" /> {creatingSession ? "Wait..." : "Confirm & Pay Now"}
+                            </Button>
+                          </div>
                         )}
                         {b.status === "cancelled" && (
                           <p className="text-xs text-red-600 font-medium mt-1.5 flex items-center gap-1">
@@ -389,7 +424,7 @@ export default function TenantDashboard() {
                         <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${b.status === "confirmed" ? "bg-green-100 text-green-700" :
                             b.status === "pending" ? "bg-yellow-100 text-yellow-700" :
                               "bg-red-100 text-red-700"
-                          }`}>{b.status.toUpperCase()}</span>
+                          }`}>{b.status === "approved" ? "APPROVED" : b.status.toUpperCase()}</span>
                         {b.contractId && (
                           <Link href={`/contract/${b.contractId}`}>
                             <Button variant="outline" size="sm" className="gap-1.5"><FileText className="w-3.5 h-3.5" /> Contract</Button>

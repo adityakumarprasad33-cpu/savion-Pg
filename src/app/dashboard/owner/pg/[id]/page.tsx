@@ -180,7 +180,7 @@ export default function ManagePGPage() {
   const handleBookingAction = async (
     bookingId: string,
     tenantId: string,
-    action: "confirmed" | "cancelled" | "notice_approved" | "disputed",
+    action: "approved" | "confirmed" | "cancelled" | "notice_approved" | "disputed",
     roomType: string,
     contractId?: string
   ) => {
@@ -199,7 +199,9 @@ export default function ManagePGPage() {
     await createNotification({
       userId: tenantId,
       title: `Booking ${
-        action === "confirmed"
+        action === "approved"
+          ? "Pre-Approved"
+          : action === "confirmed"
           ? "Approved"
           : action === "cancelled"
           ? "Cancelled"
@@ -207,7 +209,9 @@ export default function ManagePGPage() {
           ? "Notice Approved"
           : "Update"
       }`,
-      message: action === "cancelled"
+      message: action === "approved"
+        ? `Your inquiry for a ${roomType} room at ${pg.name} has been pre-approved! Please complete the payment to confirm your stay.`
+        : action === "cancelled"
         ? `Your booking for a ${roomType} room at ${pg.name} has been marked as vacated/cancelled.`
         : action === "notice_approved"
           ? `Your move-out request for the ${roomType} room at ${pg.name} has been approved. Please hand over the keys by your scheduled date.`
@@ -626,6 +630,15 @@ export default function ManagePGPage() {
                     )}
                   </div>
                   <div className="flex flex-col sm:flex-row items-end sm:items-center gap-3">
+                    {b.status === "pending" && (
+                      <Button 
+                        size="sm" 
+                        className="bg-primary hover:bg-primary/90 text-white font-bold"
+                        onClick={() => handleBookingAction(b.id, b.tenantId, "approved", b.roomType)}
+                      >
+                        Approve Inquiry
+                      </Button>
+                    )}
                     {b.status === "notice_given" && (
                       <Button size="sm" className="bg-orange-600 hover:bg-orange-700 text-white font-bold" onClick={() => handleBookingAction(b.id, b.tenantId, "notice_approved" as any, b.roomType)}>
                         Approve Notice
