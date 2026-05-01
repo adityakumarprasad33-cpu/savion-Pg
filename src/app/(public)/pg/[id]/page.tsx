@@ -23,6 +23,7 @@ export default function PGDetailsPage() {
   const [shared, setShared] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState<PGRoom | null>(null);
   const [hasActiveBooking, setHasActiveBooking] = useState(false);
+  const [bookingBlockReason, setBookingBlockReason] = useState<string | null>(null);
 
   useEffect(() => {
     if (params?.id) {
@@ -38,10 +39,25 @@ export default function PGDetailsPage() {
     const unsub = onAuthStateChanged(auth, async (user) => {
       if (user) {
         const bookings = await getUserBookings(user.uid);
-        const active = bookings.some((b) => b.status === "confirmed" || b.status === "pending");
-        setHasActiveBooking(active);
+        // Statuses that mean the user is ACTIVELY occupying a space
+        const ACTIVE_STATUSES = ["confirmed", "notice_given", "notice_approved"];
+        const activeBooking = bookings.find((b) => ACTIVE_STATUSES.includes(b.status));
+        if (activeBooking) {
+          setHasActiveBooking(true);
+          if (activeBooking.status === "notice_given") {
+            setBookingBlockReason("Move-out notice pending (7-day window)");
+          } else if (activeBooking.status === "notice_approved") {
+            setBookingBlockReason("Notice approved — awaiting checkout");
+          } else {
+            setBookingBlockReason("You have an active booking");
+          }
+        } else {
+          setHasActiveBooking(false);
+          setBookingBlockReason(null);
+        }
       } else {
         setHasActiveBooking(false);
+        setBookingBlockReason(null);
       }
     });
 
@@ -150,9 +166,15 @@ export default function PGDetailsPage() {
             >
               <Heart className={`w-4 h-4 ${liked ? "fill-red-500 text-red-500" : ""}`} />
             </Button>
-            <Link href={`/pg/${pg.id}/book`}>
-              <Button className="md:ml-2 font-semibold">Book Now</Button>
-            </Link>
+            {hasActiveBooking ? (
+              <Button disabled className="md:ml-2 font-semibold opacity-60 cursor-not-allowed">
+                {bookingBlockReason || "Booked"}
+              </Button>
+            ) : (
+              <Link href={`/pg/${pg.id}/book`}>
+                <Button className="md:ml-2 font-semibold">Book Now</Button>
+              </Link>
+            )}
           </div>
         </div>
       </header>
@@ -289,7 +311,9 @@ export default function PGDetailsPage() {
                                 : "bg-primary hover:bg-primary/90 shadow-lg shadow-primary/25"
                             }`}
                           >
-                            {hasActiveBooking ? "Already Booked" : (room.available > 0 ? "Select Room →" : "Join Waitlist")}
+                            {hasActiveBooking 
+                              ? (bookingBlockReason || "Already Booked") 
+                              : (room.available > 0 ? "Select Room →" : "Join Waitlist")}
                           </Button>
                         </div>
                       </div>

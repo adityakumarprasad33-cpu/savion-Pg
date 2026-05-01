@@ -1,0 +1,14 @@
+{
+  "name": "Savion — PG Booking Platform",
+  "short_name": "Savion",
+  "description": "Find and book verified PG accommodations, boys PG, girls PG, and co-living spaces online.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#4f46e5",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "/favicon.ico", "sizes": "any", "type": "image/x-icon" }
+  ],
+  "categories": ["lifestyle", "travel", "business"]
+}

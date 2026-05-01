@@ -33,9 +33,7 @@ service cloud.firestore {
 
     // ── Bookings ───────────────────────────────────────────────────────────
     match /bookings/{bookingId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null;
-      allow update: if request.auth != null;
+      allow read, create, update, delete: if request.auth != null;
     }
 
     // ── Payment Sessions ──────────────────────────────────────────────────
@@ -43,37 +41,54 @@ service cloud.firestore {
       allow read, write: if request.auth != null;
     }
 
-    // ── Payments (Receipts) ─────────────────────────────────────────────────
+    // ── Payments (Receipts) — no delete, permanent records ────────────────
     match /payments/{paymentId} {
       allow read, create, update: if request.auth != null;
     }
 
     // ── Complaints ─────────────────────────────────────────────────────────
     match /complaints/{complaintId} {
-      allow read, create, update: if request.auth != null;
+      allow read, create, update, delete: if request.auth != null;
     }
 
     // ── Notifications ──────────────────────────────────────────────────────
     match /notifications/{notifId} {
-      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow read: if request.auth != null;
       allow create: if request.auth != null;
-      allow update: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow update: if request.auth != null;
     }
 
     // ── Contracts ──────────────────────────────────────────────────────────
     match /contracts/{contractId} {
-      allow read, create, update: if request.auth != null;
+      allow read, create, update, delete: if request.auth != null;
     }
 
     // ── Caretakers ─────────────────────────────────────────────────────────
     match /caretakers/{caretakerId} {
-      allow read: if request.auth != null;
-      allow create, update: if request.auth != null;
+      allow read, create, update: if request.auth != null;
     }
 
     // ── Verifications (KYC) ────────────────────────────────────────────────
     match /verifications/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read, write: if request.auth != null;
+    }
+
+    // ── Reviews — public read, auth create ─────────────────────────────────
+    match /reviews/{reviewId} {
+      allow read: if true;
+      allow create, update: if request.auth != null;
+    }
+
+    // ── Community Messages ─────────────────────────────────────────────────
+    match /communityMessages/{messageId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null;
+    }
+
+    // ── Community Presence ─────────────────────────────────────────────────
+    match /communityPresence/{userId} {
+      allow read, write: if request.auth != null;
     }
   }
 }

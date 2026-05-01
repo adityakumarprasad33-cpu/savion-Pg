@@ -138,3 +138,29 @@ export async function getRecentPGs(): Promise<PG[]> {
     return [];
   }
 }
+
+/** Restores room availability by decrementing occupancy and incrementing free spots. */
+export async function restoreRoomAvailability(pgId: string, roomId: string): Promise<void> {
+  const pg = await getPGById(pgId);
+  if (!pg || !pg.rooms) return;
+
+  const updatedRooms = pg.rooms.map((r) => {
+    // Match by roomNumber (the actual identifier) or by any runtime 'id' field
+    if (r.roomNumber === roomId || (r as any).id === roomId) {
+      const newOccupancy = Math.max(0, r.currentOccupancy - 1);
+      return {
+        ...r,
+        currentOccupancy: newOccupancy,
+        available: r.capacity - newOccupancy,
+      };
+    }
+    return r;
+  });
+
+  const totalAvailable = updatedRooms.reduce((sum, r) => sum + r.available, 0);
+
+  await updatePG(pgId, {
+    rooms: updatedRooms,
+    availableRooms: totalAvailable,
+  });
+}

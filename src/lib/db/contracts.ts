@@ -1,4 +1,4 @@
-import { collection, doc, getDoc, getDocs, query, setDoc, updateDoc, where } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, query, setDoc, updateDoc, where, deleteDoc } from "firebase/firestore";
 import { db } from "../firebase/client";
 
 export interface RentalContract {
@@ -71,4 +71,9 @@ export async function getContractsByTenant(tenantId: string): Promise<RentalCont
 export async function updateContractStatus(id: string, status: "active" | "terminated" | "disputed"): Promise<void> {
   const ref = doc(db, "contracts", id);
   await updateDoc(ref, { status });
+}
+
+export async function deleteContract(id: string): Promise<void> {
+  const ref = doc(db, "contracts", id);
+  await deleteDoc(ref);
 }

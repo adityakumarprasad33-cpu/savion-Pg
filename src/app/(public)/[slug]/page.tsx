@@ -1,60 +1,53 @@
 import { notFound } from "next/navigation";
+import { AboutPage } from "./pages/AboutPage";
+import { CareersPage } from "./pages/CareersPage";
+import { PressPage } from "./pages/PressPage";
+import { HelpCenterPage } from "./pages/HelpCenterPage";
+import { SafetyPage } from "./pages/SafetyPage";
+import { CancellationPage } from "./pages/CancellationPage";
+import { TermsPage } from "./pages/TermsPage";
+import { PrivacyPage } from "./pages/PrivacyPage";
+import { CookiePage } from "./pages/CookiePage";
+import type { Metadata } from "next";
 
-const pages: Record<string, { title: string; content: string }> = {
-  about: { 
-    title: "About Us", 
-    content: "Savion is revolutionizing student accommodation. We believe that finding a home near your university shouldn't be a hassle filled with brokers and fake listings. Our platform guarantees 100% verified properties and seamless bookings." 
-  },
-  careers: { 
-    title: "Careers", 
-    content: "Join our immensely talented, fast-growing team in Bangalore! We are currently looking for motivated Software Engineers, Operations Leads, and Campus Ambassadors." 
-  },
-  press: { 
-    title: "Press & Media", 
-    content: "For press inquiries, brand packages, or media relationships, please reach out to press@savion.app." 
-  },
-  "help-center": { 
-    title: "Help Center", 
-    content: "Welcome to Savion Support. If you need help with your booking, a landlord dispute, or technical issues with the App, our 24/7 support line is available via Whatsapp on your Dashboard." 
-  },
-  safety: { 
-    title: "Safety Standards", 
-    content: "Your safety is our absolute priority. Every single PG listed on Savion has passed a rigorous 24-point physical verification standard including security audits and emergency protocols." 
-  },
-  "cancellation-options": { 
-    title: "Cancellation Options", 
-    content: "We offer flexible booking arrangements. If you change your mind within 48 hours of booking an un-viewed property, we offer a 100% no-questions-asked refund of the token amount." 
-  },
-  "terms-of-service": { 
-    title: "Terms of Service", 
-    content: "These Terms of Service govern your use of the Savion App and Website. By booking a property, you enter into a binding agreement protecting both you and the property owner." 
-  },
-  "privacy-policy": { 
-    title: "Privacy Policy", 
-    content: "Savion takes data minimization seriously. We encrypt all identity documents and never share your phone number with property owners until a booking is absolutely confirmed." 
-  },
-  "cookie-policy": { 
-    title: "Cookie Policy", 
-    content: "We use essential cookies to maintain your login sessions and analytical cookies to understand how students navigate our platform to improve UI continuously." 
-  },
+const META: Record<string, { title: string; description: string }> = {
+  about: { title: "About Us", description: "Learn about Savion — India's smartest PG booking platform. Our mission, values, and how we're reimagining student housing." },
+  careers: { title: "Careers", description: "Join the Savion team. Explore open positions in engineering, operations, and campus ambassador roles." },
+  press: { title: "Press & Media", description: "Savion press releases, media kit, and brand guidelines. For press inquiries contact press@savion.app." },
+  "help-center": { title: "Help Center", description: "Get help with your Savion booking, payments, verification, move-in, move-out, and more." },
+  safety: { title: "Safety Standards", description: "Learn about Savion's 24-point property verification, tenant safety protocols, and emergency procedures." },
+  "cancellation-options": { title: "Cancellation Options", description: "Understand Savion's flexible cancellation and refund policies for PG bookings." },
+  "terms-of-service": { title: "Terms of Service", description: "Savion's terms of service governing platform usage, bookings, payments, and digital agreements." },
+  "privacy-policy": { title: "Privacy Policy", description: "How Savion collects, uses, and protects your personal data including KYC verification documents." },
+  "cookie-policy": { title: "Cookie Policy", description: "Learn about cookies used on Savion for authentication, analytics, and user experience." },
 };
+
+const COMPONENTS: Record<string, React.FC> = {
+  about: AboutPage,
+  careers: CareersPage,
+  press: PressPage,
+  "help-center": HelpCenterPage,
+  safety: SafetyPage,
+  "cancellation-options": CancellationPage,
+  "terms-of-service": TermsPage,
+  "privacy-policy": PrivacyPage,
+  "cookie-policy": CookiePage,
+};
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const meta = META[slug];
+  if (!meta) return { title: "Page Not Found" };
+  return { title: meta.title, description: meta.description };
+}
+
+export function generateStaticParams() {
+  return Object.keys(META).map((slug) => ({ slug }));
+}
 
 export default async function InfoPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const pageData = pages[slug];
-  
-  if (!pageData) {
-    return notFound();
-  }
-
-  return (
-    <div className="container mx-auto px-4 md:px-6 py-16 min-h-[60vh]">
-      <div className="max-w-3xl mx-auto">
-         <h1 className="text-4xl font-extrabold mb-8 text-foreground tracking-tight">{pageData.title}</h1>
-         <div className="prose prose-lg text-muted-foreground">
-            <p className="leading-relaxed">{pageData.content}</p>
-         </div>
-      </div>
-    </div>
-  );
+  const PageComponent = COMPONENTS[slug];
+  if (!PageComponent) return notFound();
+  return <PageComponent />;
 }

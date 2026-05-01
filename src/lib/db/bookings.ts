@@ -1,4 +1,4 @@
-import { collection, doc, getDocs, query, setDoc, where, updateDoc } from "firebase/firestore";
+import { collection, doc, getDocs, query, setDoc, where, updateDoc, deleteDoc } from "firebase/firestore";
 import { db } from "../firebase/client";
 
 export interface Booking {
@@ -70,4 +70,9 @@ export async function getBookingsByPG(pgId: string): Promise<Booking[]> {
 export async function updateBooking(id: string, data: Partial<Booking>): Promise<void> {
   const ref = doc(db, "bookings", id);
   await updateDoc(ref, data);
+}
+
+export async function deleteBooking(id: string): Promise<void> {
+  const ref = doc(db, "bookings", id);
+  await deleteDoc(ref);
 }

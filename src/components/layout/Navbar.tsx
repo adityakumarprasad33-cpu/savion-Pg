@@ -20,7 +20,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { Menu, Home, BookOpen, LogOut, PlusCircle, ShieldCheck, LayoutDashboard, Bell, Sun, Moon } from "lucide-react";
+import { Menu, Home, BookOpen, LogOut, PlusCircle, ShieldCheck, LayoutDashboard, Bell, Sun, Moon, MapPin, Building, Info, ChevronRight, User } from "lucide-react";
 import { useTheme } from "next-themes";
 import { signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase/client";
@@ -95,6 +95,9 @@ export function Navbar() {
             </Link>
             <Link href="/about" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
               About
+            </Link>
+            <Link href="/community" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+              Community
             </Link>
           </nav>
         </div>
@@ -267,37 +270,73 @@ export function Navbar() {
               <Menu className="h-6 w-6" />
               <span className="sr-only">Toggle menu</span>
             </SheetTrigger>
-            <SheetContent side="right" className="w-[300px] sm:w-[400px] border-l border-border/50 bg-background/95 backdrop-blur-xl">
-              <SheetHeader className="border-b border-border/50 pb-4">
-                <SheetTitle className="text-left text-2xl font-black bg-gradient-to-br from-foreground to-foreground/70 bg-clip-text text-transparent">Savion</SheetTitle>
-              </SheetHeader>
-              <div className="flex flex-col gap-6 mt-8">
-                <div className="flex flex-col gap-4">
-                  <Link href="/search" onClick={() => setIsOpen(false)} className="text-lg font-semibold flex items-center gap-3 hover:text-primary transition-all hover:translate-x-2">
-                    <span className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-sm">📍</span>
-                    Destinations
+            <SheetContent side="right" className="w-[85vw] sm:w-[400px] border-l border-border/50 bg-background/95 backdrop-blur-2xl p-0 flex flex-col">
+              <div className="flex-1 overflow-y-auto">
+                <div className="p-6 pb-2 border-b border-border/50 bg-slate-50/50 dark:bg-slate-900/50">
+                  <SheetTitle className="text-left text-3xl font-black bg-gradient-to-br from-foreground to-foreground/70 bg-clip-text text-transparent mb-1">Savion</SheetTitle>
+                  <p className="text-sm text-muted-foreground mb-4">Premium Student Living</p>
+                </div>
+                
+                <div className="flex flex-col p-4 gap-2">
+                  <Link href="/search" onClick={() => setIsOpen(false)} className="group flex items-center justify-between p-4 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-all cursor-pointer border border-transparent hover:border-border/50">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform group-hover:bg-primary group-hover:text-white">
+                        <MapPin className="w-5 h-5" />
+                      </div>
+                      <span className="text-lg font-semibold group-hover:text-primary transition-colors">Destinations</span>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
                   </Link>
-                  <Link href="/search" onClick={() => setIsOpen(false)} className="text-lg font-semibold flex items-center gap-3 hover:text-primary transition-all hover:translate-x-2">
-                    <span className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-sm">🏠</span>
-                    Listings
+                  
+                  <Link href="/search" onClick={() => setIsOpen(false)} className="group flex items-center justify-between p-4 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-all cursor-pointer border border-transparent hover:border-border/50">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-full bg-orange-500/10 flex items-center justify-center text-orange-500 group-hover:scale-110 transition-transform group-hover:bg-orange-500 group-hover:text-white">
+                        <Building className="w-5 h-5" />
+                      </div>
+                      <span className="text-lg font-semibold group-hover:text-orange-500 transition-colors">Listings</span>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-orange-500 group-hover:translate-x-1 transition-all" />
                   </Link>
-                  <Link href="/about" onClick={() => setIsOpen(false)} className="text-lg font-semibold flex items-center gap-3 hover:text-primary transition-all hover:translate-x-2">
-                    <span className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-sm">✨</span>
-                    About
+
+                  <Link href="/about" onClick={() => setIsOpen(false)} className="group flex items-center justify-between p-4 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-all cursor-pointer border border-transparent hover:border-border/50">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500 group-hover:scale-110 transition-transform group-hover:bg-blue-500 group-hover:text-white">
+                        <Info className="w-5 h-5" />
+                      </div>
+                      <span className="text-lg font-semibold group-hover:text-blue-500 transition-colors">About Us</span>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-blue-500 group-hover:translate-x-1 transition-all" />
                   </Link>
                 </div>
-                {!user && (
-                  <div className="flex flex-col gap-3 mt-4 pt-6 border-t border-border/50">
-                    <p className="text-sm font-medium text-muted-foreground mb-2">Join to book & manage properties</p>
+              </div>
+
+              {!user ? (
+                <div className="p-6 bg-slate-50 dark:bg-slate-900 border-t border-border/50 mt-auto">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center">
+                      <User className="w-5 h-5 text-slate-500" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold">Guest User</p>
+                      <p className="text-xs text-muted-foreground">Log in to manage bookings</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
                     <Link href="/login" onClick={() => setIsOpen(false)}>
-                      <Button variant="outline" className="w-full justify-center h-12 text-md font-semibold border-border/60 hover:bg-slate-50 dark:hover:bg-slate-800">Log In</Button>
+                      <Button variant="outline" className="w-full h-12 font-bold rounded-xl border-border/60 hover:bg-white dark:hover:bg-slate-800">Log In</Button>
                     </Link>
                     <Link href="/signup" onClick={() => setIsOpen(false)}>
-                      <Button className="w-full justify-center h-12 text-md font-bold shadow-lg shadow-primary/20 dark:neon-shadow">Sign Up Free</Button>
+                      <Button className="w-full h-12 font-bold rounded-xl shadow-lg hover:shadow-primary/25 transition-all hover:-translate-y-0.5">Sign Up</Button>
                     </Link>
                   </div>
-                )}
-              </div>
+                </div>
+              ) : (
+                <div className="p-6 bg-slate-50 dark:bg-slate-900 border-t border-border/50 mt-auto">
+                  <Button variant="outline" onClick={handleSignOut} className="w-full h-12 font-bold rounded-xl text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200">
+                    <LogOut className="w-4 h-4 mr-2" /> Sign Out
+                  </Button>
+                </div>
+              )}
             </SheetContent>
           </Sheet>
         </div>

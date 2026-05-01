@@ -76,11 +76,19 @@ export default function BookingWizard() {
         if (v?.idUrl) setVerifiedIdUrl(v.idUrl);
       }
 
-      // Check for active booking and block
+      // Block booking if user has an active occupancy (confirmed, in notice period, or awaiting checkout)
+      const { getUserBookings } = await import("@/lib/db/bookings");
       const bookings = await getUserBookings(user.uid);
-      const active = bookings.some(b => b.status === "confirmed" || b.status === "pending");
-      if (active) {
-        alert("You already have an active booking! You cannot book multiple properties.");
+      const ACTIVE_STATUSES = ["confirmed", "notice_given", "notice_approved"];
+      const activeBooking = bookings.find((b: any) => ACTIVE_STATUSES.includes(b.status));
+      if (activeBooking) {
+        const reason =
+          activeBooking.status === "notice_given"
+            ? "You have sent a move-out notice. Please wait for the 7-day checkout window to complete."
+            : activeBooking.status === "notice_approved"
+            ? "Your move-out notice has been approved. You can book again after your checkout date."
+            : "You already have an active booking. You cannot book another property until you move out.";
+        alert(reason);
         router.replace("/dashboard/tenant");
         return;
       }

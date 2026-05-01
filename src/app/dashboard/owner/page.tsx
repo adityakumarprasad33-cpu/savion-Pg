@@ -1,5 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import Link from "next/link";
 import { auth } from "@/lib/firebase/client";
 import { getPGsByOwner, deletePG, PG } from "@/lib/db/pgs";
@@ -10,10 +12,10 @@ import { collection, query, where, onSnapshot } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Image from "next/image";
-import { 
+import {
   Edit, Trash2, QrCode, CheckCircle2, Home, Plus, Users, Wallet, 
   MessageSquare, LogOut, ShieldAlert, WifiOff, Building2, ChevronRight, 
-  Settings, LayoutDashboard, Sparkles, DollarSign, ArrowUpRight, MapPin, UserCircle, Edit3
+  Settings, LayoutDashboard, Sparkles, DollarSign, ArrowUpRight, MapPin, UserCircle, Edit3, TrendingUp, Clock, AlertCircle, Activity, Star
 } from "lucide-react";
 import { useRoleGuard } from "@/lib/hooks/useRoleGuard";
 import { NotificationDropdown } from "@/components/ui/notification-dropdown";
@@ -33,6 +35,136 @@ export default function OwnerDashboard() {
   const [upiInput, setUpiInput] = useState("");
   const [upiSaved, setUpiSaved] = useState(false);
   const [savingUpi, setSavingUpi] = useState(false);
+  const [showAllActivity, setShowAllActivity] = useState(false);
+  const [chartFilter, setChartFilter] = useState<"hour" | "daily" | "weekly" | "monthly" | "yearly">("monthly");
+
+  // Real-time Data States
+  const [revenueData, setRevenueData] = useState<{name: string, value: number}[]>([]);
+  const [rawPayments, setRawPayments] = useState<any[]>([]);
+  const [rawComplaints, setRawComplaints] = useState<any[]>([]);
+  const [rawBookings, setRawBookings] = useState<any[]>([]);
+  const [rawReviews, setRawReviews] = useState<any[]>([]);
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: { opacity: 1, transition: { staggerChildren: 0.1 } }
+  };
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    show: { opacity: 1, y: 0, transition: { type: "spring" as const, stiffness: 300, damping: 24 } }
+  };
+
+  const timeAgo = (dateVal: string | number) => {
+    if (!dateVal) return "Just now";
+    const ts = typeof dateVal === "number" ? dateVal : new Date(dateVal).getTime();
+    const diff = Date.now() - ts;
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return "Just now";
+    if (mins < 60) return `${mins} mins ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs} hrs ago`;
+    return `${Math.floor(hrs / 24)} days ago`;
+  };
+
+  const activities = [
+    ...rawPayments.filter(p => p.status === "verified" && p.createdAt).map(p => ({
+       id: `p_${p.id || Math.random()}`, type: "payment", icon: Wallet, color: "text-emerald-500", bg: "bg-emerald-50",
+       text: `₹${p.amount} payment verified`, timeStr: p.createdAt, time: timeAgo(p.createdAt)
+    })),
+    ...rawComplaints.filter(c => c.createdAt).map(c => ({
+       id: `c_${c.id || Math.random()}`, type: "complaint", icon: AlertCircle, color: "text-rose-500", bg: "bg-rose-50",
+       text: `${c.category || 'Maintenance'} issue reported`, timeStr: c.createdAt, time: timeAgo(c.createdAt)
+    })),
+    ...rawBookings.filter(b => b.status === "confirmed" && b.createdAt).map(b => ({
+       id: `b_${b.id || Math.random()}`, type: "booking", icon: CheckCircle2, color: "text-blue-500", bg: "bg-blue-50",
+       text: `Booking confirmed in ${b.pgName || 'Property'}`, timeStr: b.createdAt, time: timeAgo(b.createdAt)
+    })),
+    ...rawReviews.filter(r => r.createdAt).map(r => ({
+       id: `r_${r.id || Math.random()}`, type: "review", icon: Star, color: "text-amber-500", bg: "bg-amber-50",
+       text: `${r.userName} left a ${r.rating}★ review: "${r.title}"`, timeStr: r.createdAt, time: timeAgo(r.createdAt)
+    }))
+  ].sort((a, b) => new Date(b.timeStr).getTime() - new Date(a.timeStr).getTime());
+
+  const displayedActivities = showAllActivity ? activities : activities.slice(0, 4);
+
+  // ─── Chart data computed from rawPayments + active filter ───────────────────
+  const computeChartData = (): {name: string, value: number}[] => {
+    if (rawPayments.length === 0) return [];
+    const verified = rawPayments.filter(p => p.status === "verified");
+    const now = new Date();
+
+    if (chartFilter === "hour") {
+      // Last 60 mins split into 12 × 5-min buckets
+      return Array.from({ length: 12 }, (_, i) => {
+        const bucketStart = new Date(now.getTime() - (11 - i) * 5 * 60000);
+        const bucketEnd   = new Date(now.getTime() - (10 - i) * 5 * 60000);
+        const label = `${bucketStart.getHours()}:${String(bucketStart.getMinutes()).padStart(2,'0')}`;
+        const val = verified
+          .filter(p => { const t = new Date(p.createdAt).getTime(); return t >= bucketStart.getTime() && t < bucketEnd.getTime(); })
+          .reduce((s, p) => s + (p.amount || 0), 0);
+        return { name: label, value: val };
+      });
+    }
+
+    if (chartFilter === "daily") {
+      // Last 14 days
+      return Array.from({ length: 14 }, (_, i) => {
+        const d = new Date(now); d.setDate(now.getDate() - (13 - i));
+        const label = `${d.getDate()}/${d.getMonth() + 1}`;
+        const dayStr = d.toISOString().split("T")[0];
+        const val = verified
+          .filter(p => p.createdAt && new Date(p.createdAt).toISOString().split("T")[0] === dayStr)
+          .reduce((s, p) => s + (p.amount || 0), 0);
+        return { name: label, value: val };
+      });
+    }
+
+    if (chartFilter === "weekly") {
+      // Last 8 weeks
+      return Array.from({ length: 8 }, (_, i) => {
+        const weekStart = new Date(now); weekStart.setDate(now.getDate() - (7 - i) * 7 - 6);
+        const weekEnd   = new Date(now); weekEnd.setDate(now.getDate() - (7 - i) * 7 + 1);
+        const label = `W${i + 1}`;
+        const val = verified
+          .filter(p => { if (!p.createdAt) return false; const t = new Date(p.createdAt).getTime(); return t >= weekStart.getTime() && t < weekEnd.getTime(); })
+          .reduce((s, p) => s + (p.amount || 0), 0);
+        return { name: label, value: val };
+      });
+    }
+
+    if (chartFilter === "monthly") {
+      // Last 6 months
+      return Array.from({ length: 6 }, (_, i) => {
+        const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
+        const monthStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+        const label = d.toLocaleString('default', { month: 'short' });
+        const val = verified
+          .filter(p => p.month === monthStr)
+          .reduce((s, p) => s + (p.amount || 0), 0);
+        return { name: label, value: val };
+      });
+    }
+
+    if (chartFilter === "yearly") {
+      // Last 3 years
+      return Array.from({ length: 3 }, (_, i) => {
+        const yr = now.getFullYear() - (2 - i);
+        const val = verified
+          .filter(p => p.month && p.month.startsWith(`${yr}`))
+          .reduce((s, p) => s + (p.amount || 0), 0);
+        return { name: `${yr}`, value: val };
+      });
+    }
+
+    return [];
+  };
+
+  const activeChartData = computeChartData();
+  const chartTotal = activeChartData.reduce((s, d) => s + d.value, 0);
+  const prevChartTotal = rawPayments
+    .filter(p => p.status === "verified")
+    .reduce((s, p) => s + (p.amount || 0), 0) - chartTotal;
+  const growthPct = prevChartTotal > 0 ? Math.round((chartTotal / prevChartTotal - 1) * 100) : null;
 
   useEffect(() => {
     if (!ownerId) return;
@@ -54,30 +186,54 @@ export default function OwnerDashboard() {
     // 2. Real-time Bookings
     const qBookings = query(collection(db, "bookings"), where("ownerId", "==", ownerId));
     const unsubBookings = onSnapshot(qBookings, (snapshot) => {
-      const bookings = snapshot.docs.map(d => d.data());
+      const bookings = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as any));
       const confirmed = bookings.filter(b => b.status === "confirmed");
       setActiveTenants(confirmed.length);
+      setRawBookings(bookings);
     }, (err) => console.error("Booking Sync Error:", err));
 
     // 3. Real-time Payments
     const qPayments = query(collection(db, "payments"), where("ownerId", "==", ownerId));
     const unsubPayments = onSnapshot(qPayments, (snapshot) => {
-      const payments = snapshot.docs.map(d => d.data());
+      const payments = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as any));
+      setRawPayments(payments);
+      
       const now = new Date();
       const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
       const thisMonthVerified = payments
         .filter(p => p.status === "verified" && p.month === currentMonth)
         .reduce((sum, p) => sum + (p.amount || 0), 0);
       setMonthlyRevenue(thisMonthVerified);
+
+      const months = [];
+      for(let i=5; i>=0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const monthStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+        const shortName = d.toLocaleString('default', { month: 'short' });
+        
+        const sum = payments
+          .filter(p => p.status === "verified" && p.month === monthStr)
+          .reduce((acc, p) => acc + (p.amount || 0), 0);
+          
+        months.push({ name: shortName, value: sum });
+      }
+      setRevenueData(months);
     }, (err) => console.error("Payment Sync Error:", err));
 
     // 4. Real-time Complaints
     const qComplaints = query(collection(db, "complaints"), where("ownerId", "==", ownerId));
     const unsubComplaints = onSnapshot(qComplaints, (snapshot) => {
-      const allComplaints = snapshot.docs.map(d => d.data() as Complaint);
+      const allComplaints = snapshot.docs.map(d => ({ id: d.id, ...d.data() }) as Complaint);
+      setRawComplaints(allComplaints);
       const openCount = allComplaints.filter(c => c.status !== "resolved").length;
       setOpenComplaintsCount(openCount);
     }, (err) => console.warn("Global complaint sync failed", err));
+
+    // 5. Real-time Reviews from Community
+    const qReviews = query(collection(db, "communityMessages"), where("ownerId", "==", ownerId), where("channel", "==", "pg-reviews"));
+    const unsubReviews = onSnapshot(qReviews, (snapshot) => {
+      setRawReviews(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as any)));
+    }, (err) => console.warn("Global reviews sync failed", err));
 
     getUserProfile(ownerId).then(p => {
       if (p) { setOwnerProfile(p); setUpiInput(p.upiId || ""); }
@@ -88,6 +244,7 @@ export default function OwnerDashboard() {
       unsubBookings();
       unsubPayments();
       unsubComplaints();
+      unsubReviews();
     };
   }, [ownerId]);
 
@@ -131,8 +288,11 @@ export default function OwnerDashboard() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#f8fafc] selection:bg-primary/10 selection:text-primary relative">
-      <header className="bg-white/90 backdrop-blur-xl border-b border-slate-200/50 sticky top-0 z-50 py-3 px-6 md:px-8">
+    <div className="flex flex-col min-h-screen bg-slate-50 selection:bg-primary/10 selection:text-primary relative overflow-hidden">
+      {/* Subtle blueprint grid background */}
+      <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))] opacity-[0.03] pointer-events-none" />
+      
+      <header className="bg-white/80 backdrop-blur-2xl border-b border-slate-200/50 sticky top-0 z-50 py-3 px-6 md:px-8">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 bg-slate-900 rounded-lg flex items-center justify-center shadow-md">
@@ -161,8 +321,9 @@ export default function OwnerDashboard() {
       </header>
 
       <main className="flex-1 p-5 md:p-8 max-w-7xl mx-auto w-full">
+        <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-8">
         {/* Ultra-Slim Welcome */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+        <motion.div variants={itemVariants} className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
           <div>
             <div className="flex items-center gap-1.5 text-primary mb-0.5">
               <Sparkles className="w-3 h-3 fill-primary" />
@@ -177,20 +338,20 @@ export default function OwnerDashboard() {
                <Plus className="w-3.5 h-3.5" /> Deploy Asset
             </Button>
           </Link>
-        </div>
+        </motion.div>
 
         {/* High-Density Stat Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <motion.div variants={containerVariants} className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           {[
             { label: "Revenue", value: `₹${monthlyRevenue.toLocaleString()}`, icon: Wallet, color: "text-emerald-600", bg: "bg-emerald-50" },
             { label: "Properties", value: pgs.length, icon: Building2, color: "text-primary", bg: "bg-primary/5" },
             { label: "Residents", value: activeTenants, icon: Users, color: "text-blue-600", bg: "bg-blue-50" },
             { label: "Issues", value: openComplaintsCount, icon: MessageSquare, color: "text-rose-600", bg: "bg-rose-50" },
           ].map((stat, i) => (
-            <div 
+            <motion.div 
+              variants={itemVariants}
               key={stat.label} 
-              className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:border-slate-300 transition-all group animate-fade-in-up"
-              style={{ animationDelay: `${i * 40}ms` }}
+              className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:border-slate-300 transition-all group"
             >
               <div className="flex justify-between items-start mb-3">
                 <div className={`w-9 h-9 ${stat.bg} rounded-lg flex items-center justify-center`}>
@@ -202,13 +363,119 @@ export default function OwnerDashboard() {
               </div>
               <p className="text-[8px] font-bold uppercase tracking-widest text-slate-400 mb-0.5">{stat.label}</p>
               <h3 className="text-xl font-black text-slate-900 tracking-tight">{stat.value}</h3>
-            </div>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <motion.div variants={containerVariants} className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-6">
+          {/* Revenue Chart Section */}
+          <motion.div variants={itemVariants} className="lg:col-span-8">
+            <div className="bg-white p-6 md:p-8 rounded-[2rem] border border-slate-200 shadow-sm relative overflow-hidden h-full min-h-[300px]">
+              <div className="flex flex-col gap-3">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="font-black text-xl text-slate-900 tracking-tight flex items-center gap-2">
+                      <TrendingUp className="w-5 h-5 text-primary" /> Revenue Trajectory
+                    </h3>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
+                      Total: ₹{chartTotal.toLocaleString('en-IN')}
+                    </p>
+                  </div>
+                  {growthPct !== null && (
+                    <div className={`px-3 py-1.5 rounded-lg border flex items-center gap-1.5 ${ growthPct >= 0 ? 'bg-emerald-50 border-emerald-100' : 'bg-rose-50 border-rose-100'}`}>
+                      <div className={`w-2 h-2 rounded-full animate-pulse ${growthPct >= 0 ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+                      <span className={`text-[9px] font-black uppercase tracking-widest ${growthPct >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                        {growthPct >= 0 ? '+' : ''}{growthPct}% vs rest
+                      </span>
+                    </div>
+                  )}
+                </div>
+                {/* Filter Pills */}
+                <div className="flex gap-1.5 flex-wrap">
+                  {([
+                    { key: "hour",    label: "Last Hour" },
+                    { key: "daily",   label: "Daily" },
+                    { key: "weekly",  label: "Weekly" },
+                    { key: "monthly", label: "Monthly" },
+                    { key: "yearly",  label: "Yearly" },
+                  ] as const).map(f => (
+                    <button
+                      key={f.key}
+                      onClick={() => setChartFilter(f.key)}
+                      className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${
+                        chartFilter === f.key
+                          ? 'bg-primary text-white shadow-md shadow-primary/20'
+                          : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                      }`}
+                    >
+                      {f.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="h-48 md:h-56 w-full -ml-4 mt-4">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={activeChartData.length > 0 ? activeChartData : [{name: 'No Data', value: 0}]}>
+                    <defs>
+                      <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="#4f46e5" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 'bold' }} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 'bold' }} width={40} />
+                    <Tooltip 
+                      contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)' }}
+                      itemStyle={{ fontWeight: 'black', color: '#0f172a' }}
+                    />
+                    <Area type="monotone" dataKey="value" stroke="#4f46e5" strokeWidth={3} fillOpacity={1} fill="url(#colorValue)" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Activity / Pulse Section */}
+          <motion.div variants={itemVariants} className="lg:col-span-4">
+            <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm h-full flex flex-col">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="font-black text-xl text-slate-900 tracking-tight flex items-center gap-2">
+                  <Activity className="w-5 h-5 text-indigo-500" /> Platform Pulse
+                </h3>
+              </div>
+              <div className="flex-1 space-y-5 overflow-y-auto pr-2 max-h-[300px] scrollbar-thin scrollbar-thumb-slate-200">
+                {displayedActivities.length > 0 ? displayedActivities.map((act) => (
+                  <div key={act.id} className="flex items-start gap-3">
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${act.bg}`}>
+                      <act.icon className={`w-4 h-4 ${act.color}`} />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-slate-800 leading-tight">{act.text}</p>
+                      <p className="text-[10px] font-bold text-slate-400 mt-1 flex items-center gap-1">
+                        <Clock className="w-3 h-3" /> {act.time}
+                      </p>
+                    </div>
+                  </div>
+                )) : (
+                  <p className="text-slate-400 font-medium text-sm text-center py-10">No recent activity found.</p>
+                )}
+              </div>
+              {activities.length > 4 && (
+                <Button 
+                  onClick={() => setShowAllActivity(!showAllActivity)} 
+                  variant="ghost" 
+                  className="w-full mt-4 h-10 rounded-xl font-black text-xs text-slate-500 hover:text-slate-900 hover:bg-slate-50 border border-slate-100"
+                >
+                  {showAllActivity ? "Collapse Feed" : "View All Activity"}
+                </Button>
+              )}
+            </div>
+          </motion.div>
+        </motion.div>
+
+        <motion.div variants={containerVariants} className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Compact Revenue Panel */}
-          <div className="lg:col-span-4">
+          <motion.div variants={itemVariants} className="lg:col-span-4">
             <div className="bg-slate-900 p-6 rounded-2xl shadow-lg text-white relative overflow-hidden sticky top-24">
               <div className="absolute top-0 right-0 w-32 h-32 bg-primary/20 rounded-full -mr-16 -mt-16 blur-2xl opacity-40" />
               
@@ -254,13 +521,15 @@ export default function OwnerDashboard() {
                 )}
               </div>
             </div>
-          </div>
+          </motion.div>
 
-          {/* High-Density Portfolio Grid */}
-          <div className="lg:col-span-8 space-y-4">
+          {/* High-Density Portfolio Grid (Bento Style) */}
+          <motion.div variants={itemVariants} className="lg:col-span-8 space-y-4">
             <div className="flex justify-between items-center px-1">
-              <h2 className="text-lg font-black text-slate-900 tracking-tight">Active Portfolio</h2>
-              <span className="text-[8px] font-bold text-slate-400 bg-white px-2.5 py-1 rounded-md border border-slate-100 uppercase tracking-widest">{pgs.length} Units</span>
+              <h2 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+                <Building2 className="w-5 h-5 text-slate-700" /> Active Portfolio
+              </h2>
+              <span className="text-[9px] font-black text-primary bg-primary/10 px-3 py-1.5 rounded-lg uppercase tracking-widest">{pgs.length} Units</span>
             </div>
 
             {pgs.length === 0 ? (
@@ -278,11 +547,11 @@ export default function OwnerDashboard() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 {pgs.map((pg, i) => {
                   return (
-                    <div 
+                    <motion.div 
+                      variants={itemVariants}
                       key={pg.id}
                       onClick={() => router.push(`/dashboard/owner/pg/${pg.id}`)}
-                      className="group bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden flex flex-col animate-fade-in-up cursor-pointer"
-                      style={{ animationDelay: `${i * 30}ms` }}
+                      className="group bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden flex flex-col cursor-pointer"
                     >
                       <div className="relative h-36 w-full overflow-hidden">
                         {pg.images?.[0] ? (
@@ -362,13 +631,24 @@ export default function OwnerDashboard() {
                           </div>
                         </div>
                       </div>
-                    </div>
+                    </motion.div>
                   );
                 })}
+                {/* Bento Add Card if only 1 PG to fill space */}
+                {pgs.length === 1 && (
+                  <motion.div variants={itemVariants} className="group bg-slate-50/50 rounded-xl border-2 border-slate-200 border-dashed hover:border-primary/50 transition-all duration-300 flex flex-col items-center justify-center p-8 cursor-pointer min-h-[320px]">
+                    <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center shadow-sm mb-4 group-hover:scale-110 transition-transform">
+                      <Plus className="w-6 h-6 text-primary" />
+                    </div>
+                    <h3 className="text-lg font-black text-slate-900 mb-1">Add Another Property</h3>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Expand your portfolio</p>
+                  </motion.div>
+                )}
               </div>
             )}
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
+        </motion.div>
       </main>
     </div>
   );

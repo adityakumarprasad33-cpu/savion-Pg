@@ -10,8 +10,9 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import {
   Users, Building2, BookOpen,
-  Shield, LogOut, ExternalLink, ArrowLeft
+  Shield, LogOut, ExternalLink, ArrowLeft, Activity, UserCog, Mail
 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { SpeedLoader } from "@/components/ui/SpeedLoader";
 import dynamic from 'next/dynamic';
 
@@ -46,18 +47,25 @@ export default function AdminPage() {
   const [bookings, setBookings] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<"overview" | "users" | "properties" | "bookings">("overview");
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: { opacity: 1, transition: { staggerChildren: 0.1 } }
+  };
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    show: { opacity: 1, y: 0, transition: { type: "spring" as const, stiffness: 300, damping: 24 } }
+  };
+
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
       if (!user) { router.push("/login"); return; }
 
-      // Strict role check — admin only
       const profile = await getUserProfile(user.uid);
       if (profile?.role !== "admin") {
         router.push("/");
         return;
       }
 
-      // Load platform stats
       await loadStats();
       setLoading(false);
     });
@@ -119,7 +127,6 @@ export default function AdminPage() {
 
     try {
       const newRole = isDisabling ? "disabled" : "tenant";
-      // Using setDoc with merge: true is safer because it works even if the profile doc doesn't exist yet
       await setDoc(doc(db, "users", uid), { role: newRole }, { merge: true });
       setUsers(prev => prev.map(u => u.uid === uid ? { ...u, role: newRole } : u));
     } catch (e) {
@@ -137,154 +144,151 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="relative min-h-screen bg-slate-950 text-white overflow-hidden">
+    <div className="relative min-h-screen bg-slate-950 text-white overflow-hidden selection:bg-primary/30">
       <div className="fixed inset-0 z-0 opacity-40 pointer-events-none">
-        <FaultyTerminalBackground
-          scale={2.0}
-          curvature={0.15}
-          glitchAmount={1.5}
-          tint="#f97316"
-        />
+        <FaultyTerminalBackground scale={2.0} curvature={0.15} glitchAmount={1.5} tint="#f97316" />
       </div>
 
-      <div className="relative z-10">
-        <header className="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-10 animate-fade-in-down">
-          <div className="container mx-auto flex items-center justify-between px-6 py-4">
+      <div className="relative z-10 flex flex-col min-h-screen">
+        {/* Glass Header */}
+        <header className="border-b border-white/10 bg-slate-900/60 backdrop-blur-2xl sticky top-0 z-50">
+          <div className="container mx-auto px-6 py-4 flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Link href="/">
-                <Button variant="ghost" size="icon" className="text-slate-400 hover:text-white">
+                <Button variant="ghost" size="icon" className="text-slate-400 hover:text-white hover:bg-white/10 rounded-xl">
                   <ArrowLeft className="w-5 h-5" />
                 </Button>
               </Link>
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-                  <Shield className="w-4 h-4" />
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-orange-600 flex items-center justify-center shadow-lg shadow-primary/20">
+                  <Activity className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h1 className="font-bold text-lg leading-none">Savion Admin</h1>
-                  <p className="text-xs text-slate-400 mt-0.5">Platform Control Center</p>
+                  <h1 className="font-black text-xl tracking-tight leading-none text-white">Savion Admin</h1>
+                  <p className="text-[10px] font-bold text-primary uppercase tracking-widest mt-1">Platform Control Center</p>
                 </div>
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <a
-                href="https://console.firebase.google.com/project/savion-231006/firestore"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <Button variant="outline" size="sm" className="text-slate-300 border-slate-700 hover:bg-slate-800 gap-2">
-                  <ExternalLink className="w-3.5 h-3.5" />
-                  Firestore Console
+              <a href="https://console.firebase.google.com/project/savion-231006/firestore" target="_blank" rel="noopener noreferrer">
+                <Button variant="outline" size="sm" className="hidden sm:flex text-slate-300 border-white/10 bg-white/5 hover:bg-white/10 rounded-xl font-bold gap-2">
+                  <ExternalLink className="w-3.5 h-3.5" /> Database
                 </Button>
               </a>
               <Link href="/admin/verifications">
-                <Button variant="outline" size="sm" className="text-primary border-primary/50 bg-primary/10 hover:bg-primary/20 gap-2">
-                  <Shield className="w-3.5 h-3.5" />
-                  Verifications
+                <Button size="sm" className="bg-primary/20 text-primary hover:bg-primary/30 hover:text-white border border-primary/30 font-black rounded-xl gap-2">
+                  <Shield className="w-4 h-4" /> Verifications
                 </Button>
               </Link>
-              <Button onClick={handleSignOut} variant="ghost" size="sm" className="text-slate-400 hover:text-red-400 gap-2">
+              <Button onClick={handleSignOut} variant="ghost" size="sm" className="text-slate-400 hover:text-red-400 hover:bg-red-950/50 rounded-xl gap-2 font-bold">
                 <LogOut className="w-4 h-4" />
-                Sign Out
               </Button>
             </div>
           </div>
         </header>
 
-        <div className="container mx-auto px-6 py-8">
-          <div className="flex gap-1 mb-8 bg-slate-900 p-1 rounded-xl w-fit">
+        <div className="container mx-auto px-6 py-10 flex-1">
+          {/* Segmented Control */}
+          <div className="flex gap-2 mb-10 bg-slate-900/50 p-1.5 rounded-2xl w-fit border border-white/5 backdrop-blur-md">
             {(["overview", "users", "properties", "bookings"] as const).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`px-4 py-2 rounded-lg text-sm font-semibold capitalize transition-all ${activeTab === tab
-                    ? "bg-primary text-white shadow"
-                    : "text-slate-400 hover:text-white"
-                  }`}
+                className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${
+                  activeTab === tab ? "bg-white text-slate-900 shadow-xl scale-105" : "text-slate-400 hover:text-white hover:bg-white/5"
+                }`}
               >
                 {tab}
               </button>
             ))}
           </div>
 
+          <AnimatePresence mode="wait">
           {activeTab === "overview" && stats && (
-            <div className="space-y-8">
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 stagger">
+            <motion.div 
+              key="overview"
+              variants={containerVariants} 
+              initial="hidden" 
+              animate="show" 
+              exit={{ opacity: 0, y: -20 }}
+              className="space-y-8"
+            >
+              <motion.h2 variants={itemVariants} className="text-3xl font-black tracking-tight text-white mb-6">System Overview</motion.h2>
+              <motion.div variants={containerVariants} className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
                 {[
-                  { label: "Total Users", value: stats.totalUsers, icon: Users, color: "text-blue-400" },
-                  { label: "Tenants", value: stats.totalTenants, icon: Users, color: "text-green-400" },
-                  { label: "Owners", value: stats.totalOwners, icon: Building2, color: "text-amber-400" },
-                  { label: "Caretakers", value: stats.totalCaretakers, icon: Shield, color: "text-emerald-400" },
-                  { label: "Properties", value: stats.totalPGs, icon: Building2, color: "text-primary" },
-                  { label: "Bookings", value: stats.totalBookings, icon: BookOpen, color: "text-pink-400" },
-                ].map(({ label, value, icon: Icon, color }) => (
-                  <div key={label} className="bg-slate-900 border border-slate-800 rounded-xl p-4 animate-fade-in-up hover-lift transition-all">
-                    <Icon className={`w-5 h-5 ${color} mb-2`} />
-                    <p className="text-2xl font-black animate-count-up">{value}</p>
-                    <p className="text-xs text-slate-500 font-medium">{label}</p>
-                  </div>
+                  { label: "Total Users", value: stats.totalUsers, icon: Users, color: "text-blue-400", bg: "bg-blue-400/10", border: "border-blue-400/20" },
+                  { label: "Tenants", value: stats.totalTenants, icon: UserCog, color: "text-emerald-400", bg: "bg-emerald-400/10", border: "border-emerald-400/20" },
+                  { label: "Owners", value: stats.totalOwners, icon: Building2, color: "text-amber-400", bg: "bg-amber-400/10", border: "border-amber-400/20" },
+                  { label: "Caretakers", value: stats.totalCaretakers, icon: Shield, color: "text-purple-400", bg: "bg-purple-400/10", border: "border-purple-400/20" },
+                  { label: "Properties", value: stats.totalPGs, icon: Building2, color: "text-primary", bg: "bg-primary/10", border: "border-primary/20" },
+                  { label: "Bookings", value: stats.totalBookings, icon: BookOpen, color: "text-pink-400", bg: "bg-pink-400/10", border: "border-pink-400/20" },
+                ].map(({ label, value, icon: Icon, color, bg, border }, i) => (
+                  <motion.div variants={itemVariants} key={label} className={`bg-slate-900/80 backdrop-blur-xl border ${border} rounded-[2rem] p-6 hover:scale-105 transition-transform duration-300 shadow-2xl`}>
+                    <div className={`w-12 h-12 ${bg} rounded-2xl flex items-center justify-center mb-6`}>
+                      <Icon className={`w-6 h-6 ${color}`} />
+                    </div>
+                    <p className="text-4xl font-black text-white tracking-tighter mb-1">{value}</p>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{label}</p>
+                  </motion.div>
                 ))}
-              </div>
-            </div>
+              </motion.div>
+            </motion.div>
           )}
 
           {activeTab === "users" && (
-            <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden animate-scale-in">
-              <div className="px-6 py-4 border-b border-slate-800 flex justify-between items-center">
-                <h2 className="text-lg font-bold">All Users <span className="text-slate-500 font-normal text-sm ml-2">({users.length})</span></h2>
-                <a
-                  href="https://console.firebase.google.com/project/savion-231006/firestore/data/users"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs text-primary hover:underline flex items-center gap-1"
-                >
-                  Edit roles in Firestore <ExternalLink className="w-3 h-3" />
-                </a>
+            <motion.div 
+              key="users"
+              variants={containerVariants} 
+              initial="hidden" 
+              animate="show" 
+              exit={{ opacity: 0, y: -20 }}
+              className="bg-slate-900/80 backdrop-blur-xl border border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl"
+            >
+              <div className="px-8 py-6 border-b border-white/5 flex justify-between items-center bg-white/5">
+                <h2 className="text-2xl font-black tracking-tight text-white">Users Registry <span className="text-primary text-lg ml-2">({users.length})</span></h2>
               </div>
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto p-4">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-slate-800 text-slate-400 text-xs uppercase tracking-wider">
-                      <th className="text-left px-6 py-3">Name / UID</th>
-                      <th className="text-left px-6 py-3">Email</th>
-                      <th className="text-left px-6 py-3">Role</th>
-                      <th className="text-right px-6 py-3">Actions</th>
+                    <tr className="text-slate-400 text-[10px] uppercase tracking-widest border-b border-white/5">
+                      <th className="text-left px-4 py-4 font-black">Identity</th>
+                      <th className="text-left px-4 py-4 font-black">Role</th>
+                      <th className="text-right px-4 py-4 font-black">Actions</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-white/5">
                     {users.length === 0 ? (
-                      <tr><td colSpan={4} className="px-6 py-12 text-center text-slate-500">No users found</td></tr>
+                      <tr><td colSpan={3} className="px-4 py-16 text-center text-slate-500 font-bold">No users in registry</td></tr>
                     ) : users.map((u) => (
-                      <tr key={u.uid} className="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors">
-                        <td className="px-6 py-4">
-                          <p className="font-semibold">{u.name || "—"}</p>
-                          <p className="text-xs text-slate-500 font-mono">{u.uid}</p>
+                      <tr key={u.uid} className="hover:bg-white/5 transition-colors group">
+                        <td className="px-4 py-4">
+                          <p className="font-black text-white text-base">{u.name || "Unknown User"}</p>
+                          <p className="text-xs text-slate-500 font-mono mt-1">{u.email} · {u.uid}</p>
                         </td>
-                        <td className="px-6 py-4 text-slate-400">{u.email || "—"}</td>
-                        <td className="px-6 py-4">
-                          <span className={`inline-block text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full ${u.role === "admin" ? "bg-primary/20 text-primary" :
-                              u.role === "owner" ? "bg-amber-900/50 text-amber-300" :
-                                u.role === "caretaker" ? "bg-emerald-900/50 text-emerald-300" :
-                                  u.role === "disabled" ? "bg-red-900/50 text-red-300" :
-                                    "bg-blue-900/50 text-blue-300"
-                            }`}>
+                        <td className="px-4 py-4">
+                          <span className={`inline-block text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg border ${
+                            u.role === "admin" ? "bg-primary/20 text-primary border-primary/30" :
+                            u.role === "owner" ? "bg-amber-500/10 text-amber-400 border-amber-500/20" :
+                            u.role === "caretaker" ? "bg-purple-500/10 text-purple-400 border-purple-500/20" :
+                            u.role === "disabled" ? "bg-red-500/10 text-red-400 border-red-500/20" :
+                            "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                          }`}>
                             {u.role}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-right">
-                          <div className="flex justify-end gap-2">
+                        <td className="px-4 py-4 text-right">
+                          <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                             {u.email && (
-                              <a href={`mailto:${u.email}`} title="Send Email">
-                                <Button size="sm" variant="outline" className="h-8 border-slate-700 hover:bg-slate-800 text-xs text-slate-300 px-3">
-                                  Email
+                              <a href={`mailto:${u.email}`}>
+                                <Button size="sm" variant="ghost" className="h-9 w-9 p-0 rounded-xl bg-white/5 hover:bg-white/10 text-white">
+                                  <Mail className="w-4 h-4" />
                                 </Button>
                               </a>
                             )}
                             {u.role !== "admin" && (
                               <Button
                                 size="sm"
-                                variant={u.role === "disabled" ? "outline" : "destructive"}
-                                className={`h-8 text-xs px-3 ${u.role === "disabled" ? "border-green-800/50 text-green-400 hover:bg-green-900/20" : ""}`}
+                                className={`h-9 px-4 rounded-xl font-bold text-xs ${u.role === "disabled" ? "bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30" : "bg-red-500/20 text-red-400 hover:bg-red-500/30"}`}
                                 onClick={() => handleToggleUserStatus(u.uid, u.role)}
                               >
                                 {u.role === "disabled" ? "Enable" : "Disable"}
@@ -297,40 +301,45 @@ export default function AdminPage() {
                   </tbody>
                 </table>
               </div>
-            </div>
+            </motion.div>
           )}
 
           {activeTab === "properties" && (
-            <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden animate-scale-in">
-              <div className="px-6 py-4 border-b border-slate-800 flex justify-between items-center">
-                <h2 className="text-lg font-bold">All Properties <span className="text-slate-500 font-normal text-sm ml-2">({pgs.length})</span></h2>
+            <motion.div 
+              key="properties"
+              variants={containerVariants} 
+              initial="hidden" 
+              animate="show" 
+              exit={{ opacity: 0, y: -20 }}
+              className="bg-slate-900/80 backdrop-blur-xl border border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl"
+            >
+              <div className="px-8 py-6 border-b border-white/5 flex justify-between items-center bg-white/5">
+                <h2 className="text-2xl font-black tracking-tight text-white">Property Assets <span className="text-primary text-lg ml-2">({pgs.length})</span></h2>
               </div>
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto p-4">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-slate-800 text-slate-400 text-xs uppercase tracking-wider">
-                      <th className="text-left px-6 py-3">Property Name</th>
-                      <th className="text-left px-6 py-3">Owner UID</th>
-                      <th className="text-left px-6 py-3">Rooms</th>
-                      <th className="text-left px-6 py-3">Caretaker Assignment</th>
+                    <tr className="text-slate-400 text-[10px] uppercase tracking-widest border-b border-white/5">
+                      <th className="text-left px-4 py-4 font-black">Asset Name</th>
+                      <th className="text-left px-4 py-4 font-black">Capacity</th>
+                      <th className="text-left px-4 py-4 font-black">Staff Assignment</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-white/5">
                     {pgs.length === 0 ? (
-                      <tr><td colSpan={4} className="px-6 py-12 text-center text-slate-500">No properties found</td></tr>
+                      <tr><td colSpan={3} className="px-4 py-16 text-center text-slate-500 font-bold">No assets found</td></tr>
                     ) : pgs.map((pg) => (
-                      <tr key={pg.id} className="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors">
-                        <td className="px-6 py-4">
-                          <p className="font-semibold">{pg.name}</p>
-                          <p className="text-xs text-slate-500">{pg.city}</p>
+                      <tr key={pg.id} className="hover:bg-white/5 transition-colors">
+                        <td className="px-4 py-4">
+                          <p className="font-black text-white text-base">{pg.name}</p>
+                          <p className="text-xs text-slate-500 mt-1">{pg.city} · Owner: {pg.ownerId.substring(0,8)}...</p>
                         </td>
-                        <td className="px-6 py-4 font-mono text-xs text-slate-400">{pg.ownerId}</td>
-                        <td className="px-6 py-4">
-                          <span className="bg-slate-800 text-slate-300 px-2 py-1 rounded text-xs">{pg.totalRooms || 0} Total</span>
+                        <td className="px-4 py-4">
+                          <span className="bg-white/10 text-white font-black px-3 py-1.5 rounded-lg text-xs">{pg.totalRooms || 0} Units</span>
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-4 py-4">
                           <select
-                            className="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-sm text-slate-300 focus:outline-none focus:border-violet-500"
+                            className="bg-slate-950/50 border border-white/10 rounded-xl px-4 py-2.5 text-sm font-bold text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all cursor-pointer"
                             value={pg.caretakerId || ""}
                             onChange={(e) => handleAssignCaretaker(pg.id, e.target.value)}
                           >
@@ -345,46 +354,52 @@ export default function AdminPage() {
                   </tbody>
                 </table>
               </div>
-            </div>
+            </motion.div>
           )}
 
           {activeTab === "bookings" && (
-            <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden animate-scale-in">
-              <div className="px-6 py-4 border-b border-slate-800 flex justify-between items-center">
-                <h2 className="text-lg font-bold">All Bookings <span className="text-slate-500 font-normal text-sm ml-2">({bookings.length})</span></h2>
+            <motion.div 
+              key="bookings"
+              variants={containerVariants} 
+              initial="hidden" 
+              animate="show" 
+              exit={{ opacity: 0, y: -20 }}
+              className="bg-slate-900/80 backdrop-blur-xl border border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl"
+            >
+              <div className="px-8 py-6 border-b border-white/5 flex justify-between items-center bg-white/5">
+                <h2 className="text-2xl font-black tracking-tight text-white">Active Bookings <span className="text-primary text-lg ml-2">({bookings.length})</span></h2>
               </div>
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto p-4">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-slate-800 text-slate-400 text-xs uppercase tracking-wider">
-                      <th className="text-left px-6 py-3">Booking ID</th>
-                      <th className="text-left px-6 py-3">Property</th>
-                      <th className="text-left px-6 py-3">Tenant UID</th>
-                      <th className="text-left px-6 py-3">Status</th>
-                      <th className="text-left px-6 py-3">Date</th>
+                    <tr className="text-slate-400 text-[10px] uppercase tracking-widest border-b border-white/5">
+                      <th className="text-left px-4 py-4 font-black">ID</th>
+                      <th className="text-left px-4 py-4 font-black">Property Details</th>
+                      <th className="text-left px-4 py-4 font-black">Status</th>
+                      <th className="text-left px-4 py-4 font-black">Date</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-white/5">
                     {bookings.length === 0 ? (
-                      <tr><td colSpan={5} className="px-6 py-12 text-center text-slate-500">No bookings found</td></tr>
+                      <tr><td colSpan={4} className="px-4 py-16 text-center text-slate-500 font-bold">No bookings found</td></tr>
                     ) : bookings.map((b) => (
-                      <tr key={b.id} className="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors">
-                        <td className="px-6 py-4 font-mono text-xs text-slate-400">{b.id}</td>
-                        <td className="px-6 py-4">
-                          <p className="font-semibold">{b.pgName || "Unknown PG"}</p>
-                          <p className="text-xs text-slate-500">Room {b.roomNumber || "?"}</p>
+                      <tr key={b.id} className="hover:bg-white/5 transition-colors">
+                        <td className="px-4 py-4 font-mono text-xs text-slate-500">{b.id}</td>
+                        <td className="px-4 py-4">
+                          <p className="font-black text-white text-base">{b.pgName || "Unknown PG"}</p>
+                          <p className="text-xs text-slate-400 mt-1">Tenant UID: {b.tenantId.substring(0,8)}...</p>
                         </td>
-                        <td className="px-6 py-4 font-mono text-xs text-slate-400">{b.tenantId}</td>
-                        <td className="px-6 py-4">
-                          <span className={`inline-block text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full ${b.status === "active" ? "bg-green-900/50 text-green-400" :
-                              b.status === "pending" ? "bg-amber-900/50 text-amber-400" :
-                                b.status === "cancelled" ? "bg-red-900/50 text-red-400" :
-                                  "bg-slate-800 text-slate-400"
+                        <td className="px-4 py-4">
+                          <span className={`inline-block text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg border ${
+                              b.status === "active" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" :
+                              b.status === "pending" ? "bg-amber-500/10 text-amber-400 border-amber-500/20" :
+                              b.status === "cancelled" ? "bg-red-500/10 text-red-400 border-red-500/20" :
+                              "bg-white/10 text-white/70 border-white/20"
                             }`}>
                             {b.status}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-slate-400 text-xs">
+                        <td className="px-4 py-4 text-slate-400 text-xs font-bold">
                           {new Date(b.createdAt).toLocaleDateString()}
                         </td>
                       </tr>
@@ -392,8 +407,9 @@ export default function AdminPage() {
                   </tbody>
                 </table>
               </div>
-            </div>
+            </motion.div>
           )}
+          </AnimatePresence>
         </div>
       </div>
     </div>

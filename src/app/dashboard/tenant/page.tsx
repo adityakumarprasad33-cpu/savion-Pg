@@ -1,14 +1,17 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/lib/firebase/client";
-import { getUserBookings, Booking, updateBooking } from "@/lib/db/bookings";
-import { getContractsByTenant, RentalContract, updateContractStatus } from "@/lib/db/contracts";
-import { getUserComplaints, createComplaint, Complaint } from "@/lib/db/complaints";
+import { getUserBookings, Booking, updateBooking, deleteBooking } from "@/lib/db/bookings";
+import { getContractsByTenant, RentalContract, updateContractStatus, deleteContract } from "@/lib/db/contracts";
+import { getUserComplaints, createComplaint, Complaint, deleteComplaintsByTenantAndPG } from "@/lib/db/complaints";
 import { getPaymentsByTenant, Payment } from "@/lib/db/payments";
 import { createPaymentSession } from "@/lib/db/paymentSessions";
 import { getUserProfile, UserProfile } from "@/lib/db/users";
+import { createReview, hasTenantReviewedPG } from "@/lib/db/reviews";
+import { restoreRoomAvailability } from "@/lib/db/pgs";
 import { db } from "@/lib/firebase/client";
 import { collection, query, where, onSnapshot } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
@@ -23,7 +26,7 @@ import { NotificationDropdown } from "@/components/ui/notification-dropdown";
 import {
   FileText, Home, CheckCircle2, MessageSquareWarning, CreditCard,
   Clock, XCircle, Receipt, QrCode, ChevronRight, LogOut, ArrowUpRight,
-  Lock, WifiOff, Package, ShieldCheck, Wrench, Eraser, Shield, MessageCircle, UserCircle, Sparkles, AlertTriangle
+  Lock, WifiOff, Package, ShieldCheck, Wrench, Eraser, Shield, MessageCircle, UserCircle, Sparkles, AlertTriangle, Star
 } from "lucide-react";
 import { SpeedLoader } from "@/components/ui/SpeedLoader";
 import { VerificationBanner } from "@/components/verification/VerificationBanner";
@@ -60,6 +63,23 @@ export default function TenantDashboard() {
 
   const [supportMessage, setSupportMessage] = useState("");
   const [supportSent, setSupportSent] = useState(false);
+
+  // Review states
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+  const [reviewBooking, setReviewBooking] = useState<Booking | null>(null);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState("");
+  const [submittingReview, setSubmittingReview] = useState(false);
+  
+  // Animation Variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: { opacity: 1, transition: { staggerChildren: 0.1 } }
+  };
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    show: { opacity: 1, y: 0, transition: { type: "spring" as const, stiffness: 300, damping: 24 } }
+  };
 
   useEffect(() => {
     if (!userId) return;
@@ -104,7 +124,10 @@ export default function TenantDashboard() {
     };
   }, [userId]);
 
-  // --- AUTO-VANISH LOGIC (5:00 PM CHECKOUT) ---
+  // --- AUTO-VANISH LOGIC (5:00 PM CHECKOUT → HARD DELETE) ---
+  // Track bookings already cleaned up to prevent re-firing
+  const deletedBookingsRef = useRef<Set<string>>(new Set());
+
   useEffect(() => {
     if (!userId || bookings.length === 0) return;
 
@@ -112,31 +135,41 @@ export default function TenantDashboard() {
       const now = new Date();
       for (const booking of bookings) {
         if (booking.status === "notice_approved" && booking.moveOutDate) {
+          // Skip if already processed
+          if (deletedBookingsRef.current.has(booking.id)) continue;
+
           const [year, month, day] = booking.moveOutDate.split("-").map(Number);
           const checkoutTime = new Date(year, month - 1, day, 17, 0, 0); // 5:00 PM
 
           if (now >= checkoutTime) {
-            console.log(`[Auto-Vanish] Terminating booking ${booking.id} due to checkout time passed.`);
+            // Mark as processing immediately to prevent re-entry
+            deletedBookingsRef.current.add(booking.id);
             try {
-              // 1. Terminate Booking
-              await updateBooking(booking.id, { status: "cancelled", moveOutDate: booking.moveOutDate }); // Use 'cancelled' or a new 'completed' status
-              
-              // 2. Terminate Contract
-              const relatedContract = contracts.find(c => c.bookingId === booking.id || c.tenantId === userId);
-              if (relatedContract) {
-                await updateContractStatus(relatedContract.id, "terminated");
-              }
-
-              // 3. Restore Room Availability
+              // 1. Restore Room Availability
               if (booking.roomId) {
-                // We need to fetch the room to get current availability, but for simplicity we increment
-                // Ideally this logic should be in a Cloud Function or more robustly handled.
-                // For now, we rely on the owner's PG update logic or manual sync.
+                await restoreRoomAvailability(booking.pgId, booking.roomId);
               }
 
-              // Refresh UI implicitly via onSnapshot
+              // 2. Delete all complaints for this tenant at this PG
+              await deleteComplaintsByTenantAndPG(userId, booking.pgId);
+
+              // 3. Delete the contract
+              const relatedContract = contracts.find(
+                (c) => c.bookingId === booking.id || c.tenantId === userId
+              );
+              if (relatedContract) {
+                await deleteContract(relatedContract.id);
+              }
+
+              // 4. Delete the booking itself (LAST — so the loop doesn't refire)
+              await deleteBooking(booking.id);
+
+              // NOTE: payments and reviews are intentionally preserved.
+              console.log(`[Auto-Vanish] Cleanup complete for ${booking.pgName}. Payments & reviews retained.`);
             } catch (err) {
-              console.error("[Auto-Vanish] Error:", err);
+              console.error("[Auto-Vanish] Error during cleanup:", err);
+              // Remove from processed set so it can retry next cycle
+              deletedBookingsRef.current.delete(booking.id);
             }
           }
         }
@@ -144,7 +177,7 @@ export default function TenantDashboard() {
     };
 
     const interval = setInterval(checkAndTerminate, 60000); // Check every minute
-    checkAndTerminate(); // Initial check
+    checkAndTerminate(); // Initial check on mount
     return () => clearInterval(interval);
   }, [userId, bookings, contracts]);
 
@@ -166,6 +199,7 @@ export default function TenantDashboard() {
     try {
       const newComplaint = await createComplaint({
         tenantId: userId,
+        ownerId: activeBooking.ownerId,
         pgId: activeBooking.pgId,
         pgName: activeBooking.pgName,
         category: complaintCategory,
@@ -189,6 +223,30 @@ export default function TenantDashboard() {
       alert("Failed to submit complaint. Please try again.");
     } finally {
       setSubmittingComplaint(false);
+    }
+  };
+
+  const submitReview = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reviewBooking || !userId || !tenantProfile) return;
+    setSubmittingReview(true);
+    try {
+      await createReview({
+        tenantId: userId,
+        tenantName: tenantProfile.name,
+        pgId: reviewBooking.pgId,
+        pgName: reviewBooking.pgName,
+        rating: reviewRating,
+        comment: reviewComment,
+      });
+      alert("Review submitted! Thank you.");
+      setIsReviewModalOpen(false);
+      setReviewComment("");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to submit review.");
+    } finally {
+      setSubmittingReview(false);
     }
   };
 
@@ -404,9 +462,17 @@ export default function TenantDashboard() {
       </div>
 
       <main className="flex-1 p-6 md:p-12 max-w-7xl mx-auto w-full">
+        <AnimatePresence mode="wait">
         {activeTab === "home" && (
-          <div className="space-y-10 animate-fade-in-up">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <motion.div 
+            key="home"
+            variants={containerVariants} 
+            initial="hidden" 
+            animate="show" 
+            exit={{ opacity: 0, y: -20 }}
+            className="space-y-10"
+          >
+            <motion.div variants={itemVariants} className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div>
                 <h2 className="text-3xl font-black text-slate-900 tracking-tight">Welcome, {tenantProfile?.name?.split(" ")[0] || "Resident"}!</h2>
                 <p className="text-slate-500 font-medium">Here&apos;s everything about your stay.</p>
@@ -416,13 +482,13 @@ export default function TenantDashboard() {
                   Find New Property <ArrowUpRight className="w-4 h-4" />
                 </Button>
               </Link>
-            </div>
+            </motion.div>
 
             {userId && <VerificationBanner userId={userId} />}
 
             {/* Premium Info Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-1 bg-white/70 backdrop-blur-2xl p-10 rounded-[3.5rem] border border-white shadow-sm hover:shadow-2xl hover:shadow-primary/5 transition-all duration-500 relative overflow-hidden group animate-fade-in-up">
+            <motion.div variants={containerVariants} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <motion.div variants={itemVariants} className="lg:col-span-1 bg-white/70 backdrop-blur-2xl p-10 rounded-[3.5rem] border border-white shadow-sm hover:shadow-2xl hover:shadow-primary/5 transition-all duration-500 relative overflow-hidden group">
                 <div className="absolute top-0 right-0 w-40 h-40 bg-primary/5 rounded-full -mr-20 -mt-20 transition-transform group-hover:scale-150 duration-1000" />
                 <div className="relative z-10">
                   <div className="flex items-center gap-4 mb-8">
@@ -492,12 +558,12 @@ export default function TenantDashboard() {
                     </div>
                   )}
                 </div>
-              </div>
+              </motion.div>
 
               {/* Documentation & KYC */}
               <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
                  {/* Contract Card */}
-                 <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-primary/5 transition-all group">
+                 <motion.div variants={itemVariants} className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-primary/5 transition-all group">
                     <div className="flex items-center gap-4 mb-8">
                       <div className="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center shadow-lg shadow-slate-200">
                         <FileText className="w-6 h-6 text-white" />
@@ -522,10 +588,10 @@ export default function TenantDashboard() {
                     ) : (
                       <p className="text-slate-400 font-bold py-6">Awaiting contract generation...</p>
                     )}
-                 </div>
+                 </motion.div>
 
                  {/* KYC Card */}
-                 <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-primary/5 transition-all group">
+                 <motion.div variants={itemVariants} className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-primary/5 transition-all group">
                     <div className="flex items-center gap-4 mb-8">
                       <div className="w-12 h-12 bg-emerald-500 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-100">
                         <CheckCircle2 className="w-6 h-6 text-white" />
@@ -551,12 +617,12 @@ export default function TenantDashboard() {
                          </Button>
                        )}
                     </div>
-                 </div>
+                 </motion.div>
               </div>
-            </div>
+            </motion.div>
 
             {/* My Bookings History */}
-            <div className="space-y-6">
+            <motion.div variants={itemVariants} className="space-y-6">
               <div className="flex items-center justify-between px-2">
                 <h3 className="font-black text-2xl text-slate-900 tracking-tight">Recent Activity</h3>
                 <span className="text-xs font-bold text-slate-400 bg-white px-3 py-1.5 rounded-full border border-slate-100">{bookings.length} Events</span>
@@ -573,7 +639,7 @@ export default function TenantDashboard() {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                    {bookings.map((b, i) => (
-                     <div key={b.id} className="bg-white p-6 rounded-[2rem] border border-slate-50 shadow-sm hover:shadow-xl transition-all group">
+                     <motion.div variants={itemVariants} key={b.id} className="bg-white p-6 rounded-[2rem] border border-slate-50 shadow-sm hover:shadow-xl transition-all group">
                         <div className="flex justify-between items-start mb-4">
                           <div>
                             <h4 className="font-black text-lg text-slate-900 group-hover:text-primary transition-colors">{b.pgName}</h4>
@@ -594,26 +660,38 @@ export default function TenantDashboard() {
                               Confirm & Pay
                             </Button>
                           )}
+                          {b.status === "confirmed" && (
+                            <Button size="sm" variant="outline" onClick={() => { setReviewBooking(b); setIsReviewModalOpen(true); }} className="font-bold text-amber-500 border-amber-200 hover:bg-amber-50 rounded-xl h-10">
+                              <Star className="w-3.5 h-3.5 mr-1.5" /> Rate Stay
+                            </Button>
+                          )}
                           {b.contractId && (
                             <Link href={`/contract/${b.contractId}`}>
                               <Button variant="ghost" size="sm" className="font-bold text-slate-500 hover:text-slate-900 rounded-xl h-10">Details</Button>
                             </Link>
                           )}
                         </div>
-                     </div>
+                     </motion.div>
                    ))}
                 </div>
               )}
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
         )}
 
         {activeTab === "payments" && (
-          <div className="space-y-8 animate-fade-in-up">
-            <h2 className="text-3xl font-black text-slate-900">Financial Hub</h2>
+          <motion.div 
+            key="payments"
+            variants={containerVariants} 
+            initial="hidden" 
+            animate="show" 
+            exit={{ opacity: 0, y: -20 }}
+            className="space-y-8"
+          >
+            <motion.h2 variants={itemVariants} className="text-3xl font-black text-slate-900">Financial Hub</motion.h2>
             
             {activeBooking && ownerProfile?.upiId ? (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+              <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
                  {/* Premium Credit Card Payment UI */}
                  <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-black p-10 rounded-[3rem] text-white shadow-2xl relative overflow-hidden group">
                     <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full -mr-32 -mt-32 blur-3xl group-hover:bg-primary/20 transition-all duration-1000" />
@@ -694,7 +772,7 @@ export default function TenantDashboard() {
                       );
                     })()}
                  </div>
-              </div>
+              </motion.div>
             ) : (
                <div className="bg-white/60 backdrop-blur-xl border border-white rounded-[4rem] p-24 text-center animate-scale-in shadow-xl shadow-slate-200/20">
                   <div className="w-24 h-24 bg-slate-50 rounded-[2.5rem] flex items-center justify-center mx-auto mb-10 shadow-inner">
@@ -739,12 +817,19 @@ export default function TenantDashboard() {
                 </div>
               </div>
             )}
-          </div>
+          </motion.div>
         )}
 
         {activeTab === "complaints" && (
-          <div className="space-y-8 animate-fade-in-up">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <motion.div 
+            key="complaints"
+            variants={containerVariants} 
+            initial="hidden" 
+            animate="show" 
+            exit={{ opacity: 0, y: -20 }}
+            className="space-y-8"
+          >
+            <motion.div variants={itemVariants} className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div>
                 <h2 className="text-3xl font-black text-slate-900 tracking-tight">Resident Assistance</h2>
                 <p className="text-slate-500 font-medium">Report issues or request maintenance.</p>
@@ -752,7 +837,7 @@ export default function TenantDashboard() {
               <Button onClick={() => { if (!activeBooking) { alert("You need an active booking to raise a complaint."); return; } setIsComplaintModalOpen(true); }} className="h-12 px-6 bg-rose-600 hover:bg-rose-700 text-white font-black rounded-2xl shadow-xl shadow-rose-100 transition-all active:scale-95 gap-2">
                 <MessageSquareWarning className="w-4 h-4" /> Raise Issue
               </Button>
-            </div>
+            </motion.div>
 
             {complaints.length === 0 ? (
                <div className="bg-white/60 backdrop-blur-xl border border-white rounded-[4rem] p-24 text-center animate-scale-in shadow-xl shadow-slate-200/20">
@@ -782,9 +867,50 @@ export default function TenantDashboard() {
                  ))}
               </div>
             )}
-          </div>
+          </motion.div>
         )}
+        </AnimatePresence>
       </main>
+
+      {/* Review Dialog */}
+      <Dialog open={isReviewModalOpen} onOpenChange={setIsReviewModalOpen}>
+        <DialogContent className="sm:max-w-[450px] rounded-[2.5rem] p-8 border-none shadow-2xl">
+          <form onSubmit={submitReview}>
+            <DialogHeader className="mb-6">
+              <DialogTitle className="text-2xl font-black text-slate-900 tracking-tight">Rate Your Stay</DialogTitle>
+              <DialogDescription className="font-medium text-slate-500">How was your experience at {reviewBooking?.pgName}?</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-6 py-2">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Rating</label>
+                <div className="flex items-center gap-2">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button type="button" key={star} onClick={() => setReviewRating(star)}>
+                      <Star className={`w-8 h-8 ${star <= reviewRating ? "fill-amber-400 text-amber-400" : "fill-transparent text-slate-300"} hover:scale-110 transition-transform`} />
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Review</label>
+                <textarea
+                  className="w-full min-h-[100px] rounded-2xl bg-slate-50 border-transparent p-4 text-sm focus:ring-2 focus:ring-amber-400 focus:bg-white transition-all resize-none font-medium"
+                  placeholder="Share your experience..."
+                  value={reviewComment}
+                  onChange={(e) => setReviewComment(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+            <DialogFooter className="mt-8 flex gap-3">
+              <Button type="button" variant="ghost" onClick={() => setIsReviewModalOpen(false)} className="flex-1 h-12 rounded-xl font-bold">Cancel</Button>
+              <Button type="submit" disabled={submittingReview} className="flex-1 h-12 bg-amber-500 hover:bg-amber-600 text-white font-black rounded-xl shadow-lg shadow-amber-500/20">
+                {submittingReview ? "Submitting..." : "Submit Review"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Modern Dialog Overhaul */}
       <Dialog open={isComplaintModalOpen} onOpenChange={setIsComplaintModalOpen}>

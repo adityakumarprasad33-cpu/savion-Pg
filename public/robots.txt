@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /
+Allow: /search
+Allow: /pg/
+
+Disallow: /dashboard/
+Disallow: /admin/
+Disallow: /pay/
+Disallow: /contract/
+Disallow: /api/
+
+Sitemap: https://savion.netlify.app/sitemap.xml

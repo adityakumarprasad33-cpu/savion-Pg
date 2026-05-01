@@ -68,7 +68,7 @@ export default function LoginPage() {
   const handleRoute = async (user: any) => {
     try {
       setLoading(true);
-      let profile = await withTimeout(getUserProfile(user.uid), 3000, null);
+      let profile = await withTimeout(getUserProfile(user.uid), 10000, null);
       
       if (!profile) {
         await withTimeout(createUserProfile(user.uid, {
@@ -76,8 +76,8 @@ export default function LoginPage() {
           name: user.displayName || "New User",
           email: user.email || null,
           phone: user.phoneNumber || null
-        }), 3000, null);
-        profile = await withTimeout(getUserProfile(user.uid), 3000, null);
+        }), 10000, null);
+        profile = await withTimeout(getUserProfile(user.uid), 10000, null);
       }
       
       if (!profile) {
@@ -89,7 +89,7 @@ export default function LoginPage() {
       if (role === "admin") {
         router.push("/admin");
       } else if (role === "student" || role === "tenant") {
-        const bookings = await withTimeout(getUserBookings(user.uid), 3000, []);
+        const bookings = await withTimeout(getUserBookings(user.uid), 10000, []);
         router.push(bookings.length > 0 ? "/dashboard/tenant" : "/search");
       } else if (role === "caretaker") {
         router.push("/dashboard/caretaker");

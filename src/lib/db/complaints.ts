@@ -1,9 +1,10 @@
-import { collection, doc, getDocs, query, setDoc, where, updateDoc } from "firebase/firestore";
+import { collection, doc, getDocs, query, setDoc, where, updateDoc, deleteDoc } from "firebase/firestore";
 import { db } from "../firebase/client";
 
 export interface Complaint {
   id: string;
   tenantId: string;
+  ownerId?: string;
   pgId: string;
   pgName: string;
   category: string;
@@ -50,4 +51,15 @@ export async function getComplaintsByPG(pgId: string): Promise<Complaint[]> {
 export async function updateComplaintStatus(id: string, status: "open" | "in-progress" | "resolved"): Promise<void> {
   const ref = doc(db, "complaints", id);
   await updateDoc(ref, { status });
+}
+
+/** Deletes all complaints for a specific tenant at a specific PG — called on auto-checkout. */
+export async function deleteComplaintsByTenantAndPG(tenantId: string, pgId: string): Promise<void> {
+  const q = query(
+    collection(db, "complaints"),
+    where("tenantId", "==", tenantId),
+    where("pgId", "==", pgId)
+  );
+  const snap = await getDocs(q);
+  await Promise.all(snap.docs.map((d) => deleteDoc(d.ref)));
 }
