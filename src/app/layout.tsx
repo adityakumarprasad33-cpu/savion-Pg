@@ -89,21 +89,6 @@ export const metadata: Metadata = {
     images: [`${BASE_URL}/og-image.jpg`],
     creator: "@SavionApp",
   },
-  icons: [
-    {
-      rel: "icon",
-      url: "/favicon.ico",
-    },
-    {
-      rel: "icon",
-      url: "/favicon-dark.ico",
-      media: "(prefers-color-scheme: dark)",
-    },
-    {
-      rel: "apple-touch-icon",
-      url: "/favicon.ico",
-    },
-  ],
   alternates: {
     canonical: BASE_URL,
   },
