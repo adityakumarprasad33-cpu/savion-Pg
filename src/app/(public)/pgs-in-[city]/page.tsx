@@ -115,9 +115,9 @@ export default async function CityPGPage({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusinessSchema) }}
       />
-      <div className="min-h-screen bg-slate-50">
+      <div className="min-h-screen bg-background">
         {/* SEO-rich Hero — static, server-rendered, fully crawlable */}
-        <section className="bg-white border-b py-16 px-4">
+        <section className="bg-card border-b py-16 px-4">
           <div className="container mx-auto max-w-4xl text-center">
             <div className="inline-block bg-primary/10 text-primary text-xs font-bold px-3 py-1 rounded-full mb-4 uppercase tracking-widest">
               Verified PG in {cityName}
@@ -141,7 +141,7 @@ export default async function CityPGPage({
               </Link>
               <Link
                 href="/search"
-                className="inline-flex items-center justify-center bg-white text-slate-700 font-bold px-8 py-3 rounded-xl border border-slate-200 hover:bg-slate-50 transition-all"
+                className="inline-flex items-center justify-center bg-card text-foreground font-bold px-8 py-3 rounded-xl border border-border hover:bg-muted transition-all"
               >
                 Search All Cities
               </Link>
@@ -160,7 +160,7 @@ export default async function CityPGPage({
                 <Link
                   key={pg.id}
                   href={`/pg/${pg.id}`}
-                  className="bg-white rounded-2xl border border-slate-200 p-5 hover:shadow-lg hover:border-primary/30 transition-all group"
+                  className="bg-card rounded-2xl border border-border p-5 hover:shadow-lg hover:border-primary/30 transition-all group"
                 >
                   <h3 className="font-black text-lg text-slate-900 group-hover:text-primary transition-colors mb-1">
                     {pg.name}
@@ -177,7 +177,7 @@ export default async function CityPGPage({
         )}
 
         {/* SEO Content — keyword-rich, static text for crawlers */}
-        <section className="bg-white border-t py-12 px-4">
+        <section className="bg-card border-t py-12 px-4">
           <div className="container mx-auto max-w-4xl">
             <h2 className="text-2xl font-black text-slate-900 mb-4">
               Why Choose Savion for PG in {cityName}?
@@ -204,7 +204,7 @@ export default async function CityPGPage({
         </section>
 
         {/* FAQ Section for rich snippets */}
-        <section className="bg-slate-50 border-t py-12 px-4">
+        <section className="bg-muted border-t py-12 px-4">
           <div className="container mx-auto max-w-3xl">
             <h2 className="text-2xl font-black text-slate-900 mb-6">
               Frequently Asked Questions — PG in {cityName}
@@ -228,7 +228,7 @@ export default async function CityPGPage({
                   a: `Yes! Use the "Food Included" filter on Savion's search page to find PG accommodations in ${cityName} that provide meals.`,
                 },
               ].map((faq, i) => (
-                <details key={i} className="bg-white border rounded-xl p-5 cursor-pointer group">
+                <details key={i} className="bg-card border border-border rounded-xl p-5 cursor-pointer group">
                   <summary className="font-bold text-slate-800 list-none flex justify-between items-center">
                     {faq.q}
                     <span className="text-primary group-open:rotate-180 transition-transform text-xl">+</span>

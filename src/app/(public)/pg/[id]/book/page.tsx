@@ -242,14 +242,14 @@ export default function BookingWizard() {
 
   if (loading || !pg) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <SpeedLoader text="Preparing Booking Engine" subtext="Securing connection..." />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 py-10 animate-fade-in">
+    <div className="min-h-screen bg-background py-10 animate-fade-in">
       <div className="container max-w-2xl mx-auto px-4">
         {/* Header */}
         <div className="mb-8 animate-fade-in-down">
@@ -282,7 +282,7 @@ export default function BookingWizard() {
         </div>
 
         {/* Card */}
-        <div className="bg-white rounded-3xl border shadow-sm p-6 md:p-8 animate-scale-in">
+        <div className="bg-card rounded-3xl border shadow-sm p-6 md:p-8 animate-scale-in">
 
           {/* Step 1 — Details */}
           {step === 1 && (

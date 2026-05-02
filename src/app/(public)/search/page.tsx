@@ -214,7 +214,7 @@ function SearchContent() {
       <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-8 border-t pt-8">
         {/* Filters Sidebar */}
         <aside className="hidden lg:block animate-slide-in-left">
-          <div className="bg-white rounded-2xl border shadow-sm p-5 space-y-5 sticky top-24">
+          <div className="bg-card rounded-2xl border shadow-sm p-5 space-y-5 sticky top-24">
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-base flex items-center gap-2">
                 <Filter className="w-4 h-4" /> Filters
@@ -334,7 +334,7 @@ function SearchContent() {
               ))}
             </div>
           ) : filtered.length === 0 ? (
-            <div className="flex flex-col items-center justify-center p-12 text-center border rounded-2xl bg-white w-full min-h-[400px] animate-scale-in">
+            <div className="flex flex-col items-center justify-center p-12 text-center border rounded-2xl bg-card w-full min-h-[400px] animate-scale-in">
               <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
                 <span className="text-3xl">🏙️</span>
               </div>
@@ -485,7 +485,7 @@ export default function SearchPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="min-h-screen flex items-center justify-center bg-background">
           <SpeedLoader text="Scanning Properties" subtext="Finding the best match..." />
         </div>
       }

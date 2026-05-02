@@ -103,7 +103,7 @@ export default function PGDetailsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <SpeedLoader text="Loading Property" subtext="Fetching the best rooms for you..." />
       </div>
     );
@@ -126,7 +126,7 @@ export default function PGDetailsPage() {
   return (
     <div className="w-full bg-slate-50 min-h-screen pb-20 animate-fade-in">
       {/* Breadcrumb + Actions Header */}
-      <header className="bg-white border-b sticky top-16 z-40 animate-fade-in-down">
+      <header className="bg-card border-b sticky top-16 z-40 animate-fade-in-down">
         <div className="container mx-auto px-4 md:px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 text-sm text-primary font-medium mb-1">
@@ -215,7 +215,7 @@ export default function PGDetailsPage() {
           {/* Main Content */}
           <div className="space-y-10 animate-fade-in-up">
             {/* About */}
-            <section className="bg-white p-6 md:p-8 rounded-3xl border shadow-sm hover-lift">
+            <section className="bg-card p-6 md:p-8 rounded-3xl border shadow-sm hover-lift">
               <h2 className="text-2xl font-bold mb-4">About this Property</h2>
               <p className="text-muted-foreground leading-relaxed">
                 {pg.description || `${pg.name} is a verified property located at ${pg.location}. Contact the owner for more details.`}
@@ -236,7 +236,7 @@ export default function PGDetailsPage() {
             <section id="rooms">
               <h2 className="text-2xl font-bold mb-6">Available Room Options</h2>
               {(!pg.rooms || pg.rooms.length === 0) ? (
-                <div className="bg-white p-12 rounded-3xl border text-center text-muted-foreground flex flex-col items-center shadow-sm">
+                <div className="bg-card p-12 rounded-3xl border text-center text-muted-foreground flex flex-col items-center shadow-sm">
                   <span className="text-4xl mb-4 opacity-75">🛏️</span>
                   <h3 className="text-xl font-bold text-foreground mb-2">No Rooms Listed Yet</h3>
                   <p className="max-w-md text-sm">The owner hasn't added specific room details for this property. Please contact them directly.</p>
@@ -244,7 +244,7 @@ export default function PGDetailsPage() {
               ) : (
                 <div className="space-y-4 stagger">
                   {pg.rooms.map((room) => (
-                    <div key={room.id} className="bg-white rounded-3xl border shadow-sm overflow-hidden animate-fade-in-up hover-lift">
+                    <div key={room.id} className="bg-card rounded-3xl border shadow-sm overflow-hidden animate-fade-in-up hover-lift">
                       {/* Room header bar */}
                       <div className="flex items-center justify-between px-6 py-4 border-b bg-slate-50">
                         <div className="flex items-center gap-3">
@@ -325,7 +325,7 @@ export default function PGDetailsPage() {
 
             {/* Location Map */}
             {pg.lat && pg.lng && (
-              <section className="bg-white rounded-3xl border shadow-sm overflow-hidden hover-lift">
+              <section className="bg-card rounded-3xl border shadow-sm overflow-hidden hover-lift">
                 <div className="p-6 border-b">
                   <h2 className="text-2xl font-bold flex items-center gap-2"><MapPin className="w-5 h-5 text-primary" /> Location</h2>
                   <p className="text-muted-foreground text-sm mt-1">{pg.location}</p>
@@ -352,7 +352,7 @@ export default function PGDetailsPage() {
 
             {/* House Rules */}
             {pg.rules?.some(Boolean) && (
-              <section className="bg-white p-6 rounded-3xl border shadow-sm hover-lift">
+              <section className="bg-card p-6 rounded-3xl border shadow-sm hover-lift">
                 <h2 className="text-xl font-bold mb-4 flex items-center gap-2"><ShieldCheck className="w-5 h-5 text-primary" /> House Rules</h2>
                 <ul className="space-y-2">
                   {pg.rules.filter(Boolean).map((rule) => (
@@ -372,7 +372,7 @@ export default function PGDetailsPage() {
           </div>
 
           {/* Mobile Booking Bar */}
-          <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 flex items-center justify-between lg:hidden shadow-[0_-4px_20px_rgba(0,0,0,0.05)] z-50">
+          <div className="fixed bottom-0 left-0 right-0 bg-card border-t p-4 flex items-center justify-between lg:hidden shadow-[0_-4px_20px_rgba(0,0,0,0.05)] z-50">
             <div>
               <p className="text-xs text-muted-foreground font-semibold uppercase">Pricing starts from</p>
               <p className="text-xl font-black text-primary">
