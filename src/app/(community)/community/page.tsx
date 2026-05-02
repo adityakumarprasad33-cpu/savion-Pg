@@ -81,6 +81,11 @@ export default function CommunityPage() {
   const [showPgDropdown, setShowPgDropdown] = useState(false);
   const [selectedPg, setSelectedPg] = useState<PG | null>(null);
 
+  // User Mentions
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
+  const [mentionQuery, setMentionQuery] = useState("");
+  const prevMessagesLength = useRef(0);
+
   const chatEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -97,6 +102,13 @@ export default function CommunityPage() {
       setLoading(false);
     });
     return () => unsub();
+  }, []);
+
+  // Request Notification Permission
+  useEffect(() => {
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
   }, []);
 
   // Presence cleanup
@@ -117,6 +129,7 @@ export default function CommunityPage() {
 
   // Subscribe to channel messages
   useEffect(() => {
+    if (!userId) return;
     try {
       const unsub = subscribeToChannel(activeChannel, setMessages);
       return () => unsub();
@@ -124,31 +137,51 @@ export default function CommunityPage() {
       console.warn("[Community] Channel subscription failed:", err);
       setPermissionError(true);
     }
-  }, [activeChannel]);
+  }, [activeChannel, userId]);
 
   // Subscribe to presence
   useEffect(() => {
+    if (!userId) return;
     try {
       const unsub = subscribeToPresence(setOnlineUsers);
       return () => unsub();
     } catch (err) {
       console.warn("[Community] Presence subscription failed:", err);
     }
-  }, []);
+  }, [userId]);
 
-  // Auto scroll on new messages (chat channels only)
+  // Auto scroll on new messages and trigger notifications for mentions
   useEffect(() => {
-    if (["general", "help", "off-topic"].includes(activeChannel)) {
+    if (["general", "help", "off-topic", "tenants-only", "owners-only"].includes(activeChannel)) {
       chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }
-  }, [messages, activeChannel]);
+
+    if (messages.length > prevMessagesLength.current && prevMessagesLength.current > 0) {
+      const latestMsg = messages[messages.length - 1];
+      if (latestMsg.userId !== userId && latestMsg.text.includes(`@${userName}`)) {
+        if ("Notification" in window && Notification.permission === "granted") {
+          new Notification(`New mention from ${latestMsg.userName}`, {
+            body: latestMsg.text,
+            icon: "/icon.png"
+          });
+        }
+        if ("vibrate" in navigator) {
+          navigator.vibrate([200, 100, 200]);
+        }
+      }
+    }
+    prevMessagesLength.current = messages.length;
+  }, [messages, activeChannel, userId, userName]);
 
   // Monthly cleanup on mount
   useEffect(() => {
+    if (!userId) return;
     cleanupOldMessages().then(n => {
       if (n > 0) console.log(`[Community] Cleaned ${n} old messages.`);
+    }).catch(err => {
+      console.warn("[Community] Cleanup failed:", err);
     });
-  }, []);
+  }, [userId]);
 
   const handleSend = async () => {
     if (!userId || !text.trim()) return;
@@ -177,6 +210,21 @@ export default function CommunityPage() {
       setTimeout(() => setProfanityWarn(false), 4000);
     }
     setSending(false);
+  };
+
+  const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const val = e.target.value;
+    setText(val);
+    
+    // Check for user mentions
+    const words = val.split(" ");
+    const lastWord = words[words.length - 1];
+    if (lastWord.startsWith("@") && lastWord.length > 0 && activeChannel !== "pg-reviews") {
+      setShowUserDropdown(true);
+      setMentionQuery(lastWord.slice(1).toLowerCase());
+    } else {
+      setShowUserDropdown(false);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -447,9 +495,43 @@ export default function CommunityPage() {
               )}
             </div>
           )}
-          <div className="flex gap-2 items-end">
-            <textarea ref={inputRef} value={text} onChange={e => setText(e.target.value)} onKeyDown={handleKeyDown}
-              placeholder={`Message #${channelInfo.name.toLowerCase()}...`} rows={1}
+          <div className="flex gap-2 items-end relative">
+            {/* User Tagging Dropdown */}
+            <AnimatePresence>
+              {showUserDropdown && (
+                <motion.div 
+                  initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
+                  className="absolute bottom-full left-0 mb-2 w-64 max-h-48 overflow-y-auto bg-white border shadow-xl rounded-xl z-50 p-1"
+                >
+                  <div className="px-2 py-1.5 text-xs font-bold text-muted-foreground uppercase tracking-wider">Mention User</div>
+                  {onlineUsers.filter(u => u.userName.toLowerCase().includes(mentionQuery) && u.userId !== userId).map(user => (
+                    <button 
+                      key={user.userId}
+                      onClick={() => {
+                        const words = text.split(" ");
+                        words.pop();
+                        words.push(`@${user.userName} `);
+                        setText(words.join(" "));
+                        setShowUserDropdown(false);
+                        inputRef.current?.focus();
+                      }}
+                      className="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-100 text-sm font-medium flex items-center gap-2"
+                    >
+                      <div className="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center shrink-0">
+                        <Users className="w-3 h-3 text-slate-500" />
+                      </div>
+                      <span className="truncate">{user.userName}</span>
+                    </button>
+                  ))}
+                  {onlineUsers.filter(u => u.userName.toLowerCase().includes(mentionQuery) && u.userId !== userId).length === 0 && (
+                    <div className="px-3 py-2 text-xs text-muted-foreground">No matching online users found.</div>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <textarea ref={inputRef} value={text} onChange={handleTextChange} onKeyDown={handleKeyDown}
+              placeholder={`Message #${channelInfo.name.toLowerCase()}... (Type @ to mention)`} rows={1}
               className="flex-1 resize-none text-sm px-4 py-3 rounded-xl border bg-white focus:outline-none focus:ring-2 focus:ring-primary/30 max-h-32" />
             <button onClick={handleSend} disabled={sending || !text.trim() || (activeChannel === "pg-reviews" && !selectedPg)}
               className="h-11 w-11 rounded-xl bg-primary text-white flex items-center justify-center hover:bg-primary/90 disabled:opacity-40 transition-all hover:scale-105 active:scale-95 shrink-0"

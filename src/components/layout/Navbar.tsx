@@ -87,16 +87,16 @@ export function Navbar() {
             <span className="text-2xl font-bold text-primary tracking-tight">Savion</span>
           </Link>
           <nav className="hidden md:flex gap-6">
-            <Link href="/search" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+            <Link href="/search" className="text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary transition-colors">
               Destinations
             </Link>
-            <Link href="/search" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+            <Link href="/search" className="text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary transition-colors">
               Listings
             </Link>
-            <Link href="/about" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+            <Link href="/about" className="text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary transition-colors">
               About
             </Link>
-            <Link href="/community" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+            <Link href="/community" className="text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary transition-colors">
               Community
             </Link>
           </nav>
@@ -165,7 +165,7 @@ export function Navbar() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button
-                    className="flex items-center gap-2.5 rounded-full pl-3 pr-1.5 py-1.5 border border-border shadow-sm hover:shadow-md hover:border-primary/40 transition-all bg-white focus:outline-none focus:ring-2 focus:ring-primary/40"
+                    className="flex items-center gap-2.5 rounded-full pl-3 pr-1.5 py-1.5 border border-border shadow-sm hover:shadow-md hover:border-primary/40 transition-all bg-background focus:outline-none focus:ring-2 focus:ring-primary/40"
                     aria-label="Open profile menu"
                   >
                     <span className="text-sm font-semibold text-foreground hidden sm:block max-w-[120px] truncate">
