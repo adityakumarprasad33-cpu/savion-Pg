@@ -1,7 +1,33 @@
 "use client";
+import { useState, useEffect } from "react";
 import { PageHero, Section, SectionTitle, Paragraph, StatCard, ValueCard, StepCard } from "@/components/layout/InfoPageWrapper";
+import { collection, getDocs } from "firebase/firestore";
+import { db } from "@/lib/firebase/client";
+import { getAllReviews } from "@/lib/db/reviews";
+import { getPlatformStats } from "@/lib/db/platformStats";
 
 export function AboutPage() {
+  const [stats, setStats] = useState({ cities: 0, pgs: 0, reviews: 0, rating: 0 });
+
+  useEffect(() => {
+    async function fetchRealStats() {
+      try {
+        const platformStats = await getPlatformStats();
+        if (platformStats) {
+          setStats({
+            cities: platformStats.cities,
+            pgs: platformStats.pgs,
+            reviews: platformStats.reviews,
+            rating: platformStats.rating
+          });
+        }
+      } catch (err) {
+        console.error("Failed to fetch stats", err);
+      }
+    }
+    fetchRealStats();
+  }, []);
+
   return (
     <div className="bg-background">
       <PageHero badge="Our Story" title="Reimagining How India Finds a Home Away From Home" subtitle="Savion was born from a simple frustration — finding a PG shouldn't involve shady brokers, fake photos, or surprise fees. We're building the platform we wished existed." />
@@ -34,10 +60,10 @@ export function AboutPage() {
       <Section className="bg-slate-50 dark:bg-zinc-800/50">
         <SectionTitle>Savion in Numbers</SectionTitle>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-          <StatCard value="15+" label="Cities Covered" />
-          <StatCard value="500+" label="Verified PGs" />
-          <StatCard value="10K+" label="Happy Tenants" />
-          <StatCard value="4.8★" label="Average Rating" />
+          <StatCard value={stats.cities > 0 ? `${stats.cities}+` : "..."} label="Cities Covered" />
+          <StatCard value={stats.pgs > 0 ? `${stats.pgs}` : "..."} label="Verified PGs" />
+          <StatCard value={stats.reviews > 0 ? `${stats.reviews}` : "..."} label="Verified Reviews" />
+          <StatCard value={stats.rating > 0 ? `${stats.rating}★` : "..."} label="Average Rating" />
         </div>
       </Section>
 

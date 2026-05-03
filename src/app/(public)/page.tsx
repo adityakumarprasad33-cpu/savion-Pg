@@ -11,6 +11,7 @@ import { MainPageDynamicArea } from "@/components/ui/main-page-dynamic-area";
 import { getAllReviews } from "@/lib/db/reviews";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
+import { getPlatformStats } from "@/lib/db/platformStats";
 
 export default function Homepage() {
   const containerRef = useRef(null);
@@ -24,27 +25,27 @@ export default function Homepage() {
   const opacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
 
   const [platformStats, setPlatformStats] = useState({ 
-    count: 5000, 
-    isReal: false,
-    rating: 5,
+    count: 0, 
+    rating: 0,
     reviews: 0 
   });
+  
+  const [topCities, setTopCities] = useState<{city: string, places: string, img: string, tag: string}[]>([]);
 
   useEffect(() => {
     async function fetchStats() {
       try {
-        const reviews = await getAllReviews();
-        
-        // Use a static counter or derive from reviews (bookings collection is private)
-        let count = 5000 + (reviews.length * 15);
-        let isReal = reviews.length > 0;
-        
-        let rating = 5;
-        if (reviews.length > 0) {
-          const sum = reviews.reduce((acc, rev) => acc + rev.rating, 0);
-          rating = sum / reviews.length;
+        const stats = await getPlatformStats();
+        if (stats) {
+          setPlatformStats({
+            count: stats.count,
+            rating: stats.rating,
+            reviews: stats.reviews
+          });
+          if (stats.topCities && stats.topCities.length > 0) {
+            setTopCities(stats.topCities);
+          }
         }
-        setPlatformStats({ count, isReal, rating, reviews: reviews.length });
       } catch (e) {
         console.error("Failed to fetch platform stats", e);
       }
@@ -135,19 +136,27 @@ export default function Homepage() {
                       <Image src={src} alt="User" fill className="object-cover" unoptimized/>
                     </div>
                   ))}
-                  <div className="w-12 h-12 rounded-full border-4 border-background bg-primary text-background flex items-center justify-center text-xs font-bold z-10 relative">
-                    {platformStats.isReal ? platformStats.count : `+${(platformStats.count/1000).toFixed(0)}k`}
-                  </div>
+                  {platformStats.count > 0 && (
+                    <div className="w-12 h-12 rounded-full border-4 border-background bg-primary text-background flex items-center justify-center text-xs font-bold z-10 relative">
+                      +{platformStats.count}
+                    </div>
+                  )}
                 </div>
                 <div className="flex flex-col">
-                  <div className="flex items-center gap-1 text-amber-500" title={`Average Rating: ${platformStats.rating.toFixed(1)}/5`}>
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <Star key={star} className={`w-4 h-4 ${star <= Math.round(platformStats.rating) ? "fill-current" : "fill-transparent text-slate-300"}`} />
-                    ))}
-                    {platformStats.reviews > 0 && <span className="text-xs text-muted-foreground ml-1">({platformStats.reviews} reviews)</span>}
-                  </div>
+                  {platformStats.rating > 0 ? (
+                    <div className="flex items-center gap-1 text-amber-500" title={`Average Rating: ${platformStats.rating.toFixed(1)}/5`}>
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <Star key={star} className={`w-4 h-4 ${star <= Math.round(platformStats.rating) ? "fill-current" : "fill-transparent text-slate-300"}`} />
+                      ))}
+                      <span className="text-xs text-muted-foreground ml-1">({platformStats.reviews} reviews)</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1 text-slate-400">
+                      <span className="text-xs font-medium">New Community</span>
+                    </div>
+                  )}
                   <span className="text-sm font-medium text-foreground">
-                    Loved by {platformStats.isReal ? platformStats.count : "5,000+"} students
+                    {platformStats.count > 0 ? `Loved by ${platformStats.count} students` : "Loved by our students"}
                   </span>
                 </div>
               </motion.div>
