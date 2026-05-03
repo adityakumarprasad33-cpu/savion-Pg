@@ -179,6 +179,12 @@ service cloud.firestore {
       allow write: if request.auth != null && request.auth.uid == presUserId;
     }
 
+    // ── Platform Stats (Global Metrics) ────────────────────────────────────
+    match /platformStats/{statId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
     // ── Rate Limits (anti-spam) ────────────────────────────────────────────
     match /rateLimits/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
