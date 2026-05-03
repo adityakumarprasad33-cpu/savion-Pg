@@ -24,14 +24,14 @@ export function NotificationDropdown({ userId }: { userId: string | null | undef
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button className="relative p-2 rounded-full hover:bg-slate-100/20 transition-colors focus:outline-none">
+        <button className="relative p-2 rounded-full hover:bg-slate-100 dark:bg-zinc-800/20 transition-colors focus:outline-none">
           <Bell className="w-5 h-5 text-current opacity-80 hover:opacity-100" />
           {notifications.filter(n => !n.read).length > 0 && (
             <span className="absolute top-1 right-1.5 w-2 h-2 bg-red-500 rounded-full animate-pulse border border-white"></span>
           )}
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-80 max-h-[80vh] overflow-y-auto z-50 bg-white">
+      <DropdownMenuContent align="end" className="w-80 max-h-[80vh] overflow-y-auto z-50 bg-white dark:bg-zinc-900">
         <div className="flex items-center justify-between px-3 py-2 border-b">
           <span className="font-bold">Notifications</span>
           {notifications.some(n => !n.read) && (
@@ -52,7 +52,7 @@ export function NotificationDropdown({ userId }: { userId: string | null | undef
           notifications.map(n => (
             <DropdownMenuItem 
               key={n.id} 
-              className={`flex flex-col items-start p-3 focus:bg-slate-50 cursor-pointer ${!n.read ? 'bg-orange-50/50' : ''}`}
+              className={`flex flex-col items-start p-3 focus:bg-slate-50 dark:bg-zinc-800/50 cursor-pointer ${!n.read ? 'bg-orange-50/50 dark:bg-orange-950/30' : ''}`}
               onClick={async () => {
                 if (!n.read) {
                   await markNotificationAsRead(n.id);
@@ -61,10 +61,10 @@ export function NotificationDropdown({ userId }: { userId: string | null | undef
               }}
             >
               <div className="flex w-full justify-between gap-2 mb-1">
-                <span className={`font-semibold text-sm ${!n.read ? 'text-slate-900' : 'text-slate-700'}`}>{n.title}</span>
+                <span className={`font-semibold text-sm ${!n.read ? 'text-slate-900 dark:text-slate-100' : 'text-slate-700 dark:text-slate-300'}`}>{n.title}</span>
                 <span className="text-[10px] text-muted-foreground shrink-0">{new Date(n.createdAt).toLocaleDateString()}</span>
               </div>
-              <p className={`text-xs block w-full whitespace-normal ${!n.read ? 'text-slate-700' : 'text-muted-foreground'}`}>{n.message}</p>
+              <p className={`text-xs block w-full whitespace-normal ${!n.read ? 'text-slate-700 dark:text-slate-300' : 'text-muted-foreground'}`}>{n.message}</p>
             </DropdownMenuItem>
           ))
         )}

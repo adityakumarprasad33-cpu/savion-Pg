@@ -225,7 +225,7 @@ export function SpeedLoader({ text = "Loading", subtext = "Please wait...", clas
 
       {/* Content Overlay */}
       <div className="z-20 text-center mt-6 space-y-3 relative">
-        <h1 className="text-xl md:text-2xl font-bold tracking-tight text-black uppercase animate-pulse">
+        <h1 className="text-xl md:text-2xl font-bold tracking-tight text-black dark:text-white uppercase animate-pulse">
           {text}
         </h1>
         {subtext && (

@@ -33,7 +33,7 @@ export function PressPage() {
         </div>
       </Section>
 
-      <Section className="bg-slate-50">
+      <Section className="bg-slate-50 dark:bg-zinc-800/50">
         <SectionTitle>Brand Guidelines</SectionTitle>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Card>
@@ -46,7 +46,7 @@ export function PressPage() {
               <div className="w-10 h-10 rounded-lg bg-primary" title="Primary" />
               <div className="w-10 h-10 rounded-lg bg-orange-500" title="Accent" />
               <div className="w-10 h-10 rounded-lg bg-slate-900" title="Dark" />
-              <div className="w-10 h-10 rounded-lg bg-slate-100 border" title="Light" />
+              <div className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-zinc-800 border" title="Light" />
             </div>
             <p className="text-xs text-muted-foreground mt-2">Primary: Brand Red • Accent: Orange • Dark/Light for text</p>
           </Card>

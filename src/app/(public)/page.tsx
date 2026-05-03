@@ -106,16 +106,16 @@ export default function Homepage() {
               {/* Search Widget */}
               <motion.div variants={itemVariant} className="relative w-full max-w-xl group">
                 <div className="absolute -inset-1 bg-gradient-to-r from-primary to-orange-500 rounded-3xl blur opacity-25 group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
-                <form action="/search" className="relative w-full bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl p-2 flex flex-col md:flex-row gap-2 border border-border/50">
+                <form action="/search" className="relative w-full bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl dark:shadow-zinc-900/60 p-2 flex flex-col md:flex-row gap-2 border border-border/50">
                   <div className="flex relative flex-1 items-center px-2">
                     <MapPin className="absolute left-4 w-5 h-5 text-primary shrink-0" />
                     <Input
                       name="q"
                       placeholder="Search city, university, or PG..."
-                      className="border-0 shadow-none focus-visible:ring-0 pl-10 h-14 text-lg w-full bg-transparent text-slate-900 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400"
+                      className="border-0 shadow-none focus-visible:ring-0 pl-10 h-14 text-lg w-full bg-transparent text-slate-900 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400 dark:placeholder:text-zinc-500"
                     />
                   </div>
-                  <Button type="submit" size="lg" className="w-full md:w-auto h-14 px-8 rounded-xl font-bold text-base gap-2 bg-primary hover:bg-primary/90 text-white shadow-lg hover:shadow-primary/25 transition-all hover:-translate-y-0.5">
+                  <Button type="submit" size="lg" className="w-full md:w-auto h-14 px-8 rounded-xl font-bold text-base gap-2 bg-primary hover:bg-primary/90 text-white shadow-lg dark:shadow-zinc-900/50 hover:shadow-primary/25 transition-all hover:-translate-y-0.5">
                     <Search className="w-5 h-5" />
                     Explore Now
                   </Button>
@@ -164,7 +164,7 @@ export default function Homepage() {
                   initial={{ opacity: 0, scale: 0.8, rotate: -5 }}
                   animate={{ opacity: 1, scale: 1, rotate: 0 }}
                   transition={{ duration: 1, delay: 0.2, type: "spring" as const }}
-                  className="absolute top-10 right-10 w-[70%] h-[75%] rounded-[2rem] overflow-hidden shadow-2xl border border-white/20 z-10"
+                  className="absolute top-10 right-10 w-[70%] h-[75%] rounded-[2rem] overflow-hidden shadow-2xl dark:shadow-zinc-900/60 border border-white/20 z-10"
                 >
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10" />
                   <Image 
@@ -188,7 +188,7 @@ export default function Homepage() {
                   initial={{ opacity: 0, x: -50, y: 50 }}
                   animate={{ opacity: 1, x: 0, y: 0 }}
                   transition={{ duration: 1, delay: 0.5, type: "spring" as const }}
-                  className="absolute bottom-0 left-0 w-[45%] h-[45%] rounded-[2rem] overflow-hidden shadow-2xl border-4 border-background z-20"
+                  className="absolute bottom-0 left-0 w-[45%] h-[45%] rounded-[2rem] overflow-hidden shadow-2xl dark:shadow-zinc-900/60 border-4 border-background z-20"
                 >
                   <Image 
                     src="https://images.unsplash.com/photo-1554995207-c18c203602cb?q=80&w=600&auto=format&fit=crop" 
@@ -204,7 +204,7 @@ export default function Homepage() {
                   initial={{ opacity: 0, y: -20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 1, delay: 0.8, type: "spring" as const }}
-                  className="absolute top-20 left-4 bg-background/90 backdrop-blur-xl p-4 rounded-2xl shadow-xl border border-border/50 z-30 flex items-center gap-4"
+                  className="absolute top-20 left-4 bg-background/90 backdrop-blur-xl p-4 rounded-2xl shadow-xl dark:shadow-zinc-900/50 border border-border/50 z-30 flex items-center gap-4"
                 >
                   <div className="w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
                     <ShieldCheck className="w-6 h-6 text-green-600 dark:text-green-400" />
@@ -251,7 +251,7 @@ export default function Homepage() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               whileHover={{ y: -5 }}
-              className="md:col-span-2 relative rounded-3xl overflow-hidden bg-white dark:bg-zinc-900 border border-border/50 shadow-sm group"
+              className="md:col-span-2 relative rounded-3xl overflow-hidden bg-white dark:bg-zinc-900 border border-border/50 shadow-sm dark:shadow-slate-900/50 group"
             >
               <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent z-0" />
               <div className="relative z-10 p-8 flex flex-col h-full justify-between">
@@ -276,7 +276,7 @@ export default function Homepage() {
               viewport={{ once: true }}
               transition={{ delay: 0.1 }}
               whileHover={{ y: -5 }}
-              className="relative rounded-3xl overflow-hidden bg-primary text-primary-foreground shadow-xl group"
+              className="relative rounded-3xl overflow-hidden bg-primary text-primary-foreground shadow-xl dark:shadow-zinc-900/50 group"
             >
               {/* Custom booking image as background */}
               <div className="absolute inset-0 z-0">
@@ -284,7 +284,7 @@ export default function Homepage() {
               </div>
               <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent z-[1]" />
               <div className="relative z-10 p-8 flex flex-col h-full justify-between">
-                <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center mb-6">
+                <div className="w-14 h-14 rounded-2xl bg-white dark:bg-zinc-900/20 backdrop-blur-sm flex items-center justify-center mb-6">
                   <Zap className="w-7 h-7 text-white" />
                 </div>
                 <div>
@@ -301,12 +301,12 @@ export default function Homepage() {
               viewport={{ once: true }}
               transition={{ delay: 0.2 }}
               whileHover={{ y: -5 }}
-              className="relative rounded-3xl overflow-hidden bg-white dark:bg-zinc-900 border border-border/50 shadow-sm group"
+              className="relative rounded-3xl overflow-hidden bg-white dark:bg-zinc-900 border border-border/50 shadow-sm dark:shadow-slate-900/50 group"
             >
               {/* Amenities image background */}
               <div className="absolute inset-0 z-0">
                 <Image src="/card-amenities.png" alt="Premium Amenities" fill className="object-cover opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500" />
-                <div className="absolute inset-0 bg-white/20" />
+                <div className="absolute inset-0 bg-white dark:bg-zinc-900/20" />
               </div>
               <div className="relative z-10 p-8 flex flex-col h-full justify-between">
                 <div className="w-14 h-14 rounded-2xl bg-orange-500/10 flex items-center justify-center mb-6 text-orange-500">
@@ -326,7 +326,7 @@ export default function Homepage() {
               viewport={{ once: true }}
               transition={{ delay: 0.3 }}
               whileHover={{ y: -5 }}
-              className="md:col-span-2 relative rounded-3xl overflow-hidden bg-zinc-900 text-white shadow-xl group"
+              className="md:col-span-2 relative rounded-3xl overflow-hidden bg-zinc-900 text-white shadow-xl dark:shadow-zinc-900/50 group"
             >
               <div className="absolute inset-0 bg-gradient-to-r from-zinc-900/60 via-zinc-900/30 to-transparent z-10" />
               <Image src="/card-community.png" alt="Vibrant Community" fill className="object-cover z-0 opacity-100 group-hover:scale-110 transition-transform duration-700" />
@@ -378,7 +378,7 @@ export default function Homepage() {
                 <Image src={item.img} unoptimized alt={item.city} fill className="object-cover group-hover:scale-110 transition-transform duration-700 ease-out" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent opacity-80 group-hover:opacity-90 transition-opacity"></div>
                 <div className="absolute top-6 left-6">
-                  <span className="bg-white/20 backdrop-blur-md text-white text-xs font-bold px-3 py-1.5 rounded-full uppercase tracking-wider">
+                  <span className="bg-white dark:bg-zinc-900/20 backdrop-blur-md text-white text-xs font-bold px-3 py-1.5 rounded-full uppercase tracking-wider">
                     {item.tag}
                   </span>
                 </div>
@@ -398,7 +398,7 @@ export default function Homepage() {
       <section className="py-24 relative overflow-hidden">
         <div className="absolute inset-0 bg-primary z-0" />
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-20 z-0" />
-        <div className="absolute -top-40 -right-40 w-96 h-96 bg-white/10 rounded-full blur-3xl z-0" />
+        <div className="absolute -top-40 -right-40 w-96 h-96 bg-white dark:bg-zinc-900/10 rounded-full blur-3xl z-0" />
         
         <div className="container mx-auto px-4 relative z-10 flex flex-col items-center text-center">
           <motion.div
@@ -411,7 +411,7 @@ export default function Homepage() {
             <p className="text-xl text-white/80 mb-10 font-light">Join thousands of students who have already found their perfect home with Savion.</p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="/search">
-                <Button size="lg" className="h-14 px-12 text-lg rounded-full bg-white text-primary hover:bg-zinc-100 font-bold shadow-xl hover:scale-105 transition-transform">
+                <Button size="lg" className="h-14 px-12 text-lg rounded-full bg-white dark:bg-zinc-900 text-primary hover:bg-zinc-100 font-bold shadow-xl dark:shadow-zinc-900/50 hover:scale-105 transition-transform">
                   Search Properties
                 </Button>
               </Link>

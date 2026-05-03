@@ -3,22 +3,39 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper: Check if the current user is an admin
+    // ── HELPER FUNCTIONS ──────────────────────────────────────────────────
+    // Cached admin check — single read per evaluation
     function isAdmin() {
       return request.auth != null && 
-             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
-    // ── ADMIN BYPASS ───────────────────────────────────────────────────────
+    // Get user's role from Firestore profile
+    function getUserRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    // Check if field is being modified
+    function isFieldUnchanged(field) {
+      return !(field in request.resource.data.diff(resource.data).affectedKeys());
+    }
+
+    // ── ADMIN BYPASS (optimized — single read) ────────────────────────────
     match /{document=**} {
       allow read, write: if isAdmin();
     }
 
     // ── Users ──────────────────────────────────────────────────────────────
+    // SECURITY: Users can read any profile but can only modify their own.
+    //           The 'role' field CANNOT be changed after creation (prevents escalation).
     match /users/{userId} {
       allow read: if request.auth != null;
-      allow create, update: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null 
+        && request.auth.uid == userId
+        && request.resource.data.role in ['tenant', 'owner', 'caretaker', 'student'];
+      allow update: if request.auth != null 
+        && request.auth.uid == userId
+        && isFieldUnchanged('role');
     }
 
     // ── PGs (Properties) ───────────────────────────────────────────────────
@@ -32,35 +49,94 @@ service cloud.firestore {
     }
 
     // ── Bookings ───────────────────────────────────────────────────────────
+    // SECURITY: Only the tenant or the PG owner can access a booking.
     match /bookings/{bookingId} {
-      allow read, create, update, delete: if request.auth != null;
+      allow read: if request.auth != null && (
+        resource.data.tenantId == request.auth.uid ||
+        resource.data.ownerId == request.auth.uid
+      );
+      allow create: if request.auth != null 
+        && request.resource.data.tenantId == request.auth.uid;
+      allow update: if request.auth != null && (
+        resource.data.tenantId == request.auth.uid ||
+        resource.data.ownerId == request.auth.uid
+      );
+      allow delete: if request.auth != null && (
+        resource.data.ownerId == request.auth.uid ||
+        resource.data.tenantId == request.auth.uid
+      );
     }
 
     // ── Payment Sessions ──────────────────────────────────────────────────
     match /paymentSessions/{sessionId} {
-      allow read, write: if request.auth != null;
+      allow read: if request.auth != null && (
+        resource.data.tenantId == request.auth.uid ||
+        resource.data.ownerId == request.auth.uid
+      );
+      allow create: if request.auth != null;
+      allow update: if request.auth != null && (
+        resource.data.tenantId == request.auth.uid ||
+        resource.data.ownerId == request.auth.uid
+      );
     }
 
-    // ── Payments (Receipts) — no delete, permanent records ────────────────
+    // ── Payments (Receipts) — no delete, permanent audit trail ─────────────
     match /payments/{paymentId} {
-      allow read, create, update: if request.auth != null;
+      allow read: if request.auth != null && (
+        resource.data.tenantId == request.auth.uid ||
+        resource.data.ownerId == request.auth.uid
+      );
+      allow create: if request.auth != null;
+      allow update: if request.auth != null && (
+        resource.data.ownerId == request.auth.uid
+      );
     }
 
     // ── Complaints ─────────────────────────────────────────────────────────
+    // SECURITY: Only the filing tenant or the PG owner can view/manage.
     match /complaints/{complaintId} {
-      allow read, create, update, delete: if request.auth != null;
+      allow read: if request.auth != null && (
+        resource.data.tenantId == request.auth.uid ||
+        resource.data.ownerId == request.auth.uid
+      );
+      allow create: if request.auth != null
+        && request.resource.data.tenantId == request.auth.uid
+        && request.resource.data.description.size() < 2000;
+      allow update: if request.auth != null && (
+        resource.data.tenantId == request.auth.uid ||
+        resource.data.ownerId == request.auth.uid
+      );
+      allow delete: if request.auth != null && (
+        resource.data.ownerId == request.auth.uid ||
+        resource.data.tenantId == request.auth.uid
+      );
     }
 
     // ── Notifications ──────────────────────────────────────────────────────
+    // SECURITY: Users can only read/update their own notifications.
     match /notifications/{notifId} {
-      allow read: if request.auth != null;
+      allow read: if request.auth != null 
+        && resource.data.userId == request.auth.uid;
       allow create: if request.auth != null;
-      allow update: if request.auth != null;
+      allow update: if request.auth != null 
+        && resource.data.userId == request.auth.uid;
     }
 
     // ── Contracts ──────────────────────────────────────────────────────────
+    // SECURITY: Only the tenant or owner of a contract can access it.
     match /contracts/{contractId} {
-      allow read, create, update, delete: if request.auth != null;
+      allow read: if request.auth != null && (
+        resource.data.tenantId == request.auth.uid ||
+        resource.data.ownerId == request.auth.uid
+      );
+      allow create: if request.auth != null;
+      allow update: if request.auth != null && (
+        resource.data.tenantId == request.auth.uid ||
+        resource.data.ownerId == request.auth.uid
+      );
+      allow delete: if request.auth != null && (
+        resource.data.ownerId == request.auth.uid
+      );
     }
 
     // ── Caretakers ─────────────────────────────────────────────────────────
@@ -69,26 +145,43 @@ service cloud.firestore {
     }
 
     // ── Verifications (KYC) ────────────────────────────────────────────────
-    match /verifications/{userId} {
-      allow read, write: if request.auth != null;
+    // SECURITY: Only the user themselves or admin can access KYC docs.
+    match /verifications/{vUserId} {
+      allow read: if request.auth != null && request.auth.uid == vUserId;
+      allow write: if request.auth != null && request.auth.uid == vUserId;
     }
 
     // ── Reviews — public read, auth create ─────────────────────────────────
     match /reviews/{reviewId} {
       allow read: if true;
-      allow create, update: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.data.comment.size() < 2000;
+      allow update: if request.auth != null 
+        && resource.data.tenantId == request.auth.uid;
     }
 
     // ── Community Messages ─────────────────────────────────────────────────
+    // SECURITY: Only message owner can delete. Role-enforced review channel.
     match /communityMessages/{messageId} {
       allow read: if request.auth != null;
-      allow create: if request.auth != null;
-      allow update, delete: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.data.text.size() < 2000
+        && request.resource.data.userId == request.auth.uid;
+      allow update: if request.auth != null 
+        && resource.data.userId == request.auth.uid;
+      allow delete: if request.auth != null 
+        && resource.data.userId == request.auth.uid;
     }
 
     // ── Community Presence ─────────────────────────────────────────────────
-    match /communityPresence/{userId} {
-      allow read, write: if request.auth != null;
+    match /communityPresence/{presUserId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == presUserId;
+    }
+
+    // ── Rate Limits (anti-spam) ────────────────────────────────────────────
+    match /rateLimits/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
     }
   }
 }

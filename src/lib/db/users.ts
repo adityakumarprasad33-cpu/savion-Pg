@@ -14,7 +14,31 @@ export interface UserProfile {
   createdAt: number;
 }
 
+// ── SECURITY: Reserved names that cannot be used as display names ────────
+const RESERVED_NAMES = [
+  "admin", "support", "savion", "system", "moderator", "mod",
+  "helpdesk", "official", "staff", "team", "bot", "administrator",
+];
+
+// ── SECURITY: Roles that users are allowed to self-assign ───────────────
+const ALLOWED_SELF_ROLES: UserRole[] = ["tenant", "owner", "caretaker", "student"];
+
+export function isReservedName(name: string): boolean {
+  const lower = name.toLowerCase().replace(/[^a-z]/g, "");
+  return RESERVED_NAMES.some(r => lower.includes(r));
+}
+
 export async function createUserProfile(uid: string, data: Partial<UserProfile>) {
+  // Block reserved names
+  if (data.name && isReservedName(data.name)) {
+    throw new Error("This display name is reserved. Please choose another.");
+  }
+
+  // Block self-escalation to admin/disabled
+  if (data.role && !ALLOWED_SELF_ROLES.includes(data.role)) {
+    data.role = "tenant"; // Fallback to safe default
+  }
+
   const userRef = doc(db, "users", uid);
   const snap = await getDoc(userRef);
   if (!snap.exists()) {
@@ -29,7 +53,9 @@ export async function createUserProfile(uid: string, data: Partial<UserProfile>)
       ...data,
     });
   } else {
-    await updateDoc(userRef, data as Record<string, unknown>);
+    // SECURITY: Never allow role change via client update
+    const { role: _role, ...safeData } = data;
+    await updateDoc(userRef, safeData as Record<string, unknown>);
   }
 }
 

@@ -13,7 +13,7 @@ interface BookingSidebarProps {
 export function BookingSidebar({ pgId, pgName, price, hasActiveBooking = false }: BookingSidebarProps) {
   return (
     <aside>
-      <div className="sticky top-40 bg-white border border-primary/20 rounded-3xl p-6 md:p-8 shadow-xl shadow-primary/5 animate-fade-in-up">
+      <div className="sticky top-40 bg-white dark:bg-zinc-900 border border-primary/20 rounded-3xl p-6 md:p-8 shadow-xl dark:shadow-zinc-900/50 shadow-primary/5 animate-fade-in-up">
         <div className="flex items-center justify-between border-b pb-4 mb-6">
           <div>
             <p className="text-sm text-muted-foreground font-semibold uppercase">Pricing starts from</p>

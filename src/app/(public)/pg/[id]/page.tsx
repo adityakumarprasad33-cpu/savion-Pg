@@ -103,7 +103,7 @@ export default function PGDetailsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="min-h-screen flex items-center justify-center bg-white dark:bg-zinc-900">
         <SpeedLoader text="Loading Property" subtext="Fetching the best rooms for you..." />
       </div>
     );
@@ -124,9 +124,9 @@ export default function PGDetailsPage() {
   const galleryImages = [pg.img, ...(pg.images || [])].filter(Boolean);
 
   return (
-    <div className="w-full bg-slate-50 min-h-screen pb-20 animate-fade-in">
+    <div className="w-full bg-slate-50 dark:bg-zinc-800/50 min-h-screen pb-20 animate-fade-in">
       {/* Breadcrumb + Actions Header */}
-      <header className="bg-card border-b sticky top-16 z-40 animate-fade-in-down">
+      <header className="bg-white dark:bg-zinc-900 border-b sticky top-16 z-40 animate-fade-in-down">
         <div className="container mx-auto px-4 md:px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 text-sm text-primary font-medium mb-1">
@@ -161,7 +161,7 @@ export default function PGDetailsPage() {
             <Button
               variant="outline" size="icon"
               onClick={handleLike}
-              className={liked ? "border-red-400 text-red-500 bg-red-50 hover:bg-red-100" : ""}
+              className={liked ? "border-red-400 text-red-500 bg-red-50 dark:bg-red-950/30 hover:bg-red-100" : ""}
               title={liked ? "Remove from saved" : "Save property"}
             >
               <Heart className={`w-4 h-4 ${liked ? "fill-red-500 text-red-500" : ""}`} />
@@ -181,7 +181,7 @@ export default function PGDetailsPage() {
 
       <div className="container mx-auto px-4 md:px-6 py-8">
         {/* Gallery Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-4 grid-rows-2 gap-2 md:gap-3 h-[280px] md:h-[480px] rounded-3xl overflow-hidden mb-12 shadow-sm bg-slate-200 animate-scale-in">
+        <div className="grid grid-cols-1 md:grid-cols-4 grid-rows-2 gap-2 md:gap-3 h-[280px] md:h-[480px] rounded-3xl overflow-hidden mb-12 shadow-sm dark:shadow-slate-900/50 bg-slate-200 animate-scale-in">
           {/* Main image */}
           <div className="md:col-span-2 md:row-span-2 relative bg-slate-200">
             {galleryImages[0] ? (
@@ -194,7 +194,7 @@ export default function PGDetailsPage() {
           </div>
           {/* Extra gallery slots */}
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="relative hidden md:block bg-slate-100">
+            <div key={i} className="relative hidden md:block bg-slate-100 dark:bg-zinc-800">
               {galleryImages[i] ? (
                 <Image src={galleryImages[i]} alt={`${pg.name} photo ${i}`} fill className="object-cover" />
               ) : (
@@ -215,7 +215,7 @@ export default function PGDetailsPage() {
           {/* Main Content */}
           <div className="space-y-10 animate-fade-in-up">
             {/* About */}
-            <section className="bg-card p-6 md:p-8 rounded-3xl border shadow-sm hover-lift">
+            <section className="bg-white dark:bg-zinc-900 p-6 md:p-8 rounded-3xl border shadow-sm dark:shadow-slate-900/50 hover-lift">
               <h2 className="text-2xl font-bold mb-4">About this Property</h2>
               <p className="text-muted-foreground leading-relaxed">
                 {pg.description || `${pg.name} is a verified property located at ${pg.location}. Contact the owner for more details.`}
@@ -236,7 +236,7 @@ export default function PGDetailsPage() {
             <section id="rooms">
               <h2 className="text-2xl font-bold mb-6">Available Room Options</h2>
               {(!pg.rooms || pg.rooms.length === 0) ? (
-                <div className="bg-card p-12 rounded-3xl border text-center text-muted-foreground flex flex-col items-center shadow-sm">
+                <div className="bg-white dark:bg-zinc-900 p-12 rounded-3xl border text-center text-muted-foreground flex flex-col items-center shadow-sm dark:shadow-slate-900/50">
                   <span className="text-4xl mb-4 opacity-75">🛏️</span>
                   <h3 className="text-xl font-bold text-foreground mb-2">No Rooms Listed Yet</h3>
                   <p className="max-w-md text-sm">The owner hasn't added specific room details for this property. Please contact them directly.</p>
@@ -244,9 +244,9 @@ export default function PGDetailsPage() {
               ) : (
                 <div className="space-y-4 stagger">
                   {pg.rooms.map((room) => (
-                    <div key={room.id} className="bg-card rounded-3xl border shadow-sm overflow-hidden animate-fade-in-up hover-lift">
+                    <div key={room.id} className="bg-white dark:bg-zinc-900 rounded-3xl border shadow-sm dark:shadow-slate-900/50 overflow-hidden animate-fade-in-up hover-lift">
                       {/* Room header bar */}
-                      <div className="flex items-center justify-between px-6 py-4 border-b bg-slate-50">
+                      <div className="flex items-center justify-between px-6 py-4 border-b bg-slate-50 dark:bg-zinc-800/50">
                         <div className="flex items-center gap-3">
                           {/* Room number badge */}
                           <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center font-black text-primary text-sm">
@@ -259,7 +259,7 @@ export default function PGDetailsPage() {
                                 {room.type}
                               </span>
                               {room.floor && (
-                                <span className="text-xs font-medium bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full">
+                                <span className="text-xs font-medium bg-slate-200 text-slate-600 dark:text-slate-400 px-2 py-0.5 rounded-full">
                                   Floor {room.floor}
                                 </span>
                               )}
@@ -279,16 +279,16 @@ export default function PGDetailsPage() {
                       {/* Room body */}
                       <div className="flex flex-col md:flex-row justify-between gap-6 p-6">
                         {room.image && (
-                          <div className="relative w-full md:w-48 h-32 md:h-auto rounded-xl overflow-hidden shrink-0 border bg-slate-100">
+                          <div className="relative w-full md:w-48 h-32 md:h-auto rounded-xl overflow-hidden shrink-0 border bg-slate-100 dark:bg-zinc-800">
                             <Image src={room.image} alt={`Room ${room.roomNumber}`} fill className="object-cover" />
                           </div>
                         )}
                         <div className="flex-1 flex flex-col justify-center">
-                          <p className="text-sm font-semibold text-slate-700 mb-2">Amenities</p>
+                          <p className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Amenities</p>
                           {room.amenities?.length > 0 ? (
                             <div className="flex flex-wrap gap-2">
                               {room.amenities.map((a) => (
-                                <span key={a} className="flex items-center gap-1 text-xs bg-slate-100 text-slate-700 px-2.5 py-1 rounded-full">
+                                <span key={a} className="flex items-center gap-1 text-xs bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-slate-300 px-2.5 py-1 rounded-full">
                                   <Check className="w-3 h-3 text-green-500" /> {a}
                                 </span>
                               ))}
@@ -308,7 +308,7 @@ export default function PGDetailsPage() {
                             className={`px-8 rounded-xl font-semibold text-white ${
                               room.available === 0 || hasActiveBooking
                                 ? "opacity-50 cursor-not-allowed"
-                                : "bg-primary hover:bg-primary/90 shadow-lg shadow-primary/25"
+                                : "bg-primary hover:bg-primary/90 shadow-lg dark:shadow-zinc-900/50 shadow-primary/25"
                             }`}
                           >
                             {hasActiveBooking 
@@ -325,7 +325,7 @@ export default function PGDetailsPage() {
 
             {/* Location Map */}
             {pg.lat && pg.lng && (
-              <section className="bg-card rounded-3xl border shadow-sm overflow-hidden hover-lift">
+              <section className="bg-white dark:bg-zinc-900 rounded-3xl border shadow-sm dark:shadow-slate-900/50 overflow-hidden hover-lift">
                 <div className="p-6 border-b">
                   <h2 className="text-2xl font-bold flex items-center gap-2"><MapPin className="w-5 h-5 text-primary" /> Location</h2>
                   <p className="text-muted-foreground text-sm mt-1">{pg.location}</p>
@@ -339,10 +339,10 @@ export default function PGDetailsPage() {
                 />
                 {pg.nearbyPlaces?.some(Boolean) && (
                   <div className="p-6 border-t">
-                    <p className="text-sm font-semibold mb-3 text-slate-600">Nearby Places</p>
+                    <p className="text-sm font-semibold mb-3 text-slate-600 dark:text-slate-400">Nearby Places</p>
                     <div className="flex flex-wrap gap-2">
                       {pg.nearbyPlaces.filter(Boolean).map((place) => (
-                        <span key={place} className="text-xs bg-slate-100 px-3 py-1 rounded-full text-slate-700">📍 {place}</span>
+                        <span key={place} className="text-xs bg-slate-100 dark:bg-zinc-800 px-3 py-1 rounded-full text-slate-700 dark:text-slate-300">📍 {place}</span>
                       ))}
                     </div>
                   </div>
@@ -352,7 +352,7 @@ export default function PGDetailsPage() {
 
             {/* House Rules */}
             {pg.rules?.some(Boolean) && (
-              <section className="bg-card p-6 rounded-3xl border shadow-sm hover-lift">
+              <section className="bg-white dark:bg-zinc-900 p-6 rounded-3xl border shadow-sm dark:shadow-slate-900/50 hover-lift">
                 <h2 className="text-xl font-bold mb-4 flex items-center gap-2"><ShieldCheck className="w-5 h-5 text-primary" /> House Rules</h2>
                 <ul className="space-y-2">
                   {pg.rules.filter(Boolean).map((rule) => (
@@ -372,7 +372,7 @@ export default function PGDetailsPage() {
           </div>
 
           {/* Mobile Booking Bar */}
-          <div className="fixed bottom-0 left-0 right-0 bg-card border-t p-4 flex items-center justify-between lg:hidden shadow-[0_-4px_20px_rgba(0,0,0,0.05)] z-50">
+          <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-zinc-900 border-t p-4 flex items-center justify-between lg:hidden shadow-[0_-4px_20px_rgba(0,0,0,0.05)] z-50">
             <div>
               <p className="text-xs text-muted-foreground font-semibold uppercase">Pricing starts from</p>
               <p className="text-xl font-black text-primary">

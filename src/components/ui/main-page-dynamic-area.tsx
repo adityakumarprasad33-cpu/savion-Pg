@@ -39,7 +39,7 @@ export function MainPageDynamicArea() {
     const dashLink = profile?.role === "owner" ? "/dashboard/owner" : profile?.role === "caretaker" ? "/dashboard/caretaker" : "/dashboard/tenant";
     return (
       <div className="container mx-auto px-4 md:px-6 max-w-5xl py-8 mb-8 animate-fade-in-up flex items-center justify-center">
-         <div className="bg-primary/10 border border-primary/20 rounded-2xl p-8 max-w-lg text-center shadow-sm">
+         <div className="bg-primary/10 border border-primary/20 rounded-2xl p-8 max-w-lg text-center shadow-sm dark:shadow-slate-900/50">
             <AnimatedHeading text={`Welcome Back, ${profile?.name || "User"}!`} className="text-2xl text-primary mb-2" />
             <p className="text-muted-foreground mb-6">Looks like you already have an active profile. Head back into your control center to monitor your activities.</p>
             <Link href={dashLink} className="inline-flex items-center justify-center bg-primary text-primary-foreground h-12 px-8 rounded-xl font-bold hover:opacity-90 hover:scale-105 transition-all">
@@ -54,15 +54,15 @@ export function MainPageDynamicArea() {
   if (pgs.length === 0) return null;
 
   return (
-    <div className="container mx-auto px-4 md:px-6 py-12 border-t mt-4 bg-slate-50/50">
+    <div className="container mx-auto px-4 md:px-6 py-12 border-t mt-4 bg-slate-50 dark:bg-zinc-800/50/50">
       <div className="flex flex-col items-center justify-center space-y-2 text-center mb-10">
         <AnimatedHeading text="Latest Rooms Added Nearby" className="text-2xl sm:text-3xl" />
         <p className="text-muted-foreground mt-2">Discover fresh verified listings right in your area.</p>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
         {pgs.map((pg) => (
-          <Link href={`/pg/${pg.id}`} key={pg.id} className="group rounded-2xl border bg-white shadow-sm hover:shadow-xl transition-all overflow-hidden block">
-            <div className="relative h-48 w-full bg-slate-100">
+          <Link href={`/pg/${pg.id}`} key={pg.id} className="group rounded-2xl border bg-white dark:bg-zinc-900 shadow-sm dark:shadow-slate-900/50 hover:shadow-xl dark:shadow-zinc-900/50 transition-all overflow-hidden block">
+            <div className="relative h-48 w-full bg-slate-100 dark:bg-zinc-800">
                {pg.img ? (
                  <Image src={pg.img} alt={pg.name} fill sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw" className="object-cover group-hover:scale-105 transition-transform duration-500" />
                ) : (
@@ -70,7 +70,7 @@ export function MainPageDynamicArea() {
                    <span className="text-5xl opacity-40">🏠</span>
                  </div>
                )}
-               <div className="absolute top-3 right-3 bg-white/95 backdrop-blur-sm px-2.5 py-1 rounded-lg text-sm font-bold text-slate-900 shadow-sm">
+               <div className="absolute top-3 right-3 bg-white dark:bg-zinc-900/95 backdrop-blur-sm px-2.5 py-1 rounded-lg text-sm font-bold text-slate-900 dark:text-slate-100 shadow-sm dark:shadow-slate-900/50">
                  {pg.price}/mo
                </div>
             </div>

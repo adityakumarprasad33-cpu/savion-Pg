@@ -259,7 +259,7 @@ export default function UpiPayPage() {
   // ── LOADING ──────────────────────────────────────────────────────────────
   if (initLoading) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
+      <div className="min-h-screen bg-white dark:bg-zinc-900 flex items-center justify-center">
         <SpeedLoader text="Securing Session" subtext="Verifying payment environment..." />
       </div>
     );
@@ -268,8 +268,8 @@ export default function UpiPayPage() {
   // ── AUTH / SESSION ERROR ──────────────────────────────────────────────────
   if (authError) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
-        <div className="bg-white rounded-3xl shadow-xl p-10 max-w-sm w-full text-center">
+      <div className="min-h-screen bg-slate-50 dark:bg-zinc-800/50 flex items-center justify-center p-6">
+        <div className="bg-white dark:bg-zinc-900 rounded-3xl shadow-xl dark:shadow-zinc-900/50 p-10 max-w-sm w-full text-center">
           <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-5">
             <Lock className="w-8 h-8 text-red-500" />
           </div>
@@ -285,7 +285,7 @@ export default function UpiPayPage() {
   if (done) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 flex items-center justify-center p-6">
-        <div className="bg-white rounded-3xl shadow-2xl p-10 max-w-sm w-full text-center">
+        <div className="bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl dark:shadow-zinc-900/60 p-10 max-w-sm w-full text-center">
           <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-5">
             <CheckCircle2 className="w-10 h-10 text-green-600" />
           </div>
@@ -308,7 +308,7 @@ export default function UpiPayPage() {
   if (expired) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-red-50 to-orange-100 flex items-center justify-center p-6">
-        <div className="bg-white rounded-3xl shadow-2xl p-10 max-w-sm w-full text-center">
+        <div className="bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl dark:shadow-zinc-900/60 p-10 max-w-sm w-full text-center">
           <div className="w-20 h-20 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-5">
             <AlertTriangle className="w-10 h-10 text-red-500" />
           </div>
@@ -324,7 +324,7 @@ export default function UpiPayPage() {
   if (!session) return null;
 
   return (
-    <div className="min-h-screen bg-slate-50 py-8 px-4">
+    <div className="min-h-screen bg-slate-50 dark:bg-zinc-800/50 py-8 px-4">
       <div className="max-w-md mx-auto">
 
         <Link href="/dashboard/tenant" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-5 transition-colors">
@@ -338,13 +338,13 @@ export default function UpiPayPage() {
         </div>
 
         {/* Payment Info Header */}
-        <div className="bg-gradient-to-br from-slate-900 to-slate-700 text-white rounded-2xl p-6 mb-4 shadow-lg">
+        <div className="bg-gradient-to-br from-slate-900 to-slate-700 text-white rounded-2xl p-6 mb-4 shadow-lg dark:shadow-zinc-900/50">
           <div className="mb-4">
             <p className="text-xs opacity-50 uppercase tracking-widest mb-1">🏢 Property</p>
             <p className="text-2xl font-black leading-tight">{session.pgName}</p>
             <p className="text-sm opacity-60 mt-0.5">Room / {session.roomNo}</p>
           </div>
-          <div className="h-px bg-white/10 mb-4" />
+          <div className="h-px bg-white dark:bg-zinc-900/10 mb-4" />
           <div className="flex justify-between items-end">
             <div>
               <p className="text-xs opacity-50 uppercase tracking-widest mb-1">Paying To</p>
@@ -360,7 +360,7 @@ export default function UpiPayPage() {
         </div>
 
         {/* Countdown Timer */}
-        <div className="bg-white rounded-2xl border p-4 mb-4 shadow-sm flex items-center gap-4">
+        <div className="bg-white dark:bg-zinc-900 rounded-2xl border p-4 mb-4 shadow-sm dark:shadow-slate-900/50 flex items-center gap-4">
           <div className="relative w-14 h-14 shrink-0">
             <svg viewBox="0 0 36 36" className="w-14 h-14 -rotate-90">
               <circle cx="18" cy="18" r="15.9" fill="none" stroke="#e2e8f0" strokeWidth="3.5" />
@@ -385,15 +385,15 @@ export default function UpiPayPage() {
         </div>
 
         {/* QR Code */}
-        <div className="bg-white rounded-2xl border shadow-sm p-6 mb-4 text-center">
-          <p className="text-sm font-semibold text-slate-600 mb-4">
+        <div className="bg-white dark:bg-zinc-900 rounded-2xl border shadow-sm dark:shadow-slate-900/50 p-6 mb-4 text-center">
+          <p className="text-sm font-semibold text-slate-600 dark:text-slate-400 mb-4">
             📱 Scan with GPay · PhonePe · Paytm · Any UPI App
           </p>
-          <div className="inline-block p-4 bg-white border-2 border-slate-200 rounded-2xl shadow-inner">
+          <div className="inline-block p-4 bg-white dark:bg-zinc-900 border-2 border-slate-200 dark:border-zinc-700 rounded-2xl shadow-inner">
             <QRCodeSVG value={upiLink} size={200} level="H" bgColor="#ffffff" fgColor="#0f172a" />
           </div>
           <div className="mt-5 flex items-center justify-center gap-2">
-            <span className="font-mono text-sm bg-slate-100 text-slate-800 px-3 py-1.5 rounded-lg">{session.ownerUpiId}</span>
+            <span className="font-mono text-sm bg-slate-100 dark:bg-zinc-800 text-slate-800 dark:text-slate-200 px-3 py-1.5 rounded-lg">{session.ownerUpiId}</span>
             <button
               onClick={copyUpi}
               className="flex items-center gap-1.5 text-xs bg-primary text-primary-foreground px-3 py-1.5 rounded-lg font-semibold hover:opacity-90 transition-opacity"
@@ -408,7 +408,7 @@ export default function UpiPayPage() {
         </div>
 
         {/* Confirm Form */}
-        <div className="bg-white rounded-2xl border shadow-sm p-6">
+        <div className="bg-white dark:bg-zinc-900 rounded-2xl border shadow-sm dark:shadow-slate-900/50 p-6">
           <h3 className="font-bold text-base mb-1">✅ Paid? Enter your UTR to confirm</h3>
           <p className="text-xs text-muted-foreground mb-4">
             Find the <strong>UTR / Transaction ID</strong> in your UPI app&apos;s transaction history and enter it below.

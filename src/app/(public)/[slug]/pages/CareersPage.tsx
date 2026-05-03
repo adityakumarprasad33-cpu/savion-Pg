@@ -15,7 +15,7 @@ export function CareersPage() {
         </div>
       </Section>
 
-      <Section className="bg-slate-50">
+      <Section className="bg-slate-50 dark:bg-zinc-800/50">
         <SectionTitle>Open Positions</SectionTitle>
         <div className="space-y-4">
           <JobCard title="Full-Stack Engineer" location="Remote (India)" type="Full-time" desc="Build and scale our Next.js + Firebase platform. You'll own features end-to-end — from database schema to pixel-perfect UI. Strong TypeScript and React skills required." />

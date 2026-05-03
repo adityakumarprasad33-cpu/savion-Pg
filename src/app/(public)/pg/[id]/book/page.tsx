@@ -242,14 +242,14 @@ export default function BookingWizard() {
 
   if (loading || !pg) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="min-h-screen flex items-center justify-center bg-white dark:bg-zinc-900">
         <SpeedLoader text="Preparing Booking Engine" subtext="Securing connection..." />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background py-10 animate-fade-in">
+    <div className="min-h-screen bg-slate-50 dark:bg-zinc-800/50 py-10 animate-fade-in">
       <div className="container max-w-2xl mx-auto px-4">
         {/* Header */}
         <div className="mb-8 animate-fade-in-down">
@@ -268,7 +268,7 @@ export default function BookingWizard() {
               <div key={s.id} className="flex items-center flex-1 last:flex-none">
                 <div className={`flex flex-col items-center gap-1 transition-all ${isActive ? "scale-105" : ""}`}>
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all font-bold text-sm
-                    ${isDone ? "bg-green-500 text-white" : isActive ? "bg-primary text-white shadow-lg shadow-primary/30" : "bg-slate-200 text-slate-500"}`}>
+                    ${isDone ? "bg-green-500 text-white" : isActive ? "bg-primary text-white shadow-lg dark:shadow-zinc-900/50 shadow-primary/30" : "bg-slate-200 text-slate-500 dark:text-slate-400"}`}>
                     {isDone ? <CheckCircle2 className="w-5 h-5" /> : <Icon className="w-4 h-4" />}
                   </div>
                   <span className={`text-xs font-semibold ${isActive ? "text-primary" : "text-slate-400"}`}>{s.label}</span>
@@ -282,14 +282,14 @@ export default function BookingWizard() {
         </div>
 
         {/* Card */}
-        <div className="bg-card rounded-3xl border shadow-sm p-6 md:p-8 animate-scale-in">
+        <div className="bg-white dark:bg-zinc-900 rounded-3xl border shadow-sm dark:shadow-slate-900/50 p-6 md:p-8 animate-scale-in">
 
           {/* Step 1 — Details */}
           {step === 1 && (
             <div className="space-y-5">
               <h2 className="text-xl font-bold">Room & Move-In Details</h2>
               <div>
-                <label className="text-sm font-semibold text-slate-700 block mb-2">Select Room</label>
+                <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 block mb-2">Select Room</label>
                 {(pg.rooms && pg.rooms.length > 0) ? (
                   <select
                     value={selectedRoomId}
@@ -303,13 +303,13 @@ export default function BookingWizard() {
                     ))}
                   </select>
                 ) : (
-                  <select disabled className="w-full border rounded-xl px-4 py-3 text-sm bg-slate-50 cursor-not-allowed">
+                  <select disabled className="w-full border rounded-xl px-4 py-3 text-sm bg-slate-50 dark:bg-zinc-800/50 cursor-not-allowed">
                     <option>No specific rooms added by owner</option>
                   </select>
                 )}
               </div>
               <div>
-                <label className="text-sm font-semibold text-slate-700 block mb-2">Preferred Move-In Date</label>
+                <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 block mb-2">Preferred Move-In Date</label>
                 <Input
                   type="date"
                   value={moveInDate}
@@ -320,12 +320,12 @@ export default function BookingWizard() {
               </div>
 
               <div>
-                <label className="text-sm font-semibold text-slate-700 block mb-3">Select Booking Method</label>
+                <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 block mb-3">Select Booking Method</label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div 
                     onClick={() => setPaymentChoice("payNow")}
                     className={`cursor-pointer p-4 rounded-2xl border-2 transition-all flex flex-col gap-1
-                    ${paymentChoice === "payNow" ? "border-primary bg-primary/5 shadow-md" : "border-slate-200 hover:border-slate-300"}`}
+                    ${paymentChoice === "payNow" ? "border-primary bg-primary/5 shadow-md" : "border-slate-200 dark:border-zinc-700 hover:border-slate-300 dark:border-zinc-600"}`}
                   >
                     <div className="flex justify-between items-center">
                       <span className="font-bold text-sm">Pay Now</span>
@@ -337,7 +337,7 @@ export default function BookingWizard() {
                   <div 
                     onClick={() => setPaymentChoice("payLater")}
                     className={`cursor-pointer p-4 rounded-2xl border-2 transition-all flex flex-col gap-1
-                    ${paymentChoice === "payLater" ? "border-primary bg-primary/5 shadow-md" : "border-slate-200 hover:border-slate-300"}`}
+                    ${paymentChoice === "payLater" ? "border-primary bg-primary/5 shadow-md" : "border-slate-200 dark:border-zinc-700 hover:border-slate-300 dark:border-zinc-600"}`}
                   >
                     <div className="flex justify-between items-center">
                       <span className="font-bold text-sm">Pay Later</span>
@@ -375,14 +375,14 @@ export default function BookingWizard() {
             <div className="space-y-5">
               {isVerified ? (
                 <div className="text-center py-10 animate-fade-in">
-                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm shadow-green-100">
+                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm dark:shadow-slate-900/50 shadow-green-100">
                     <CheckCircle2 className="w-8 h-8 text-green-600" />
                   </div>
-                  <h2 className="text-xl font-extrabold mb-2 text-slate-900">Identity Verified</h2>
-                  <p className="text-slate-500 mb-8 max-w-sm mx-auto text-sm">
+                  <h2 className="text-xl font-extrabold mb-2 text-slate-900 dark:text-slate-100">Identity Verified</h2>
+                  <p className="text-slate-500 dark:text-slate-400 mb-8 max-w-sm mx-auto text-sm">
                     You have already completed your identity verification. Your documents are securely attached to this booking.
                   </p>
-                  <Button onClick={next} className="px-8 font-bold bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-200">
+                  <Button onClick={next} className="px-8 font-bold bg-green-600 hover:bg-green-700 text-white shadow-lg dark:shadow-zinc-900/50 shadow-green-200">
                     Continue to Signature <ChevronRight className="w-4 h-4 ml-1" />
                   </Button>
                 </div>
@@ -413,11 +413,11 @@ export default function BookingWizard() {
 
               {/* Extra doc */}
               <div>
-                <label className="text-sm font-semibold text-slate-700 block mb-2">
+                <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 block mb-2">
                   Additional Document <span className="text-slate-400 font-normal">(Optional — College ID, PAN, Passport)</span>
                 </label>
                 <label className={`flex flex-col items-center justify-center h-24 border-2 border-dashed rounded-xl cursor-pointer transition-all
-                  ${extraFile ? "border-green-400 bg-green-50" : "border-slate-300 hover:border-primary/50 hover:bg-slate-50"}`}>
+                  ${extraFile ? "border-green-400 bg-green-50" : "border-slate-300 dark:border-zinc-600 hover:border-primary/50 hover:bg-slate-50 dark:bg-zinc-800/50"}`}>
                   <span className="text-xl mb-1">{extraFile ? "✅" : "📄"}</span>
                   <span className="text-sm font-medium">
                     {extraFile ? extraFile.name : "Upload additional document"}
@@ -455,8 +455,8 @@ export default function BookingWizard() {
               )}
 
               {/* Terms summary */}
-              <div className="bg-slate-50 border rounded-xl p-4 text-xs text-slate-600 space-y-1.5 max-h-40 overflow-y-auto">
-                <p className="font-semibold text-slate-800 mb-2">Key Terms:</p>
+              <div className="bg-slate-50 dark:bg-zinc-800/50 border rounded-xl p-4 text-xs text-slate-600 dark:text-slate-400 space-y-1.5 max-h-40 overflow-y-auto">
+                <p className="font-semibold text-slate-800 dark:text-slate-200 mb-2">Key Terms:</p>
                 <p>• Rent due by 5th of each month.</p>
                 <p>• Security deposit refundable within 30 days of vacancy.</p>
                 <p>• 3-month lock-in period. Early exit = 1 month rent penalty.</p>
@@ -482,11 +482,11 @@ export default function BookingWizard() {
                     : "Your documents and inquiry have been shared with the owner. We'll notify you once approved."}
                 </p>
               </div>
-              <div className="bg-slate-50 border rounded-2xl p-5 text-sm text-left space-y-2">
-                <div className="flex justify-between"><span className="text-slate-500">Property</span><strong>{pg.name}</strong></div>
-                <div className="flex justify-between"><span className="text-slate-500">Room</span><strong>{roomNo} ({roomType})</strong></div>
+              <div className="bg-slate-50 dark:bg-zinc-800/50 border rounded-2xl p-5 text-sm text-left space-y-2">
+                <div className="flex justify-between"><span className="text-slate-500 dark:text-slate-400">Property</span><strong>{pg.name}</strong></div>
+                <div className="flex justify-between"><span className="text-slate-500 dark:text-slate-400">Room</span><strong>{roomNo} ({roomType})</strong></div>
                 <div className="flex justify-between">
-                  <span className="text-slate-500">Final Monthly Rent</span>
+                  <span className="text-slate-500 dark:text-slate-400">Final Monthly Rent</span>
                   <div className="text-right">
                     <strong className={paymentChoice === "payNow" ? "text-green-600" : ""}>₹{finalAmount.toLocaleString("en-IN")}</strong>
                     {paymentChoice === "payNow" && <div className="text-[10px] text-green-600 font-bold">(5% Discount Applied)</div>}
@@ -496,7 +496,7 @@ export default function BookingWizard() {
               <div className="flex flex-col gap-3">
                 {paymentChoice === "payNow" ? (
                   <Button
-                    className="w-full font-bold h-12 bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/20"
+                    className="w-full font-bold h-12 bg-primary hover:bg-primary/90 text-white shadow-lg dark:shadow-zinc-900/50 shadow-primary/20"
                     onClick={() => router.push(`/pay?session=${paymentSessionId}`)}
                   >
                     Proceed to Payment →
@@ -511,7 +511,7 @@ export default function BookingWizard() {
                 )}
                 <Button
                   variant="outline"
-                  className="w-full border-slate-200"
+                  className="w-full border-slate-200 dark:border-zinc-700"
                   onClick={() => router.push(`/contract/${contractId}`)}
                 >
                   View Digital Contract

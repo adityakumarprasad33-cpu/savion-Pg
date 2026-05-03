@@ -263,11 +263,11 @@ export default function ManagePGPage() {
   return (
     <div className="min-h-screen bg-[#f8fafc] selection:bg-primary/10 selection:text-primary">
       {/* Premium Glass Header */}
-      <header className="bg-slate-950/90 backdrop-blur-3xl text-white py-6 px-6 md:px-12 shadow-2xl sticky top-0 z-50 border-b border-white/5">
+      <header className="bg-slate-950/90 backdrop-blur-3xl text-white py-6 px-6 md:px-12 shadow-2xl dark:shadow-zinc-900/60 sticky top-0 z-50 border-b border-white/5">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-5">
             <Link href="/dashboard/owner">
-              <button className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 hover:scale-110 transition-all duration-300">
+              <button className="w-12 h-12 rounded-2xl bg-white dark:bg-zinc-900/5 border border-white/10 flex items-center justify-center hover:bg-white dark:bg-zinc-900/10 hover:scale-110 transition-all duration-300">
                 <ChevronLeft className="w-6 h-6 text-white" />
               </button>
             </Link>
@@ -277,7 +277,7 @@ export default function ManagePGPage() {
                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 flex items-center gap-2">
                   <MapPin className="w-3.5 h-3.5 text-primary" /> {pg.city} · {pg.location.split(',')[0]}
                 </p>
-                <div className="flex items-center gap-2 px-2 py-1 rounded-full bg-white/5 border border-white/10">
+                <div className="flex items-center gap-2 px-2 py-1 rounded-full bg-white dark:bg-zinc-900/5 border border-white/10">
                    <div className={`w-1.5 h-1.5 rounded-full ${isLive ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
                    <span className="text-[8px] font-black text-white/60 uppercase tracking-widest">{isLive ? 'Live Feed' : 'Syncing'}</span>
                 </div>
@@ -285,7 +285,7 @@ export default function ManagePGPage() {
             </div>
           </div>
           <Link href={`/pg/${pg.id}`} target="_blank">
-            <Button variant="outline" className="h-12 border-white/10 bg-white/5 hover:bg-white/10 text-white rounded-2xl text-xs font-black gap-2 px-6 transition-all active:scale-95">
+            <Button variant="outline" className="h-12 border-white/10 bg-white dark:bg-zinc-900/5 hover:bg-white dark:bg-zinc-900/10 text-white rounded-2xl text-xs font-black gap-2 px-6 transition-all active:scale-95">
               Preview Terminal <ArrowUpRight className="w-4 h-4" />
             </Button>
           </Link>
@@ -296,33 +296,33 @@ export default function ManagePGPage() {
         {/* Visual Stats Row */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 mb-16 stagger">
           {[
-            { label: "Total Units", value: pg.totalRooms || pg.rooms?.length || 0, icon: LayoutDashboard, color: "text-slate-900", bg: "bg-slate-50" },
+            { label: "Total Units", value: pg.totalRooms || pg.rooms?.length || 0, icon: LayoutDashboard, color: "text-slate-900 dark:text-slate-100", bg: "bg-slate-50 dark:bg-zinc-800/50" },
             { label: "Available Now", value: pg.availableRooms ?? 0, icon: ClipboardCheck, color: "text-emerald-600", bg: "bg-emerald-50" },
             { label: "Resident Count", value: confirmedBookings.length, icon: Users, color: "text-primary", bg: "bg-primary/5" },
             { label: "Action Needed", value: pendingBookings.length, icon: AlertTriangle, color: "text-rose-600", bg: "bg-rose-50" },
           ].map((s, i) => (
-            <div key={s.label} className="bg-white/70 backdrop-blur-xl rounded-[2.5rem] border border-white p-8 shadow-sm flex items-center gap-6 group hover:shadow-2xl hover:shadow-slate-200/50 transition-all duration-500 animate-fade-in-up">
+            <div key={s.label} className="bg-white dark:bg-zinc-900/70 backdrop-blur-xl rounded-[2.5rem] border border-white p-8 shadow-sm dark:shadow-slate-900/50 flex items-center gap-6 group hover:shadow-2xl dark:shadow-zinc-900/60 hover:shadow-slate-200/50 transition-all duration-500 animate-fade-in-up">
               <div className={`w-14 h-14 rounded-[1.25rem] ${s.bg} flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform duration-500`}>
                 <s.icon className={`w-7 h-7 ${s.color}`} />
               </div>
               <div>
                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-1">{s.label}</p>
-                <p className="text-3xl font-black text-slate-900 tracking-tighter">{s.value}</p>
+                <p className="text-3xl font-black text-slate-900 dark:text-slate-100 tracking-tighter">{s.value}</p>
               </div>
             </div>
           ))}
         </div>
 
         {/* Modern Segmented Tabs */}
-        <div className="flex gap-2 bg-white/40 border border-white p-2 rounded-[1.75rem] mb-12 overflow-x-auto scroller backdrop-blur-2xl shadow-xl shadow-slate-200/20">
+        <div className="flex gap-2 bg-white dark:bg-zinc-900/40 border border-white p-2 rounded-[1.75rem] mb-12 overflow-x-auto scroller backdrop-blur-2xl shadow-xl dark:shadow-zinc-900/50 shadow-slate-200/20">
           {(["overview", "rooms", "tenants", "complaints", "payments"] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={`whitespace-nowrap px-8 py-3.5 rounded-2xl text-[11px] font-black transition-all shrink-0 uppercase tracking-[0.2em]
                  ${activeTab === tab 
-                    ? "bg-slate-900 text-white shadow-2xl shadow-slate-900/20 scale-105" 
-                    : "text-slate-500 hover:text-slate-900 hover:bg-white/60"}`}
+                    ? "bg-slate-900 text-white shadow-2xl dark:shadow-zinc-900/60 shadow-slate-900/20 scale-105" 
+                    : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-slate-100 hover:bg-white dark:bg-zinc-900/60"}`}
             >
               {tab}
             </button>
@@ -334,9 +334,9 @@ export default function ManagePGPage() {
           {activeTab === "overview" && (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               <div className="lg:col-span-2 space-y-6">
-                <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-10">
+                <div className="bg-white dark:bg-zinc-900 rounded-[2.5rem] border border-slate-100 shadow-sm dark:shadow-slate-900/50 p-10">
                   <div className="flex justify-between items-center mb-8">
-                    <h3 className="font-black text-2xl text-slate-900 tracking-tight">Property Profile</h3>
+                    <h3 className="font-black text-2xl text-slate-900 dark:text-slate-100 tracking-tight">Property Profile</h3>
                     <Button onClick={handleSave} disabled={saving} className={`h-11 rounded-xl font-black gap-2 px-6 ${saved ? "bg-emerald-600 hover:bg-emerald-700" : "bg-primary hover:bg-primary/90"}`}>
                       {saved ? <><Check className="w-4 h-4" /> Updated</> : saving ? "Saving..." : "Save Changes"}
                     </Button>
@@ -345,11 +345,11 @@ export default function ManagePGPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-2">
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Building Name</label>
-                        <Input value={editName} onChange={(e) => setEditName(e.target.value)} className="h-14 bg-slate-50 border-transparent rounded-2xl font-bold text-slate-900 focus:bg-white focus:ring-primary" />
+                        <Input value={editName} onChange={(e) => setEditName(e.target.value)} className="h-14 bg-slate-50 dark:bg-zinc-800/50 border-transparent rounded-2xl font-bold text-slate-900 dark:text-slate-100 focus:bg-white dark:bg-zinc-900 focus:ring-primary" />
                       </div>
                       <div className="space-y-2">
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Location Details</label>
-                        <Input value={editLocation} onChange={(e) => setEditLocation(e.target.value)} className="h-14 bg-slate-50 border-transparent rounded-2xl font-bold text-slate-900 focus:bg-white focus:ring-primary" />
+                        <Input value={editLocation} onChange={(e) => setEditLocation(e.target.value)} className="h-14 bg-slate-50 dark:bg-zinc-800/50 border-transparent rounded-2xl font-bold text-slate-900 dark:text-slate-100 focus:bg-white dark:bg-zinc-900 focus:ring-primary" />
                       </div>
                     </div>
                     <div className="space-y-2">
@@ -358,14 +358,14 @@ export default function ManagePGPage() {
                         value={editDesc}
                         onChange={(e) => setEditDesc(e.target.value)}
                         rows={4}
-                        className="w-full border-transparent bg-slate-50 rounded-[1.5rem] p-5 text-sm font-medium resize-none focus:outline-none focus:ring-2 focus:ring-primary/30 focus:bg-white transition-all"
+                        className="w-full border-transparent bg-slate-50 dark:bg-zinc-800/50 rounded-[1.5rem] p-5 text-sm font-medium resize-none focus:outline-none focus:ring-2 focus:ring-primary/30 focus:bg-white dark:bg-zinc-900 transition-all"
                       />
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-10">
-                  <h3 className="font-black text-2xl text-slate-900 tracking-tight mb-8">Amenities</h3>
+                <div className="bg-white dark:bg-zinc-900 rounded-[2.5rem] border border-slate-100 shadow-sm dark:shadow-slate-900/50 p-10">
+                  <h3 className="font-black text-2xl text-slate-900 dark:text-slate-100 tracking-tight mb-8">Amenities</h3>
                   <div className="flex flex-wrap gap-3">
                     {pg.facilities?.map((f) => (
                       <span key={f} className="bg-primary/5 text-primary px-5 py-2.5 rounded-2xl text-sm font-black border border-primary/10">{f}</span>
@@ -375,7 +375,7 @@ export default function ManagePGPage() {
               </div>
 
               <div className="lg:col-span-1">
-                 <div className="bg-slate-900 rounded-[2.5rem] shadow-xl overflow-hidden sticky top-32">
+                 <div className="bg-slate-900 rounded-[2.5rem] shadow-xl dark:shadow-zinc-900/50 overflow-hidden sticky top-32">
                     <div className="p-8 border-b border-white/5">
                        <h4 className="text-white font-black text-lg flex items-center gap-2"><MapPin className="w-5 h-5 text-primary" /> Geo-Location</h4>
                     </div>
@@ -390,33 +390,33 @@ export default function ManagePGPage() {
           {activeTab === "rooms" && (
             <div className="space-y-6">
               <div className="flex justify-between items-center px-4">
-                <h3 className="font-black text-2xl text-slate-900 tracking-tight">Inventory Management</h3>
-                <Button onClick={() => setShowAddRoom(!showAddRoom)} className={`h-11 rounded-xl font-black gap-2 ${showAddRoom ? "bg-slate-100 text-slate-900" : "bg-primary text-white"}`}>
+                <h3 className="font-black text-2xl text-slate-900 dark:text-slate-100 tracking-tight">Inventory Management</h3>
+                <Button onClick={() => setShowAddRoom(!showAddRoom)} className={`h-11 rounded-xl font-black gap-2 ${showAddRoom ? "bg-slate-100 dark:bg-zinc-800 text-slate-900 dark:text-slate-100" : "bg-primary text-white"}`}>
                   {showAddRoom ? "Close Form" : "Create New Room"}
                 </Button>
               </div>
 
               {showAddRoom && (
-                <div className="bg-white border-2 border-primary/20 rounded-[2.5rem] p-10 animate-scale-in space-y-8 shadow-2xl shadow-primary/5">
+                <div className="bg-white dark:bg-zinc-900 border-2 border-primary/20 rounded-[2.5rem] p-10 animate-scale-in space-y-8 shadow-2xl dark:shadow-zinc-900/60 shadow-primary/5">
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                     <div className="space-y-2">
                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Room ID / No.</label>
-                      <Input placeholder="e.g. 101" value={newRoomNumber} onChange={(e) => { setNewRoomNumber(e.target.value); setRoomNumberError(""); }} className={`h-14 rounded-2xl font-black ${roomNumberError ? "border-rose-400 bg-rose-50" : "bg-slate-50 border-transparent"}`} />
+                      <Input placeholder="e.g. 101" value={newRoomNumber} onChange={(e) => { setNewRoomNumber(e.target.value); setRoomNumberError(""); }} className={`h-14 rounded-2xl font-black ${roomNumberError ? "border-rose-400 bg-rose-50" : "bg-slate-50 dark:bg-zinc-800/50 border-transparent"}`} />
                     </div>
                     <div className="space-y-2">
                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Type</label>
-                      <select value={newRoomType} onChange={(e) => setNewRoomType(e.target.value as any)} className="w-full bg-slate-50 border-transparent rounded-2xl h-14 px-5 text-sm font-black focus:ring-2 focus:ring-primary/50">
+                      <select value={newRoomType} onChange={(e) => setNewRoomType(e.target.value as any)} className="w-full bg-slate-50 dark:bg-zinc-800/50 border-transparent rounded-2xl h-14 px-5 text-sm font-black focus:ring-2 focus:ring-primary/50">
                         {["Single", "Double", "Triple", "Studio", "Dormitory"].map(t => <option key={t} value={t}>{t} Room</option>)}
                       </select>
                     </div>
                     <div className="space-y-2">
                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Monthly Rent</label>
-                      <Input type="number" placeholder="₹ Amount" value={newRoomRent} onChange={(e) => setNewRoomRent(e.target.value)} className="h-14 rounded-2xl font-black bg-slate-50 border-transparent" />
+                      <Input type="number" placeholder="₹ Amount" value={newRoomRent} onChange={(e) => setNewRoomRent(e.target.value)} className="h-14 rounded-2xl font-black bg-slate-50 dark:bg-zinc-800/50 border-transparent" />
                     </div>
                   </div>
                   <div className="flex justify-end gap-3">
                     <Button variant="ghost" onClick={() => setShowAddRoom(false)} className="rounded-xl font-bold h-12 px-8">Discard</Button>
-                    <Button onClick={handleAddRoom} disabled={isAddingRoom} className="bg-primary text-white font-black rounded-xl h-12 px-10 shadow-lg shadow-primary/20">
+                    <Button onClick={handleAddRoom} disabled={isAddingRoom} className="bg-primary text-white font-black rounded-xl h-12 px-10 shadow-lg dark:shadow-zinc-900/50 shadow-primary/20">
                       {isAddingRoom ? "Syncing..." : "Confirm & Add"}
                     </Button>
                   </div>
@@ -425,10 +425,10 @@ export default function ManagePGPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {pg.rooms?.map((room) => (
-                  <div key={room.id} className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-8 flex flex-col justify-between hover:shadow-xl transition-all group">
+                  <div key={room.id} className="bg-white dark:bg-zinc-900 rounded-[2rem] border border-slate-100 shadow-sm dark:shadow-slate-900/50 p-8 flex flex-col justify-between hover:shadow-xl dark:shadow-zinc-900/50 transition-all group">
                     <div className="flex justify-between items-start mb-6">
                       <div>
-                        <h4 className="font-black text-xl text-slate-900 group-hover:text-primary transition-colors">{room.type} Suite</h4>
+                        <h4 className="font-black text-xl text-slate-900 dark:text-slate-100 group-hover:text-primary transition-colors">{room.type} Suite</h4>
                         <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mt-1">Room {room.roomNumber} · Max {room.capacity} Pax</p>
                       </div>
                       <span className={`text-[10px] font-black px-4 py-2 rounded-xl border tracking-widest
@@ -438,9 +438,9 @@ export default function ManagePGPage() {
                     </div>
                     <div className="flex items-center justify-between border-t border-slate-50 pt-6">
                       <div className="flex items-center gap-3">
-                        <button onClick={() => updateRoomAvail(room.id, Math.max(0, room.available - 1))} className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center font-black hover:bg-primary/10 hover:text-primary transition-all">−</button>
+                        <button onClick={() => updateRoomAvail(room.id, Math.max(0, room.available - 1))} className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-zinc-800/50 flex items-center justify-center font-black hover:bg-primary/10 hover:text-primary transition-all">−</button>
                         <span className="w-6 text-center font-black text-lg">{room.available}</span>
-                        <button onClick={() => updateRoomAvail(room.id, Math.min(room.capacity, room.available + 1))} className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center font-black hover:bg-primary/10 hover:text-primary transition-all">+</button>
+                        <button onClick={() => updateRoomAvail(room.id, Math.min(room.capacity, room.available + 1))} className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-zinc-800/50 flex items-center justify-center font-black hover:bg-primary/10 hover:text-primary transition-all">+</button>
                       </div>
                       <p className="text-2xl font-black text-primary tracking-tight">₹{room.monthlyRent.toLocaleString()}</p>
                     </div>
@@ -452,21 +452,21 @@ export default function ManagePGPage() {
 
           {activeTab === "tenants" && (
             <div className="space-y-6">
-              <h3 className="font-black text-2xl text-slate-900 tracking-tight px-4">Resident List</h3>
+              <h3 className="font-black text-2xl text-slate-900 dark:text-slate-100 tracking-tight px-4">Resident List</h3>
               {bookings.length === 0 ? (
-                 <div className="bg-white rounded-[2.5rem] border p-20 text-center text-slate-400 font-bold italic shadow-sm">No residents found for this building.</div>
+                 <div className="bg-white dark:bg-zinc-900 rounded-[2.5rem] border p-20 text-center text-slate-400 font-bold italic shadow-sm dark:shadow-slate-900/50">No residents found for this building.</div>
               ) : (
                 <div className="grid grid-cols-1 gap-4">
                   {bookings.map((b) => (
-                    <div key={b.id} className={`bg-white rounded-[2rem] border p-8 shadow-sm flex flex-col md:flex-row justify-between items-center transition-all hover:shadow-xl
+                    <div key={b.id} className={`bg-white dark:bg-zinc-900 rounded-[2rem] border p-8 shadow-sm dark:shadow-slate-900/50 flex flex-col md:flex-row justify-between items-center transition-all hover:shadow-xl dark:shadow-zinc-900/50
                       ${b.status === 'pending' ? 'border-primary/20 bg-primary/[0.02]' : 'border-slate-100'}`}>
                       <div className="flex items-center gap-6 w-full">
-                        <div className="w-16 h-16 bg-slate-100 rounded-3xl flex items-center justify-center shadow-inner shrink-0 group-hover:bg-primary/10 transition-colors duration-500">
+                        <div className="w-16 h-16 bg-slate-100 dark:bg-zinc-800 rounded-3xl flex items-center justify-center shadow-inner shrink-0 group-hover:bg-primary/10 transition-colors duration-500">
                            <UserCircle className="w-8 h-8 text-slate-300 group-hover:text-primary transition-colors" />
                         </div>
                           <div>
                             <div className="flex items-center gap-3 mb-1">
-                              <p className="font-black text-lg text-slate-900 uppercase tracking-tight">
+                              <p className="font-black text-lg text-slate-900 dark:text-slate-100 uppercase tracking-tight">
                                 {b.tenantName || tenantNames[b.tenantId] || `${b.roomType} Resident`}
                               </p>
                                <span className={`text-[10px] font-black px-3 py-1.5 rounded-lg border tracking-widest
@@ -478,7 +478,7 @@ export default function ManagePGPage() {
                               </span>
                             </div>
                             <div className="flex items-center gap-4">
-                              <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Joined: {new Date(b.createdAt).toLocaleDateString()} · ID: {b.id.slice(0, 8)}</p>
+                              <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Joined: {new Date(b.createdAt).toLocaleDateString()} · ID: {b.id.slice(0, 8)}</p>
                               {b.status === "notice_approved" && b.moveOutDate && (
                                 <div className="flex items-center gap-2 text-rose-600">
                                    <Clock className="w-3.5 h-3.5" />
@@ -490,14 +490,14 @@ export default function ManagePGPage() {
                       </div>
                       <div className="flex flex-col sm:flex-row items-center gap-3 mt-6 md:mt-0 w-full md:w-auto">
                         {b.status === "pending" && (
-                          <Button onClick={() => handleBookingAction(b.id, b.tenantId, "approved", b.roomType)} className="h-12 px-6 bg-primary text-white font-black rounded-xl shadow-lg shadow-primary/20 flex-1">Approve Inquiry</Button>
+                          <Button onClick={() => handleBookingAction(b.id, b.tenantId, "approved", b.roomType)} className="h-12 px-6 bg-primary text-white font-black rounded-xl shadow-lg dark:shadow-zinc-900/50 shadow-primary/20 flex-1">Approve Inquiry</Button>
                         )}
                         
                         {b.status === "notice_given" && (
                           <div className="flex gap-2 w-full sm:w-auto">
                             <Button 
                               onClick={() => handleNoticeAction(b.id, b.tenantId, "approve")}
-                              className="h-12 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl shadow-lg shadow-emerald-900/10 flex-1 text-xs"
+                              className="h-12 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl shadow-lg dark:shadow-zinc-900/50 shadow-emerald-900/10 flex-1 text-xs"
                             >
                               Approve Checkout
                             </Button>
@@ -513,7 +513,7 @@ export default function ManagePGPage() {
 
                         {b.contractId && (
                           <Link href={`/contract/${b.contractId}`} className="flex-1 w-full sm:w-auto">
-                            <Button variant="outline" className="h-12 w-full rounded-xl font-black border-slate-200">Contract File</Button>
+                            <Button variant="outline" className="h-12 w-full rounded-xl font-black border-slate-200 dark:border-zinc-700">Contract File</Button>
                           </Link>
                         )}
                       </div>
@@ -526,13 +526,13 @@ export default function ManagePGPage() {
 
           {activeTab === "complaints" && (
             <div className="space-y-6">
-              <h3 className="font-black text-2xl text-slate-900 tracking-tight px-4">Support Tickets</h3>
+              <h3 className="font-black text-2xl text-slate-900 dark:text-slate-100 tracking-tight px-4">Support Tickets</h3>
               {complaints.length === 0 ? (
-                <div className="bg-white rounded-[2.5rem] border p-20 text-center text-slate-400 font-bold italic shadow-sm">No active complaints. Everything is perfect!</div>
+                <div className="bg-white dark:bg-zinc-900 rounded-[2.5rem] border p-20 text-center text-slate-400 font-bold italic shadow-sm dark:shadow-slate-900/50">No active complaints. Everything is perfect!</div>
               ) : (
                 <div className="grid grid-cols-1 gap-6">
                   {complaints.map((c) => (
-                    <div key={c.id} className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-10 flex flex-col lg:flex-row gap-10 hover:shadow-xl transition-all group">
+                    <div key={c.id} className="bg-white dark:bg-zinc-900 rounded-[2.5rem] border border-slate-100 shadow-sm dark:shadow-slate-900/50 p-10 flex flex-col lg:flex-row gap-10 hover:shadow-xl dark:shadow-zinc-900/50 transition-all group">
                       <div className="flex-1">
                          <div className="flex items-center gap-4 mb-6">
                             <span className={`text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-xl border
@@ -541,17 +541,17 @@ export default function ManagePGPage() {
                             </span>
                             <h4 className="font-black text-primary uppercase tracking-widest text-xs">{c.category} Issue</h4>
                          </div>
-                         <p className="text-xl font-bold text-slate-900 mb-6 leading-snug">{c.description}</p>
-                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-5 bg-slate-50 rounded-2xl">
-                            <div><p className="text-[10px] font-black text-slate-400 uppercase mb-1">Resident</p><p className="text-xs font-black text-slate-900 truncate">{c.tenantName || 'Resident'}</p></div>
-                            <div><p className="text-[10px] font-black text-slate-400 uppercase mb-1">Room</p><p className="text-xs font-black text-slate-900">{c.roomNo}</p></div>
-                            <div><p className="text-[10px] font-black text-slate-400 uppercase mb-1">Reported</p><p className="text-xs font-black text-slate-900">{new Date(c.createdAt).toLocaleDateString()}</p></div>
+                         <p className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-6 leading-snug">{c.description}</p>
+                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-5 bg-slate-50 dark:bg-zinc-800/50 rounded-2xl">
+                            <div><p className="text-[10px] font-black text-slate-400 uppercase mb-1">Resident</p><p className="text-xs font-black text-slate-900 dark:text-slate-100 truncate">{c.tenantName || 'Resident'}</p></div>
+                            <div><p className="text-[10px] font-black text-slate-400 uppercase mb-1">Room</p><p className="text-xs font-black text-slate-900 dark:text-slate-100">{c.roomNo}</p></div>
+                            <div><p className="text-[10px] font-black text-slate-400 uppercase mb-1">Reported</p><p className="text-xs font-black text-slate-900 dark:text-slate-100">{new Date(c.createdAt).toLocaleDateString()}</p></div>
                             <div><p className="text-[10px] font-black text-slate-400 uppercase mb-1">Priority</p><p className="text-xs font-black text-rose-600">HIGH</p></div>
                          </div>
                       </div>
                       <div className="lg:w-48 space-y-4">
                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block ml-1">Quick Action</label>
-                         <select value={c.status} onChange={(e) => handleComplaintAction(c.id, c.tenantId, e.target.value as any, c.category)} className="w-full bg-slate-50 border-transparent rounded-2xl h-14 px-5 text-xs font-black focus:ring-2 focus:ring-primary/50 transition-all">
+                         <select value={c.status} onChange={(e) => handleComplaintAction(c.id, c.tenantId, e.target.value as any, c.category)} className="w-full bg-slate-50 dark:bg-zinc-800/50 border-transparent rounded-2xl h-14 px-5 text-xs font-black focus:ring-2 focus:ring-primary/50 transition-all">
                             <option value="open">Open</option>
                             <option value="in-progress">In Progress</option>
                             <option value="resolved">Resolved</option>
@@ -567,16 +567,16 @@ export default function ManagePGPage() {
           {activeTab === "payments" && (
             <div className="space-y-6">
                <div className="flex justify-between items-center px-4">
-                  <h3 className="font-black text-2xl text-slate-900 tracking-tight">Ledger</h3>
-                  <Button onClick={handleExportCSV} variant="outline" className="rounded-xl font-black gap-2 border-slate-200">Export Ledger <Receipt className="w-4 h-4" /></Button>
+                  <h3 className="font-black text-2xl text-slate-900 dark:text-slate-100 tracking-tight">Ledger</h3>
+                  <Button onClick={handleExportCSV} variant="outline" className="rounded-xl font-black gap-2 border-slate-200 dark:border-zinc-700">Export Ledger <Receipt className="w-4 h-4" /></Button>
                </div>
                {payments.length === 0 ? (
-                  <div className="bg-white rounded-[2.5rem] border p-20 text-center text-slate-400 font-bold italic shadow-sm">No transactions recorded yet.</div>
+                  <div className="bg-white dark:bg-zinc-900 rounded-[2.5rem] border p-20 text-center text-slate-400 font-bold italic shadow-sm dark:shadow-slate-900/50">No transactions recorded yet.</div>
                ) : (
-                  <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
+                  <div className="bg-white dark:bg-zinc-900 rounded-[2.5rem] border border-slate-100 shadow-sm dark:shadow-slate-900/50 overflow-hidden">
                      <table className="w-full text-left border-collapse">
                         <thead>
-                           <tr className="bg-slate-50/50 border-b border-slate-100">
+                           <tr className="bg-slate-50 dark:bg-zinc-800/50/50 border-b border-slate-100">
                               <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Resident</th>
                               <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Period</th>
                               <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Amount</th>
@@ -585,12 +585,12 @@ export default function ManagePGPage() {
                         </thead>
                         <tbody className="divide-y divide-slate-50">
                            {payments.map(p => (
-                              <tr key={p.id} className="hover:bg-slate-50/50 transition-colors">
+                              <tr key={p.id} className="hover:bg-slate-50 dark:bg-zinc-800/50/50 transition-colors">
                                  <td className="p-6">
-                                    <p className="font-black text-slate-900">{p.tenantName}</p>
+                                    <p className="font-black text-slate-900 dark:text-slate-100">{p.tenantName}</p>
                                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Room {p.roomNo}</p>
                                  </td>
-                                 <td className="p-6 font-black text-sm text-slate-600 uppercase">{p.month}</td>
+                                 <td className="p-6 font-black text-sm text-slate-600 dark:text-slate-400 uppercase">{p.month}</td>
                                  <td className="p-6 font-black text-xl text-primary tracking-tight">₹{p.amount.toLocaleString()}</td>
                                  <td className="p-6 text-right">
                                     <span className={`text-[10px] font-black px-3 py-1.5 rounded-lg border tracking-widest

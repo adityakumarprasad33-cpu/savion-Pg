@@ -20,7 +20,7 @@ export function CancellationPage() {
         </Card>
       </Section>
 
-      <Section className="bg-slate-50">
+      <Section className="bg-slate-50 dark:bg-zinc-800/50">
         <SectionTitle>After Move-In (Move-Out Process)</SectionTitle>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <StepCard step="1" title="Give Notice" desc="Click 'Give Move-Out Notice' on your dashboard. A 7-day notice period begins." />
@@ -49,7 +49,7 @@ export function CancellationPage() {
         </div>
       </Section>
 
-      <Section className="bg-slate-50">
+      <Section className="bg-slate-50 dark:bg-zinc-800/50">
         <SectionTitle>Refund Timeline</SectionTitle>
         <Paragraph>All refunds are processed to the original UPI payment method. Expected timelines:</Paragraph>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">

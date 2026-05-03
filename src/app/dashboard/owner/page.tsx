@@ -267,13 +267,13 @@ export default function OwnerDashboard() {
   if (error) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#fcfdfe]">
-        <div className="text-center max-w-md w-full px-6 bg-white/70 backdrop-blur-3xl p-12 rounded-[3.5rem] shadow-2xl shadow-slate-200/40 border border-white/60 animate-scale-in">
+        <div className="text-center max-w-md w-full px-6 bg-white dark:bg-zinc-900/70 backdrop-blur-3xl p-12 rounded-[3.5rem] shadow-2xl dark:shadow-zinc-900/60 shadow-slate-200/40 border border-white/60 animate-scale-in">
           <div className="w-24 h-24 bg-rose-50 rounded-[2.5rem] flex items-center justify-center mx-auto mb-8 shadow-inner">
             <ShieldAlert className="w-12 h-12 text-rose-500 animate-pulse" />
           </div>
-          <h2 className="text-3xl font-black mb-3 text-slate-900 tracking-tight">Access Restricted</h2>
-          <p className="text-slate-500 font-medium mb-10 leading-relaxed">{error}</p>
-          <Button onClick={() => window.location.reload()} variant="outline" className="w-full h-16 rounded-2xl font-black border-slate-200 hover:bg-slate-50 transition-all text-base">Try Again</Button>
+          <h2 className="text-3xl font-black mb-3 text-slate-900 dark:text-slate-100 tracking-tight">Access Restricted</h2>
+          <p className="text-slate-500 dark:text-slate-400 font-medium mb-10 leading-relaxed">{error}</p>
+          <Button onClick={() => window.location.reload()} variant="outline" className="w-full h-16 rounded-2xl font-black border-slate-200 dark:border-zinc-700 hover:bg-slate-50 dark:bg-zinc-800/50 transition-all text-base">Try Again</Button>
         </div>
       </div>
     );
@@ -288,18 +288,18 @@ export default function OwnerDashboard() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-slate-50 selection:bg-primary/10 selection:text-primary relative overflow-hidden">
+    <div className="flex flex-col min-h-screen bg-slate-50 dark:bg-zinc-800/50 selection:bg-primary/10 selection:text-primary relative overflow-hidden">
       {/* Subtle blueprint grid background */}
       <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))] opacity-[0.03] pointer-events-none" />
       
-      <header className="bg-white/80 backdrop-blur-2xl border-b border-slate-200/50 sticky top-0 z-50 py-3 px-6 md:px-8">
+      <header className="bg-white dark:bg-zinc-900/80 backdrop-blur-2xl border-b border-slate-200 dark:border-zinc-700/50 sticky top-0 z-50 py-3 px-6 md:px-8">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 bg-slate-900 rounded-lg flex items-center justify-center shadow-md">
               <LayoutDashboard className="w-4.5 h-4.5 text-white" />
             </div>
             <div>
-              <h1 className="text-base font-black tracking-tight text-slate-900 leading-none">Owner Hub</h1>
+              <h1 className="text-base font-black tracking-tight text-slate-900 dark:text-slate-100 leading-none">Owner Hub</h1>
               <div className="flex items-center gap-1 mt-0.5">
                 <div className={`w-1.5 h-1.5 rounded-full ${isLive ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} /> 
                 <span className="text-[7px] font-bold text-slate-400 uppercase tracking-widest">{isLive ? 'Online' : 'Syncing'}</span>
@@ -312,7 +312,7 @@ export default function OwnerDashboard() {
             <Button 
               variant="ghost" 
               onClick={() => auth.signOut()}
-              className="text-slate-500 hover:text-rose-600 hover:bg-rose-50 font-bold transition-all gap-1.5 hidden md:flex h-9 px-3 rounded-lg text-[10px]"
+              className="text-slate-500 dark:text-slate-400 hover:text-rose-600 hover:bg-rose-50 font-bold transition-all gap-1.5 hidden md:flex h-9 px-3 rounded-lg text-[10px]"
             >
               <LogOut className="w-3 h-3" /> Logout
             </Button>
@@ -329,7 +329,7 @@ export default function OwnerDashboard() {
               <Sparkles className="w-3 h-3 fill-primary" />
               <span className="text-[8px] font-black uppercase tracking-widest">Dashboard Terminal</span>
             </div>
-            <h2 className="text-2xl font-black text-slate-900 tracking-tighter">
+            <h2 className="text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tighter">
               Welcome, {ownerProfile?.name?.split(" ")[0] || "Partner"}
             </h2>
           </div>
@@ -351,18 +351,18 @@ export default function OwnerDashboard() {
             <motion.div 
               variants={itemVariants}
               key={stat.label} 
-              className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:border-slate-300 transition-all group"
+              className="bg-white dark:bg-zinc-900 p-4 rounded-xl border border-slate-200 dark:border-zinc-700 shadow-sm dark:shadow-slate-900/50 hover:border-slate-300 dark:border-zinc-600 transition-all group"
             >
               <div className="flex justify-between items-start mb-3">
                 <div className={`w-9 h-9 ${stat.bg} rounded-lg flex items-center justify-center`}>
                   <stat.icon className={`w-4.5 h-4.5 ${stat.color}`} />
                 </div>
-                <div className="h-1 w-6 bg-slate-100 rounded-full overflow-hidden">
+                <div className="h-1 w-6 bg-slate-100 dark:bg-zinc-800 rounded-full overflow-hidden">
                    <div className={`h-full w-2/3 ${stat.color.replace('text-', 'bg-')} animate-shimmer-bg`} />
                 </div>
               </div>
               <p className="text-[8px] font-bold uppercase tracking-widest text-slate-400 mb-0.5">{stat.label}</p>
-              <h3 className="text-xl font-black text-slate-900 tracking-tight">{stat.value}</h3>
+              <h3 className="text-xl font-black text-slate-900 dark:text-slate-100 tracking-tight">{stat.value}</h3>
             </motion.div>
           ))}
         </motion.div>
@@ -370,11 +370,11 @@ export default function OwnerDashboard() {
         <motion.div variants={containerVariants} className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-6">
           {/* Revenue Chart Section */}
           <motion.div variants={itemVariants} className="lg:col-span-8">
-            <div className="bg-white p-6 md:p-8 rounded-[2rem] border border-slate-200 shadow-sm relative overflow-hidden h-full min-h-[300px]">
+            <div className="bg-white dark:bg-zinc-900 p-6 md:p-8 rounded-[2rem] border border-slate-200 dark:border-zinc-700 shadow-sm dark:shadow-slate-900/50 relative overflow-hidden h-full min-h-[300px]">
               <div className="flex flex-col gap-3">
                 <div className="flex justify-between items-start">
                   <div>
-                    <h3 className="font-black text-xl text-slate-900 tracking-tight flex items-center gap-2">
+                    <h3 className="font-black text-xl text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
                       <TrendingUp className="w-5 h-5 text-primary" /> Revenue Trajectory
                     </h3>
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
@@ -405,7 +405,7 @@ export default function OwnerDashboard() {
                       className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${
                         chartFilter === f.key
                           ? 'bg-primary text-white shadow-md shadow-primary/20'
-                          : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                          : 'bg-slate-100 dark:bg-zinc-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200'
                       }`}
                     >
                       {f.label}
@@ -437,26 +437,36 @@ export default function OwnerDashboard() {
 
           {/* Activity / Pulse Section */}
           <motion.div variants={itemVariants} className="lg:col-span-4">
-            <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm h-full flex flex-col">
+            <div className="bg-white dark:bg-zinc-900 p-6 rounded-[2rem] border border-slate-200 dark:border-zinc-700 shadow-sm dark:shadow-slate-900/50 h-full flex flex-col">
               <div className="flex justify-between items-center mb-6">
-                <h3 className="font-black text-xl text-slate-900 tracking-tight flex items-center gap-2">
+                <h3 className="font-black text-xl text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
                   <Activity className="w-5 h-5 text-indigo-500" /> Platform Pulse
                 </h3>
               </div>
               <div className="flex-1 space-y-5 overflow-y-auto pr-2 max-h-[300px] scrollbar-thin scrollbar-thumb-slate-200">
-                {displayedActivities.length > 0 ? displayedActivities.map((act) => (
-                  <div key={act.id} className="flex items-start gap-3">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${act.bg}`}>
-                      <act.icon className={`w-4 h-4 ${act.color}`} />
+                {displayedActivities.length > 0 ? displayedActivities.map((act) => {
+                  const inner = (
+                    <div className={`flex items-start gap-3 ${act.type === "review" ? "cursor-pointer group" : ""}`}>
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${act.bg} ${act.type === "review" ? "group-hover:scale-110 transition-transform" : ""}`}>
+                        <act.icon className={`w-4 h-4 ${act.color}`} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-sm font-bold text-slate-800 dark:text-slate-200 leading-tight ${act.type === "review" ? "group-hover:text-primary transition-colors" : ""}`}>{act.text}</p>
+                        <p className="text-[10px] font-bold text-slate-400 mt-1 flex items-center gap-1">
+                          <Clock className="w-3 h-3" /> {act.time}
+                        </p>
+                      </div>
+                      {act.type === "review" && (
+                        <ChevronRight className="w-4 h-4 text-slate-300 dark:text-slate-600 group-hover:text-primary group-hover:translate-x-1 transition-all shrink-0 mt-1" />
+                      )}
                     </div>
-                    <div>
-                      <p className="text-sm font-bold text-slate-800 leading-tight">{act.text}</p>
-                      <p className="text-[10px] font-bold text-slate-400 mt-1 flex items-center gap-1">
-                        <Clock className="w-3 h-3" /> {act.time}
-                      </p>
-                    </div>
-                  </div>
-                )) : (
+                  );
+                  return act.type === "review" ? (
+                    <Link key={act.id} href="/dashboard/owner/reviews">{inner}</Link>
+                  ) : (
+                    <div key={act.id}>{inner}</div>
+                  );
+                }) : (
                   <p className="text-slate-400 font-medium text-sm text-center py-10">No recent activity found.</p>
                 )}
               </div>
@@ -464,7 +474,7 @@ export default function OwnerDashboard() {
                 <Button 
                   onClick={() => setShowAllActivity(!showAllActivity)} 
                   variant="ghost" 
-                  className="w-full mt-4 h-10 rounded-xl font-black text-xs text-slate-500 hover:text-slate-900 hover:bg-slate-50 border border-slate-100"
+                  className="w-full mt-4 h-10 rounded-xl font-black text-xs text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-slate-100 hover:bg-slate-50 dark:bg-zinc-800/50 border border-slate-100"
                 >
                   {showAllActivity ? "Collapse Feed" : "View All Activity"}
                 </Button>
@@ -476,12 +486,12 @@ export default function OwnerDashboard() {
         <motion.div variants={containerVariants} className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Compact Revenue Panel */}
           <motion.div variants={itemVariants} className="lg:col-span-4">
-            <div className="bg-slate-900 p-6 rounded-2xl shadow-lg text-white relative overflow-hidden sticky top-24">
+            <div className="bg-slate-900 p-6 rounded-2xl shadow-lg dark:shadow-zinc-900/50 text-white relative overflow-hidden sticky top-24">
               <div className="absolute top-0 right-0 w-32 h-32 bg-primary/20 rounded-full -mr-16 -mt-16 blur-2xl opacity-40" />
               
               <div className="relative z-10 space-y-6">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center border border-white/10">
+                  <div className="w-10 h-10 bg-white dark:bg-zinc-900/10 rounded-lg flex items-center justify-center border border-white/10">
                     <QrCode className="w-5 h-5 text-white" />
                   </div>
                   <div>
@@ -497,7 +507,7 @@ export default function OwnerDashboard() {
                       placeholder="business@upi"
                       value={upiInput}
                       onChange={(e) => setUpiInput(e.target.value)}
-                      className="h-10 bg-white/5 border-white/10 rounded-lg font-bold text-white placeholder:text-white/20 focus:bg-white/10 transition-all text-xs"
+                      className="h-10 bg-white dark:bg-zinc-900/5 border-white/10 rounded-lg font-bold text-white placeholder:text-white/20 focus:bg-white dark:bg-zinc-900/10 transition-all text-xs"
                     />
                   </div>
                   <Button 
@@ -526,19 +536,19 @@ export default function OwnerDashboard() {
           {/* High-Density Portfolio Grid (Bento Style) */}
           <motion.div variants={itemVariants} className="lg:col-span-8 space-y-4">
             <div className="flex justify-between items-center px-1">
-              <h2 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-                <Building2 className="w-5 h-5 text-slate-700" /> Active Portfolio
+              <h2 className="text-xl font-black text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
+                <Building2 className="w-5 h-5 text-slate-700 dark:text-slate-300" /> Active Portfolio
               </h2>
               <span className="text-[9px] font-black text-primary bg-primary/10 px-3 py-1.5 rounded-lg uppercase tracking-widest">{pgs.length} Units</span>
             </div>
 
             {pgs.length === 0 ? (
-              <div className="bg-white rounded-2xl border border-slate-200 border-dashed p-16 text-center animate-scale-in">
-                <div className="w-12 h-12 bg-slate-50 rounded-xl flex items-center justify-center mx-auto mb-4 border border-slate-100">
+              <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-700 border-dashed p-16 text-center animate-scale-in">
+                <div className="w-12 h-12 bg-slate-50 dark:bg-zinc-800/50 rounded-xl flex items-center justify-center mx-auto mb-4 border border-slate-100">
                   <Building2 className="w-6 h-6 text-slate-300" />
                 </div>
-                <h3 className="text-lg font-black text-slate-900 mb-1">No Assets Found</h3>
-                <p className="text-slate-500 font-medium text-xs mb-6 max-w-xs mx-auto">Initialize your first property terminal to begin monitoring.</p>
+                <h3 className="text-lg font-black text-slate-900 dark:text-slate-100 mb-1">No Assets Found</h3>
+                <p className="text-slate-500 dark:text-slate-400 font-medium text-xs mb-6 max-w-xs mx-auto">Initialize your first property terminal to begin monitoring.</p>
                 <Link href="/dashboard/owner/add-pg">
                   <Button className="h-10 px-6 bg-primary text-white font-black rounded-lg shadow-md text-[10px]">Start Setup</Button>
                 </Link>
@@ -551,7 +561,7 @@ export default function OwnerDashboard() {
                       variants={itemVariants}
                       key={pg.id}
                       onClick={() => router.push(`/dashboard/owner/pg/${pg.id}`)}
-                      className="group bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden flex flex-col cursor-pointer"
+                      className="group bg-white dark:bg-zinc-900 rounded-xl border border-slate-200 dark:border-zinc-700 shadow-sm dark:shadow-slate-900/50 hover:shadow-lg dark:shadow-zinc-900/50 transition-all duration-300 overflow-hidden flex flex-col cursor-pointer"
                     >
                       <div className="relative h-36 w-full overflow-hidden">
                         {pg.images?.[0] ? (
@@ -562,13 +572,13 @@ export default function OwnerDashboard() {
                             className="object-cover group-hover:scale-105 transition-transform duration-500" 
                           />
                         ) : (
-                          <div className="w-full h-full bg-slate-100 flex items-center justify-center">
+                          <div className="w-full h-full bg-slate-100 dark:bg-zinc-800 flex items-center justify-center">
                             <Building2 className="w-8 h-8 text-slate-300" />
                           </div>
                         )}
                         <div className="absolute top-3 right-3">
-                           <div className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border shadow-sm
-                             ${(pg.availableRooms ?? 0) > 0 ? "bg-white/95 text-emerald-600 border-emerald-100" : "bg-rose-500 text-white border-rose-600"}`}>
+                           <div className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border shadow-sm dark:shadow-slate-900/50
+                             ${(pg.availableRooms ?? 0) > 0 ? "bg-white dark:bg-zinc-900/95 text-emerald-600 border-emerald-100" : "bg-rose-500 text-white border-rose-600"}`}>
                              {(pg.availableRooms ?? 0) > 0 ? `${pg.availableRooms} Vacant` : "Full"}
                            </div>
                         </div>
@@ -583,11 +593,11 @@ export default function OwnerDashboard() {
                       
                       <div className="p-4 flex flex-col flex-1">
                         <div className="grid grid-cols-2 gap-2 mb-4">
-                          <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-100">
+                          <div className="p-2.5 bg-slate-50 dark:bg-zinc-800/50 rounded-lg border border-slate-100">
                             <p className="text-[7px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Availability</p>
-                            <p className="text-xs font-black text-slate-900">{pg.availableRooms} Units</p>
+                            <p className="text-xs font-black text-slate-900 dark:text-slate-100">{pg.availableRooms} Units</p>
                           </div>
-                          <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-100">
+                          <div className="p-2.5 bg-slate-50 dark:bg-zinc-800/50 rounded-lg border border-slate-100">
                             <p className="text-[7px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Base Price</p>
                             <p className="text-xs font-black text-emerald-600">{pg.price}</p>
                           </div>
@@ -596,7 +606,7 @@ export default function OwnerDashboard() {
                         <div className="flex justify-between items-center mt-auto pt-3 border-t border-slate-50">
                           <div className="flex -space-x-1.5">
                              {[1,2].map(j => (
-                               <div key={j} className="w-6 h-6 rounded-full border border-white bg-slate-100 flex items-center justify-center">
+                               <div key={j} className="w-6 h-6 rounded-full border border-white bg-slate-100 dark:bg-zinc-800 flex items-center justify-center">
                                   <UserCircle className="w-3.5 h-3.5 text-slate-300" />
                                </div>
                              ))}
@@ -605,13 +615,13 @@ export default function OwnerDashboard() {
                              </div>
                           </div>
                           <div className="flex items-center gap-1.5">
-                            <div className="flex items-center bg-slate-50 rounded-lg p-0.5 border border-slate-100">
+                            <div className="flex items-center bg-slate-50 dark:bg-zinc-800/50 rounded-lg p-0.5 border border-slate-100">
                               <button 
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   router.push(`/dashboard/owner/edit-pg/${pg.id}`);
                                 }}
-                                className="w-7 h-7 hover:bg-white hover:text-primary text-slate-400 rounded-md flex items-center justify-center transition-all"
+                                className="w-7 h-7 hover:bg-white dark:bg-zinc-900 hover:text-primary text-slate-400 rounded-md flex items-center justify-center transition-all"
                               >
                                 <Settings className="w-3.5 h-3.5" />
                               </button>
@@ -620,12 +630,12 @@ export default function OwnerDashboard() {
                                   e.stopPropagation();
                                   handleDelete(pg.id, pg.name);
                                 }}
-                                className="w-7 h-7 hover:bg-white hover:text-rose-600 text-slate-400 rounded-md flex items-center justify-center transition-all"
+                                className="w-7 h-7 hover:bg-white dark:bg-zinc-900 hover:text-rose-600 text-slate-400 rounded-md flex items-center justify-center transition-all"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
                               </button>
                             </div>
-                            <Button variant="ghost" className="h-8 px-2.5 rounded-md font-black text-[9px] hover:bg-slate-50 group/btn gap-1">
+                            <Button variant="ghost" className="h-8 px-2.5 rounded-md font-black text-[9px] hover:bg-slate-50 dark:bg-zinc-800/50 group/btn gap-1">
                               Control <ChevronRight className="w-3 h-3 group-hover/btn:translate-x-0.5 transition-transform" />
                             </Button>
                           </div>
@@ -634,16 +644,7 @@ export default function OwnerDashboard() {
                     </motion.div>
                   );
                 })}
-                {/* Bento Add Card if only 1 PG to fill space */}
-                {pgs.length === 1 && (
-                  <motion.div variants={itemVariants} className="group bg-slate-50/50 rounded-xl border-2 border-slate-200 border-dashed hover:border-primary/50 transition-all duration-300 flex flex-col items-center justify-center p-8 cursor-pointer min-h-[320px]">
-                    <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center shadow-sm mb-4 group-hover:scale-110 transition-transform">
-                      <Plus className="w-6 h-6 text-primary" />
-                    </div>
-                    <h3 className="text-lg font-black text-slate-900 mb-1">Add Another Property</h3>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Expand your portfolio</p>
-                  </motion.div>
-                )}
+
               </div>
             )}
           </motion.div>

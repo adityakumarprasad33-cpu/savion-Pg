@@ -109,7 +109,7 @@ export function SignaturePad({ onSave }: SignaturePadProps) {
           className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-all ${
             mode === "draw"
               ? "bg-primary text-white"
-              : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+              : "bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200"
           }`}
         >
           ✍️ Draw Signature
@@ -120,7 +120,7 @@ export function SignaturePad({ onSave }: SignaturePadProps) {
           className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-all ${
             mode === "upload"
               ? "bg-primary text-white"
-              : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+              : "bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200"
           }`}
         >
           📤 Upload Image
@@ -129,7 +129,7 @@ export function SignaturePad({ onSave }: SignaturePadProps) {
 
       {mode === "draw" ? (
         <div className="space-y-2">
-          <div className="border-2 border-dashed border-slate-300 rounded-xl overflow-hidden bg-white cursor-crosshair touch-none">
+          <div className="border-2 border-dashed border-slate-300 dark:border-zinc-600 rounded-xl overflow-hidden bg-white dark:bg-zinc-900 cursor-crosshair touch-none">
             <canvas
               ref={canvasRef}
               width={600}
@@ -162,7 +162,7 @@ export function SignaturePad({ onSave }: SignaturePadProps) {
         </div>
       ) : (
         <div className="space-y-2">
-          <label className="flex flex-col items-center justify-center h-[120px] border-2 border-dashed border-slate-300 rounded-xl cursor-pointer hover:border-primary/50 hover:bg-slate-50 transition-all">
+          <label className="flex flex-col items-center justify-center h-[120px] border-2 border-dashed border-slate-300 dark:border-zinc-600 rounded-xl cursor-pointer hover:border-primary/50 hover:bg-slate-50 dark:bg-zinc-800/50 transition-all">
             <span className="text-2xl mb-1">📷</span>
             <span className="text-sm text-muted-foreground">Click to upload signature image (JPG/PNG)</span>
             <input type="file" accept="image/*" className="hidden" onChange={handleUpload} />

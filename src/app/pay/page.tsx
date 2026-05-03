@@ -8,7 +8,7 @@ import { SpeedLoader } from "@/components/ui/SpeedLoader";
 export default function PayPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-white">
+      <div className="min-h-screen flex items-center justify-center bg-white dark:bg-zinc-900">
         <SpeedLoader text="Preparing Payment System" subtext="Secure Connection..." />
       </div>
     }>

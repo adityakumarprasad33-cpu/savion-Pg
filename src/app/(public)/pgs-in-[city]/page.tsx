@@ -115,17 +115,17 @@ export default async function CityPGPage({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusinessSchema) }}
       />
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-slate-50 dark:bg-zinc-800/50">
         {/* SEO-rich Hero — static, server-rendered, fully crawlable */}
-        <section className="bg-card border-b py-16 px-4">
+        <section className="bg-white dark:bg-zinc-900 border-b py-16 px-4">
           <div className="container mx-auto max-w-4xl text-center">
             <div className="inline-block bg-primary/10 text-primary text-xs font-bold px-3 py-1 rounded-full mb-4 uppercase tracking-widest">
               Verified PG in {cityName}
             </div>
-            <h1 className="text-4xl md:text-5xl font-black text-slate-900 mb-4 tracking-tight">
+            <h1 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-slate-100 mb-4 tracking-tight">
               PG Accommodation in {cityName}
             </h1>
-            <p className="text-lg text-slate-600 max-w-2xl mx-auto mb-8">
+            <p className="text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto mb-8">
               Browse{" "}
               <strong>{cityPgs.length > 0 ? cityPgs.length : "verified"}</strong>{" "}
               paying guest accommodations in {cityName} — boys PG, girls PG &
@@ -135,13 +135,13 @@ export default async function CityPGPage({
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Link
                 href={`/search?location=${params.city}`}
-                className="inline-flex items-center justify-center bg-primary text-white font-bold px-8 py-3 rounded-xl hover:bg-primary/90 transition-all shadow-lg shadow-primary/20"
+                className="inline-flex items-center justify-center bg-primary text-white font-bold px-8 py-3 rounded-xl hover:bg-primary/90 transition-all shadow-lg dark:shadow-zinc-900/50 shadow-primary/20"
               >
                 Browse All PGs in {cityName} →
               </Link>
               <Link
                 href="/search"
-                className="inline-flex items-center justify-center bg-card text-foreground font-bold px-8 py-3 rounded-xl border border-border hover:bg-muted transition-all"
+                className="inline-flex items-center justify-center bg-white dark:bg-zinc-900 text-slate-700 dark:text-slate-300 font-bold px-8 py-3 rounded-xl border border-slate-200 dark:border-zinc-700 hover:bg-slate-50 dark:bg-zinc-800/50 transition-all"
               >
                 Search All Cities
               </Link>
@@ -152,7 +152,7 @@ export default async function CityPGPage({
         {/* Listed PGs */}
         {cityPgs.length > 0 && (
           <section className="container mx-auto max-w-5xl px-4 py-12">
-            <h2 className="text-2xl font-black text-slate-900 mb-6">
+            <h2 className="text-2xl font-black text-slate-900 dark:text-slate-100 mb-6">
               Available PGs in {cityName}
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -160,15 +160,15 @@ export default async function CityPGPage({
                 <Link
                   key={pg.id}
                   href={`/pg/${pg.id}`}
-                  className="bg-card rounded-2xl border border-border p-5 hover:shadow-lg hover:border-primary/30 transition-all group"
+                  className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-700 p-5 hover:shadow-lg dark:shadow-zinc-900/50 hover:border-primary/30 transition-all group"
                 >
-                  <h3 className="font-black text-lg text-slate-900 group-hover:text-primary transition-colors mb-1">
+                  <h3 className="font-black text-lg text-slate-900 dark:text-slate-100 group-hover:text-primary transition-colors mb-1">
                     {pg.name}
                   </h3>
-                  <p className="text-sm text-slate-500 mb-3">{pg.location}</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">{pg.location}</p>
                   <div className="flex items-center justify-between">
                     <span className="text-primary font-black text-lg">{pg.price}<span className="text-slate-400 font-normal text-sm">/mo</span></span>
-                    <span className="text-xs font-bold bg-slate-100 text-slate-600 px-2 py-1 rounded-lg">{pg.type}</span>
+                    <span className="text-xs font-bold bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-slate-400 px-2 py-1 rounded-lg">{pg.type}</span>
                   </div>
                 </Link>
               ))}
@@ -177,26 +177,26 @@ export default async function CityPGPage({
         )}
 
         {/* SEO Content — keyword-rich, static text for crawlers */}
-        <section className="bg-card border-t py-12 px-4">
+        <section className="bg-white dark:bg-zinc-900 border-t py-12 px-4">
           <div className="container mx-auto max-w-4xl">
-            <h2 className="text-2xl font-black text-slate-900 mb-4">
+            <h2 className="text-2xl font-black text-slate-900 dark:text-slate-100 mb-4">
               Why Choose Savion for PG in {cityName}?
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-slate-600 text-sm leading-relaxed">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-slate-600 dark:text-slate-400 text-sm leading-relaxed">
               <div>
-                <h3 className="font-bold text-slate-800 mb-2">✅ Verified Properties</h3>
+                <h3 className="font-bold text-slate-800 dark:text-slate-200 mb-2">✅ Verified Properties</h3>
                 <p>Every PG in {cityName} listed on Savion is manually verified. View real photos, accurate amenities, and transparent pricing before you book.</p>
               </div>
               <div>
-                <h3 className="font-bold text-slate-800 mb-2">📝 Digital Rental Agreement</h3>
+                <h3 className="font-bold text-slate-800 dark:text-slate-200 mb-2">📝 Digital Rental Agreement</h3>
                 <p>Sign your rental contract digitally. No paperwork hassle. Your agreement is stored securely and accessible anytime from your dashboard.</p>
               </div>
               <div>
-                <h3 className="font-bold text-slate-800 mb-2">⚡ Instant Booking</h3>
+                <h3 className="font-bold text-slate-800 dark:text-slate-200 mb-2">⚡ Instant Booking</h3>
                 <p>Book your PG room in {cityName} online. Pay securely via UPI and get instant confirmation. No broker fees, no hidden charges.</p>
               </div>
               <div>
-                <h3 className="font-bold text-slate-800 mb-2">🏠 All Types Available</h3>
+                <h3 className="font-bold text-slate-800 dark:text-slate-200 mb-2">🏠 All Types Available</h3>
                 <p>Find boys PG, girls PG, co-living spaces, and furnished rooms in {cityName} — near colleges, IT parks, metro stations, and commercial hubs.</p>
               </div>
             </div>
@@ -204,9 +204,9 @@ export default async function CityPGPage({
         </section>
 
         {/* FAQ Section for rich snippets */}
-        <section className="bg-muted border-t py-12 px-4">
+        <section className="bg-slate-50 dark:bg-zinc-800/50 border-t py-12 px-4">
           <div className="container mx-auto max-w-3xl">
-            <h2 className="text-2xl font-black text-slate-900 mb-6">
+            <h2 className="text-2xl font-black text-slate-900 dark:text-slate-100 mb-6">
               Frequently Asked Questions — PG in {cityName}
             </h2>
             <div className="space-y-4">
@@ -228,12 +228,12 @@ export default async function CityPGPage({
                   a: `Yes! Use the "Food Included" filter on Savion's search page to find PG accommodations in ${cityName} that provide meals.`,
                 },
               ].map((faq, i) => (
-                <details key={i} className="bg-card border border-border rounded-xl p-5 cursor-pointer group">
-                  <summary className="font-bold text-slate-800 list-none flex justify-between items-center">
+                <details key={i} className="bg-white dark:bg-zinc-900 border rounded-xl p-5 cursor-pointer group">
+                  <summary className="font-bold text-slate-800 dark:text-slate-200 list-none flex justify-between items-center">
                     {faq.q}
                     <span className="text-primary group-open:rotate-180 transition-transform text-xl">+</span>
                   </summary>
-                  <p className="text-slate-600 text-sm mt-3 leading-relaxed">{faq.a}</p>
+                  <p className="text-slate-600 dark:text-slate-400 text-sm mt-3 leading-relaxed">{faq.a}</p>
                 </details>
               ))}
             </div>

@@ -291,7 +291,7 @@ export default function CommunityPage() {
             const active = activeChannel === ch.id;
             return (
               <button key={ch.id} onClick={() => { setActiveChannel(ch.id); setSidebarOpen(false); }}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${active ? "bg-white/15 text-white" : "text-white/50 hover:text-white/80 hover:bg-white/5"}`}>
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${active ? "bg-white dark:bg-zinc-900/15 text-white" : "text-white/50 hover:text-white/80 hover:bg-white dark:bg-zinc-900/5"}`}>
                 <Icon className="w-4 h-4 shrink-0" />
                 <div className="text-left">
                   <div>{ch.name}</div>
@@ -328,7 +328,7 @@ export default function CommunityPage() {
           <div className="ml-auto flex items-center gap-2">
             {activeChannel === "ideas" && (
               <select value={sortIdeas} onChange={e => setSortIdeas(e.target.value as any)}
-                className="text-xs bg-slate-100 border-0 rounded-lg px-2 py-1 font-medium">
+                className="text-xs bg-slate-100 dark:bg-zinc-800 border-0 rounded-lg px-2 py-1 font-medium">
                 <option value="newest">Newest</option>
                 <option value="top">Most Upvoted</option>
               </select>
@@ -360,7 +360,7 @@ export default function CommunityPage() {
               // Card format for ideas & reviews
               return (
                 <motion.div key={msg.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                  className="bg-white border rounded-2xl p-5 mb-3 hover:shadow-md transition-shadow">
+                  className="bg-white dark:bg-zinc-900 border rounded-2xl p-5 mb-3 hover:shadow-md transition-shadow">
                   <div className="flex items-center gap-2 mb-3">
                     <div className={`w-8 h-8 rounded-full ${getAvatarColor(msg.userName)} flex items-center justify-center text-white text-xs font-bold`}>
                       {msg.userName[0]?.toUpperCase()}
@@ -382,7 +382,7 @@ export default function CommunityPage() {
                   <p className="text-muted-foreground text-sm leading-relaxed">{msg.text}</p>
                   {isIdea && (
                     <button onClick={() => handleUpvote(msg)}
-                      className={`mt-3 flex items-center gap-1.5 text-sm font-bold px-3 py-1.5 rounded-lg transition-colors ${msg.upvotes?.includes(userId) ? "bg-primary/10 text-primary" : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}>
+                      className={`mt-3 flex items-center gap-1.5 text-sm font-bold px-3 py-1.5 rounded-lg transition-colors ${msg.upvotes?.includes(userId) ? "bg-primary/10 text-primary" : "bg-slate-100 dark:bg-zinc-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200"}`}>
                       <ArrowUp className="w-4 h-4" />
                       {msg.upvotes?.length || 0}
                     </button>
@@ -408,7 +408,7 @@ export default function CommunityPage() {
                       <span className="text-[10px] text-muted-foreground">{timeAgo(msg.createdAt)}</span>
                     </div>
                   )}
-                  <div className={`px-3.5 py-2 rounded-2xl text-sm leading-relaxed ${isOwn ? "bg-primary text-white rounded-br-md" : "bg-slate-100 text-foreground rounded-bl-md"}`}>
+                  <div className={`px-3.5 py-2 rounded-2xl text-sm leading-relaxed ${isOwn ? "bg-primary text-white rounded-br-md" : "bg-slate-100 dark:bg-zinc-800 text-foreground rounded-bl-md"}`}>
                     {msg.text}
                   </div>
                 </div>
@@ -422,7 +422,7 @@ export default function CommunityPage() {
         <AnimatePresence>
           {profanityWarn && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
-              className="mx-4 mb-2 p-3 bg-red-50 border border-red-200 rounded-xl flex items-center gap-2 text-red-700 text-sm font-medium">
+              className="mx-4 mb-2 p-3 bg-red-50 dark:bg-red-950/30 border border-red-200 rounded-xl flex items-center gap-2 text-red-700 text-sm font-medium">
               <AlertTriangle className="w-4 h-4 shrink-0" />
               Your message contains inappropriate language. Please keep it respectful.
             </motion.div>
@@ -432,7 +432,7 @@ export default function CommunityPage() {
         {/* Compose bar */}
         <div className="p-3 border-t bg-background/80 backdrop-blur-sm relative">
           {activeChannel === "pg-reviews" && userRole !== "tenant" && userRole !== "admin" ? (
-            <div className="flex items-center justify-center gap-2 text-muted-foreground p-4 bg-slate-50 rounded-xl border">
+            <div className="flex items-center justify-center gap-2 text-muted-foreground p-4 bg-slate-50 dark:bg-zinc-800/50 rounded-xl border">
               <Lock className="w-4 h-4" />
               <span className="text-sm font-medium">Only tenants can post PG reviews.</span>
             </div>
@@ -454,7 +454,7 @@ export default function CommunityPage() {
                       }
                     }}
                     placeholder={activeChannel === "ideas" ? "Idea title..." : "Type @ to select a PG..."}
-                    className="flex-1 text-sm px-3 py-2 rounded-xl border bg-white focus:outline-none focus:ring-2 focus:ring-primary/30" 
+                    className="flex-1 text-sm px-3 py-2 rounded-xl border bg-white dark:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-primary/30" 
                   />
                   
                   {/* PG Tagging Dropdown */}
@@ -462,7 +462,7 @@ export default function CommunityPage() {
                     {showPgDropdown && (
                       <motion.div 
                         initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
-                        className="absolute bottom-full left-0 mb-2 w-72 max-h-48 overflow-y-auto bg-white border shadow-xl rounded-xl z-50 p-1"
+                        className="absolute bottom-full left-0 mb-2 w-72 max-h-48 overflow-y-auto bg-white dark:bg-zinc-900 border shadow-xl dark:shadow-zinc-900/50 rounded-xl z-50 p-1"
                       >
                         <div className="px-2 py-1.5 text-xs font-bold text-muted-foreground uppercase tracking-wider">Select a PG</div>
                         {pgs.filter(p => p.name.toLowerCase().includes(title.split("@")[1]?.toLowerCase() || "")).map(pg => (
@@ -474,7 +474,7 @@ export default function CommunityPage() {
                               setShowPgDropdown(false);
                               inputRef.current?.focus();
                             }}
-                            className="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-100 text-sm font-medium flex items-center justify-between"
+                            className="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-100 dark:bg-zinc-800 text-sm font-medium flex items-center justify-between"
                           >
                             <span>{pg.name}</span>
                             <span className="text-[10px] text-muted-foreground">{pg.city}</span>
@@ -501,7 +501,7 @@ export default function CommunityPage() {
               {showUserDropdown && (
                 <motion.div 
                   initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
-                  className="absolute bottom-full left-0 mb-2 w-64 max-h-48 overflow-y-auto bg-white border shadow-xl rounded-xl z-50 p-1"
+                  className="absolute bottom-full left-0 mb-2 w-64 max-h-48 overflow-y-auto bg-white dark:bg-zinc-900 border shadow-xl dark:shadow-zinc-900/50 rounded-xl z-50 p-1"
                 >
                   <div className="px-2 py-1.5 text-xs font-bold text-muted-foreground uppercase tracking-wider">Mention User</div>
                   {onlineUsers.filter(u => u.userName.toLowerCase().includes(mentionQuery) && u.userId !== userId).map(user => (
@@ -515,10 +515,10 @@ export default function CommunityPage() {
                         setShowUserDropdown(false);
                         inputRef.current?.focus();
                       }}
-                      className="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-100 text-sm font-medium flex items-center gap-2"
+                      className="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-100 dark:bg-zinc-800 text-sm font-medium flex items-center gap-2"
                     >
                       <div className="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center shrink-0">
-                        <Users className="w-3 h-3 text-slate-500" />
+                        <Users className="w-3 h-3 text-slate-500 dark:text-slate-400" />
                       </div>
                       <span className="truncate">{user.userName}</span>
                     </button>
@@ -532,7 +532,7 @@ export default function CommunityPage() {
 
             <textarea ref={inputRef} value={text} onChange={handleTextChange} onKeyDown={handleKeyDown}
               placeholder={`Message #${channelInfo.name.toLowerCase()}... (Type @ to mention)`} rows={1}
-              className="flex-1 resize-none text-sm px-4 py-3 rounded-xl border bg-white focus:outline-none focus:ring-2 focus:ring-primary/30 max-h-32" />
+              className="flex-1 resize-none text-sm px-4 py-3 rounded-xl border bg-white dark:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-primary/30 max-h-32" />
             <button onClick={handleSend} disabled={sending || !text.trim() || (activeChannel === "pg-reviews" && !selectedPg)}
               className="h-11 w-11 rounded-xl bg-primary text-white flex items-center justify-center hover:bg-primary/90 disabled:opacity-40 transition-all hover:scale-105 active:scale-95 shrink-0"
               title={activeChannel === "pg-reviews" && !selectedPg ? "Please tag a PG using @" : ""}>
@@ -553,7 +553,7 @@ export default function CommunityPage() {
         </div>
         <div className="flex-1 overflow-y-auto p-2 space-y-1">
           {onlineUsers.map(u => (
-            <div key={u.userId} className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-slate-50 transition-colors">
+            <div key={u.userId} className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-slate-50 dark:bg-zinc-800/50 transition-colors">
               <div className="relative">
                 <div className={`w-8 h-8 rounded-full ${getAvatarColor(u.userName)} flex items-center justify-center text-white text-xs font-bold`}>
                   {u.userName[0]?.toUpperCase()}

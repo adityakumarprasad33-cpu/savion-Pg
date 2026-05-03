@@ -17,7 +17,7 @@ export function HelpCenterPage() {
         </div>
       </Section>
 
-      <Section className="bg-slate-50">
+      <Section className="bg-slate-50 dark:bg-zinc-800/50">
         <SectionTitle>Account & Verification</SectionTitle>
         <div className="space-y-3">
           <FAQ question="Why do I need to verify my identity?" answer="KYC verification protects both tenants and owners. It ensures that every person on the platform is who they claim to be. We accept Aadhaar cards, driving licenses, and passports." />
@@ -37,7 +37,7 @@ export function HelpCenterPage() {
         </div>
       </Section>
 
-      <Section className="bg-slate-50">
+      <Section className="bg-slate-50 dark:bg-zinc-800/50">
         <SectionTitle>Complaints & Disputes</SectionTitle>
         <div className="space-y-3">
           <FAQ question="How do I file a complaint?" answer="From your tenant dashboard, go to the 'Complaints' tab and click 'New Complaint'. Select a category (maintenance, security, cleanliness, etc.), describe the issue, and submit. The owner is notified instantly." />

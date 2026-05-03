@@ -214,9 +214,9 @@ export default function EditPGPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 animate-fade-in">
+    <div className="min-h-screen bg-slate-50 dark:bg-zinc-800/50 animate-fade-in">
       {/* Header */}
-      <header className="bg-white border-b py-4 px-6 sticky top-0 z-40">
+      <header className="bg-white dark:bg-zinc-900 border-b py-4 px-6 sticky top-0 z-40">
         <div className="container max-w-3xl mx-auto flex items-center gap-4">
           <Link href="/dashboard/owner">
             <button className="text-muted-foreground hover:text-foreground transition-colors">
@@ -238,7 +238,7 @@ export default function EditPGPage() {
               <div key={label} className="flex items-center flex-1 last:flex-none min-w-0">
                 <div className="flex flex-col items-center gap-1 min-w-0">
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all
-                    ${isDone ? "bg-green-500 text-white" : isActive ? "bg-primary text-white" : "bg-slate-200 text-slate-500"}`}>
+                    ${isDone ? "bg-green-500 text-white" : isActive ? "bg-primary text-white" : "bg-slate-200 text-slate-500 dark:text-slate-400"}`}>
                     {isDone ? "✓" : sNum}
                   </div>
                   <span className={`text-xs font-semibold truncate ${isActive ? "text-primary" : "text-slate-400"}`}>{label}</span>
@@ -252,14 +252,14 @@ export default function EditPGPage() {
         </div>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl mb-4">
+          <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl mb-4">
             {error}
           </div>
         )}
 
         {/* ── STEP 1: Basic Info ─────────────────────────────────────────── */}
         {step === 1 && (
-          <div className="bg-white rounded-3xl border shadow-sm p-6 md:p-8 space-y-5 animate-scale-in">
+          <div className="bg-white dark:bg-zinc-900 rounded-3xl border shadow-sm dark:shadow-slate-900/50 p-6 md:p-8 space-y-5 animate-scale-in">
             <h2 className="text-xl font-bold">Basic Information</h2>
 
             <div>
@@ -297,7 +297,7 @@ export default function EditPGPage() {
             <div>
               <label className="label-sm">Main Photo</label>
               <label className={`mt-1.5 flex flex-col items-center justify-center h-40 border-2 border-dashed rounded-xl cursor-pointer transition-all
-                ${mainImagePreview ? "border-green-400" : "border-slate-300 hover:border-primary/50 hover:bg-slate-50"}`}>
+                ${mainImagePreview ? "border-green-400" : "border-slate-300 dark:border-zinc-600 hover:border-primary/50 hover:bg-slate-50 dark:bg-zinc-800/50"}`}>
                 {mainImagePreview ? (
                   <img src={mainImagePreview} alt="preview" className="h-full w-full object-cover rounded-xl" />
                 ) : (
@@ -314,7 +314,7 @@ export default function EditPGPage() {
 
         {/* ── STEP 2: Location ───────────────────────────────────────────── */}
         {step === 2 && (
-          <div className="bg-white rounded-3xl border shadow-sm p-6 md:p-8 space-y-5 animate-scale-in">
+          <div className="bg-white dark:bg-zinc-900 rounded-3xl border shadow-sm dark:shadow-slate-900/50 p-6 md:p-8 space-y-5 animate-scale-in">
             <h2 className="text-xl font-bold">Location Details</h2>
 
             <div>
@@ -414,7 +414,7 @@ export default function EditPGPage() {
         {/* ── STEP 3: Rooms ─────────────────────────────────────────────── */}
         {step === 3 && (
           <div className="space-y-4 animate-scale-in">
-            <div className="bg-white rounded-3xl border shadow-sm p-6 md:p-8">
+            <div className="bg-white dark:bg-zinc-900 rounded-3xl border shadow-sm dark:shadow-slate-900/50 p-6 md:p-8">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-bold">Room Configuration</h2>
                 <button
@@ -429,7 +429,7 @@ export default function EditPGPage() {
             </div>
 
             {rooms.map((room, idx) => (
-              <div key={room.id} className="bg-white rounded-2xl border shadow-sm p-6 animate-fade-in-up">
+              <div key={room.id} className="bg-white dark:bg-zinc-900 rounded-2xl border shadow-sm dark:shadow-slate-900/50 p-6 animate-fade-in-up">
                 <div className="flex justify-between items-center mb-4">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center font-black text-primary">
@@ -463,7 +463,7 @@ export default function EditPGPage() {
                 {/* Room Number + Floor */}
                 <div className="grid grid-cols-2 gap-3 mb-4">
                   <div>
-                    <label className="text-xs font-semibold text-slate-600 block mb-1">Room Number *</label>
+                    <label className="text-xs font-semibold text-slate-600 dark:text-slate-400 block mb-1">Room Number *</label>
                     <Input
                       placeholder="e.g. 101, A1, GF-2"
                       value={room.roomNumber}
@@ -472,7 +472,7 @@ export default function EditPGPage() {
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-semibold text-slate-600 block mb-1">Floor (optional)</label>
+                    <label className="text-xs font-semibold text-slate-600 dark:text-slate-400 block mb-1">Floor (optional)</label>
                     <Input
                       placeholder="e.g. G, 1, 2, Terrace"
                       value={room.floor || ""}
@@ -485,7 +485,7 @@ export default function EditPGPage() {
                 {/* Rent + Occupancy */}
                 <div className="grid grid-cols-2 gap-3 mb-4">
                   <div>
-                    <label className="text-xs font-semibold text-slate-600 block mb-1">Monthly Rent (₹) *</label>
+                    <label className="text-xs font-semibold text-slate-600 dark:text-slate-400 block mb-1">Monthly Rent (₹) *</label>
                     <Input
                       type="number" min="0"
                       placeholder="12000"
@@ -495,7 +495,7 @@ export default function EditPGPage() {
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-semibold text-slate-600 block mb-1">
+                    <label className="text-xs font-semibold text-slate-600 dark:text-slate-400 block mb-1">
                       Current Occupancy
                       <span className="ml-1 font-normal text-muted-foreground">(out of {room.capacity})</span>
                     </label>
@@ -512,14 +512,14 @@ export default function EditPGPage() {
                 </div>
 
                 <div>
-                  <label className="text-xs font-semibold text-slate-600 block mb-2">Room Amenities</label>
+                  <label className="text-xs font-semibold text-slate-600 dark:text-slate-400 block mb-2">Room Amenities</label>
                   <div className="flex flex-wrap gap-2">
                     {["AC", "Attached Bathroom", "Balcony", "Study Desk", "Wardrobe", "TV"].map((a) => (
                       <button
                         key={a} type="button"
                         onClick={() => toggleRoomAmenity(idx, a)}
                         className={`px-3 py-1 rounded-full border text-xs font-semibold transition-all
-                          ${room.amenities.includes(a) ? "bg-primary text-white border-primary" : "border-slate-300 hover:border-primary/40"}`}
+                          ${room.amenities.includes(a) ? "bg-primary text-white border-primary" : "border-slate-300 dark:border-zinc-600 hover:border-primary/40"}`}
                       >
                         {room.amenities.includes(a) ? "✓ " : ""}{a}
                       </button>
@@ -530,10 +530,10 @@ export default function EditPGPage() {
             ))}
 
             {rooms.length > 0 && (
-              <div className="bg-slate-50 rounded-2xl border p-4 text-sm text-slate-600 flex flex-wrap gap-6">
-                <div><span className="font-bold text-slate-800">{rooms.length}</span> rooms configured</div>
+              <div className="bg-slate-50 dark:bg-zinc-800/50 rounded-2xl border p-4 text-sm text-slate-600 dark:text-slate-400 flex flex-wrap gap-6">
+                <div><span className="font-bold text-slate-800 dark:text-slate-200">{rooms.length}</span> rooms configured</div>
                 <div><span className="font-bold text-green-600">{rooms.filter(r => r.available > 0).length}</span> with available spots</div>
-                <div><span className="font-bold text-slate-500">{rooms.reduce((a, r) => a + r.currentOccupancy, 0)}</span> currently occupied</div>
+                <div><span className="font-bold text-slate-500 dark:text-slate-400">{rooms.reduce((a, r) => a + r.currentOccupancy, 0)}</span> currently occupied</div>
                 {rooms.some(r => r.monthlyRent > 0) && (
                   <div>Starting from <span className="font-bold text-primary">₹{Math.min(...rooms.filter(r => r.monthlyRent > 0).map(r => r.monthlyRent)).toLocaleString("en-IN")}/mo</span></div>
                 )}
@@ -544,7 +544,7 @@ export default function EditPGPage() {
 
         {/* ── STEP 4: Facilities ─────────────────────────────────────────── */}
         {step === 4 && (
-          <div className="bg-white rounded-3xl border shadow-sm p-6 md:p-8 animate-scale-in">
+          <div className="bg-white dark:bg-zinc-900 rounded-3xl border shadow-sm dark:shadow-slate-900/50 p-6 md:p-8 animate-scale-in">
             <h2 className="text-xl font-bold mb-2">Facilities & Amenities</h2>
             <p className="text-sm text-muted-foreground mb-5">Select everything your property offers. This helps tenants filter and find you.</p>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">

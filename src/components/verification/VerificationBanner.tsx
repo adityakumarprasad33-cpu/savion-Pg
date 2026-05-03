@@ -58,25 +58,25 @@ export function VerificationBanner({ userId }: { userId: string }) {
 
   return (
     <>
-    <div className={`relative overflow-hidden rounded-2xl border backdrop-blur-md ${config.bg} p-6 mb-8 transition-all duration-500 hover:shadow-xl group`}>
+    <div className={`relative overflow-hidden rounded-2xl border backdrop-blur-md ${config.bg} p-6 mb-8 transition-all duration-500 hover:shadow-xl dark:shadow-zinc-900/50 group`}>
       {/* Decorative Glow */}
-      <div className="absolute -right-10 -top-10 w-40 h-40 bg-white/10 blur-3xl rounded-full" />
+      <div className="absolute -right-10 -top-10 w-40 h-40 bg-white dark:bg-zinc-900/10 blur-3xl rounded-full" />
       
       <div className="relative flex flex-col md:flex-row items-center md:items-start gap-6">
         {/* Icon with pulsing effect */}
         <div className="relative">
           <div className={`absolute inset-0 ${config.iconBg} blur-lg opacity-40 animate-pulse rounded-full`} />
-          <div className={`${config.iconBg} p-4 rounded-2xl shadow-lg relative z-10`}>
+          <div className={`${config.iconBg} p-4 rounded-2xl shadow-lg dark:shadow-zinc-900/50 relative z-10`}>
             {config.icon}
           </div>
         </div>
 
         <div className="flex-1 text-center md:text-left">
           <div className="flex items-center justify-center md:justify-start gap-2 mb-1">
-             <h3 className="text-xl font-black text-slate-900 tracking-tight">{config.title}</h3>
+             <h3 className="text-xl font-black text-slate-900 dark:text-slate-100 tracking-tight">{config.title}</h3>
              {status === 'not_started' && <Sparkles className="w-4 h-4 text-amber-500 animate-bounce" />}
           </div>
-          <p className="text-slate-600 text-sm max-w-xl mb-6 font-medium leading-relaxed">
+          <p className="text-slate-600 dark:text-slate-400 text-sm max-w-xl mb-6 font-medium leading-relaxed">
             {config.desc}
           </p>
           
@@ -88,10 +88,10 @@ export function VerificationBanner({ userId }: { userId: string }) {
                       type="checkbox" 
                       checked={termsAccepted} 
                       onChange={(e) => setTermsAccepted(e.target.checked)}
-                      className="peer w-5 h-5 rounded-md border-2 border-slate-300 text-primary focus:ring-primary/20 transition-all checked:border-primary"
+                      className="peer w-5 h-5 rounded-md border-2 border-slate-300 dark:border-zinc-600 text-primary focus:ring-primary/20 transition-all checked:border-primary"
                     />
                   </div>
-                  <span className="text-xs text-slate-500 peer-checked:text-slate-900 transition-colors">
+                  <span className="text-xs text-slate-500 dark:text-slate-400 peer-checked:text-slate-900 dark:text-slate-100 transition-colors">
                     I agree to share my government ID for secure identity verification.
                   </span>
                </label>

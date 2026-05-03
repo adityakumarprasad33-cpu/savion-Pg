@@ -45,7 +45,7 @@ export function Paragraph({ children }: { children: ReactNode }) {
 
 export function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
-    <motion.div variants={fadeUp} whileHover={{ y: -4 }} className={`bg-card border border-border/50 rounded-2xl p-6 shadow-sm hover:shadow-lg transition-shadow ${className}`}>
+    <motion.div variants={fadeUp} whileHover={{ y: -4 }} className={`bg-white dark:bg-zinc-900 border border-border/50 rounded-2xl p-6 shadow-sm dark:shadow-slate-900/50 hover:shadow-lg dark:shadow-zinc-900/50 transition-shadow ${className}`}>
       {children}
     </motion.div>
   );
@@ -53,7 +53,7 @@ export function Card({ children, className = "" }: { children: ReactNode; classN
 
 export function StatCard({ value, label }: { value: string; label: string }) {
   return (
-    <motion.div variants={fadeUp} whileHover={{ scale: 1.05 }} className="text-center p-6 bg-card border rounded-2xl shadow-sm">
+    <motion.div variants={fadeUp} whileHover={{ scale: 1.05 }} className="text-center p-6 bg-white dark:bg-zinc-900 border rounded-2xl shadow-sm dark:shadow-slate-900/50">
       <div className="text-3xl md:text-4xl font-black text-primary mb-1">{value}</div>
       <div className="text-sm text-muted-foreground font-medium">{label}</div>
     </motion.div>
@@ -63,8 +63,8 @@ export function StatCard({ value, label }: { value: string; label: string }) {
 export function FAQ({ question, answer }: { question: string; answer: string }) {
   const [open, setOpen] = useState(false);
   return (
-    <motion.div variants={fadeUp} className="border border-border/50 rounded-xl overflow-hidden bg-card">
-      <button onClick={() => setOpen(!open)} className="w-full flex justify-between items-center p-5 text-left hover:bg-slate-50 transition-colors">
+    <motion.div variants={fadeUp} className="border border-border/50 rounded-xl overflow-hidden bg-white dark:bg-zinc-900">
+      <button onClick={() => setOpen(!open)} className="w-full flex justify-between items-center p-5 text-left hover:bg-slate-50 dark:bg-zinc-800/50 transition-colors">
         <span className="font-bold text-foreground pr-4">{question}</span>
         <motion.span animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.2 }}>
           <ChevronDown className="w-5 h-5 text-primary shrink-0" />
@@ -79,7 +79,7 @@ export function FAQ({ question, answer }: { question: string; answer: string }) 
 
 export function ValueCard({ icon, title, desc }: { icon: string; title: string; desc: string }) {
   return (
-    <motion.div variants={fadeUp} whileHover={{ y: -4 }} className="bg-card border rounded-2xl p-6 shadow-sm hover:shadow-lg transition-all group">
+    <motion.div variants={fadeUp} whileHover={{ y: -4 }} className="bg-white dark:bg-zinc-900 border rounded-2xl p-6 shadow-sm dark:shadow-slate-900/50 hover:shadow-lg dark:shadow-zinc-900/50 transition-all group">
       <span className="text-3xl mb-3 block">{icon}</span>
       <h3 className="font-bold text-foreground mb-2 group-hover:text-primary transition-colors">{title}</h3>
       <p className="text-sm text-muted-foreground">{desc}</p>
@@ -89,7 +89,7 @@ export function ValueCard({ icon, title, desc }: { icon: string; title: string; 
 
 export function StepCard({ step, title, desc }: { step: string; title: string; desc: string }) {
   return (
-    <motion.div variants={fadeUp} whileHover={{ scale: 1.03 }} className="text-center p-6 bg-card border rounded-2xl shadow-sm">
+    <motion.div variants={fadeUp} whileHover={{ scale: 1.03 }} className="text-center p-6 bg-white dark:bg-zinc-900 border rounded-2xl shadow-sm dark:shadow-slate-900/50">
       <div className="w-12 h-12 rounded-full bg-primary text-white font-black text-lg flex items-center justify-center mx-auto mb-4">{step}</div>
       <h3 className="font-bold text-foreground mb-2">{title}</h3>
       <p className="text-sm text-muted-foreground">{desc}</p>
@@ -108,12 +108,12 @@ export function LegalSection({ number, title, content }: { number: string; title
 
 export function JobCard({ title, location, type, desc }: { title: string; location: string; type: string; desc: string }) {
   return (
-    <motion.div variants={fadeUp} whileHover={{ y: -4 }} className="bg-card border rounded-2xl p-6 shadow-sm hover:shadow-lg hover:border-primary/30 transition-all group">
+    <motion.div variants={fadeUp} whileHover={{ y: -4 }} className="bg-white dark:bg-zinc-900 border rounded-2xl p-6 shadow-sm dark:shadow-slate-900/50 hover:shadow-lg dark:shadow-zinc-900/50 hover:border-primary/30 transition-all group">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-3">
         <h3 className="text-lg font-bold text-foreground group-hover:text-primary transition-colors">{title}</h3>
         <div className="flex gap-2">
           <span className="text-xs font-bold bg-primary/10 text-primary px-3 py-1 rounded-full">{type}</span>
-          <span className="text-xs font-bold bg-slate-100 text-slate-600 px-3 py-1 rounded-full">{location}</span>
+          <span className="text-xs font-bold bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-slate-400 px-3 py-1 rounded-full">{location}</span>
         </div>
       </div>
       <p className="text-sm text-muted-foreground">{desc}</p>

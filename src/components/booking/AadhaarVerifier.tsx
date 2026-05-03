@@ -305,9 +305,9 @@ export function AadhaarVerifier({ onVerified, onReset }: AadhaarVerifierProps) {
 
       {/* IDLE — upload prompt */}
       {state === "idle" && (
-        <label className="flex flex-col items-center justify-center h-36 border-2 border-dashed border-slate-300 rounded-xl cursor-pointer hover:border-primary/50 hover:bg-slate-50 transition-all group">
+        <label className="flex flex-col items-center justify-center h-36 border-2 border-dashed border-slate-300 dark:border-zinc-600 rounded-xl cursor-pointer hover:border-primary/50 hover:bg-slate-50 dark:bg-zinc-800/50 transition-all group">
           <ScanLine className="w-9 h-9 text-slate-400 mb-2 group-hover:text-primary transition-colors" />
-          <span className="text-sm font-semibold text-slate-700">Upload Aadhaar Card (front side)</span>
+          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Upload Aadhaar Card (front side)</span>
           <span className="text-xs text-muted-foreground mt-1">JPG or PNG · Name, DOB & number auto-extracted</span>
           <span className="text-xs text-muted-foreground">No data sent to any server</span>
           <input
@@ -367,18 +367,18 @@ export function AadhaarVerifier({ onVerified, onReset }: AadhaarVerifierProps) {
               <div className="grid grid-cols-2 gap-x-4 gap-y-2.5 text-sm">
                 <div>
                   <p className="text-xs text-green-600 font-semibold uppercase tracking-wide">Aadhaar No.</p>
-                  <p className="font-mono font-bold text-slate-800">{result.aadhaarNumber}</p>
+                  <p className="font-mono font-bold text-slate-800 dark:text-slate-200">{result.aadhaarNumber}</p>
                 </div>
                 {result.name && (
                   <div>
                     <p className="text-xs text-green-600 font-semibold uppercase tracking-wide">Name</p>
-                    <p className="font-bold text-slate-800">{result.name}</p>
+                    <p className="font-bold text-slate-800 dark:text-slate-200">{result.name}</p>
                   </div>
                 )}
                 {result.dob && (
                   <div>
                     <p className="text-xs text-green-600 font-semibold uppercase tracking-wide">Date of Birth</p>
-                    <p className="font-bold text-slate-800">{result.dob}</p>
+                    <p className="font-bold text-slate-800 dark:text-slate-200">{result.dob}</p>
                   </div>
                 )}
               </div>
@@ -386,7 +386,7 @@ export function AadhaarVerifier({ onVerified, onReset }: AadhaarVerifierProps) {
             <button
               type="button"
               onClick={reset}
-              className="text-xs text-slate-500 hover:text-slate-700 flex items-center gap-1 shrink-0"
+              className="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:text-slate-300 flex items-center gap-1 shrink-0"
             >
               <RefreshCw className="w-3.5 h-3.5" /> Change
             </button>
@@ -396,7 +396,7 @@ export function AadhaarVerifier({ onVerified, onReset }: AadhaarVerifierProps) {
 
       {/* INVALID — error */}
       {state === "invalid" && (
-        <div className="border-2 border-red-300 bg-red-50 rounded-xl p-5 animate-fade-in-up">
+        <div className="border-2 border-red-300 bg-red-50 dark:bg-red-950/30 rounded-xl p-5 animate-fade-in-up">
           <div className="flex items-start gap-3">
             {preview && (
               <img

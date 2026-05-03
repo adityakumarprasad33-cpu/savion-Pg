@@ -116,7 +116,7 @@ export function Navbar() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button className="relative p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus:outline-none">
-                    <Bell className="w-5 h-5 text-slate-700" />
+                    <Bell className="w-5 h-5 text-slate-700 dark:text-slate-300" />
                     {notifications.filter(n => !n.read).length > 0 && (
                       <span className="absolute top-1 right-1.5 w-2 h-2 bg-red-500 rounded-full animate-pulse border border-white"></span>
                     )}
@@ -143,7 +143,7 @@ export function Navbar() {
                     notifications.map(n => (
                       <DropdownMenuItem
                         key={n.id}
-                        className={`flex flex-col items-start p-3 focus:bg-slate-50 cursor-pointer ${!n.read ? 'bg-orange-50/50' : ''}`}
+                        className={`flex flex-col items-start p-3 focus:bg-slate-50 dark:bg-zinc-800/50 cursor-pointer ${!n.read ? 'bg-orange-50/50 dark:bg-orange-950/30' : ''}`}
                         onClick={async () => {
                           if (!n.read) {
                             await markNotificationAsRead(n.id);
@@ -152,10 +152,10 @@ export function Navbar() {
                         }}
                       >
                         <div className="flex w-full justify-between gap-2 mb-1">
-                          <span className={`font-semibold text-sm ${!n.read ? 'text-slate-900' : 'text-slate-700'}`}>{n.title}</span>
+                          <span className={`font-semibold text-sm ${!n.read ? 'text-slate-900 dark:text-slate-100' : 'text-slate-700 dark:text-slate-300'}`}>{n.title}</span>
                           <span className="text-[10px] text-muted-foreground shrink-0">{new Date(n.createdAt).toLocaleDateString()}</span>
                         </div>
-                        <p className={`text-xs block w-full whitespace-normal ${!n.read ? 'text-slate-700' : 'text-muted-foreground'}`}>{n.message}</p>
+                        <p className={`text-xs block w-full whitespace-normal ${!n.read ? 'text-slate-700 dark:text-slate-300' : 'text-muted-foreground'}`}>{n.message}</p>
                       </DropdownMenuItem>
                     ))
                   )}
@@ -165,7 +165,7 @@ export function Navbar() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button
-                    className="flex items-center gap-2.5 rounded-full pl-3 pr-1.5 py-1.5 border border-border shadow-sm hover:shadow-md hover:border-primary/40 transition-all bg-background focus:outline-none focus:ring-2 focus:ring-primary/40"
+                    className="flex items-center gap-2.5 rounded-full pl-3 pr-1.5 py-1.5 border border-border shadow-sm dark:shadow-slate-900/50 hover:shadow-md hover:border-primary/40 transition-all bg-background focus:outline-none focus:ring-2 focus:ring-primary/40"
                     aria-label="Open profile menu"
                   >
                     <span className="text-sm font-semibold text-foreground hidden sm:block max-w-[120px] truncate">
@@ -209,7 +209,7 @@ export function Navbar() {
                     </Link>
                     {role === "admin" && (
                       <Link href="/admin">
-                        <DropdownMenuItem className="text-violet-700 hover:!text-violet-700 hover:!bg-violet-50">
+                        <DropdownMenuItem className="text-violet-700 hover:!text-violet-700 hover:!bg-violet-50 dark:bg-violet-950/30">
                           <LayoutDashboard className="mr-2.5 h-4 w-4 text-violet-500" />
                           Admin Panel
                         </DropdownMenuItem>
@@ -242,7 +242,7 @@ export function Navbar() {
                   </DropdownMenuGroup>
 
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleSignOut} className="text-red-600 hover:!text-red-600 hover:!bg-red-50 cursor-pointer">
+                  <DropdownMenuItem onClick={handleSignOut} className="text-red-600 hover:!text-red-600 hover:!bg-red-50 dark:bg-red-950/30 cursor-pointer">
                     <LogOut className="mr-2.5 h-4 w-4" />
                     Sign Out
                   </DropdownMenuItem>
@@ -272,7 +272,7 @@ export function Navbar() {
             </SheetTrigger>
             <SheetContent side="right" className="w-[85vw] sm:w-[400px] border-l border-border/50 bg-background/95 backdrop-blur-2xl p-0 flex flex-col">
               <div className="flex-1 overflow-y-auto">
-                <div className="p-6 pb-2 border-b border-border/50 bg-slate-50/50 dark:bg-slate-900/50">
+                <div className="p-6 pb-2 border-b border-border/50 bg-slate-50 dark:bg-zinc-800/50/50 dark:bg-slate-900/50">
                   <SheetTitle className="text-left text-3xl font-black bg-gradient-to-br from-foreground to-foreground/70 bg-clip-text text-transparent mb-1">Savion</SheetTitle>
                   <p className="text-sm text-muted-foreground mb-4">Premium Student Living</p>
                 </div>
@@ -314,7 +314,7 @@ export function Navbar() {
                 <div className="p-6 bg-slate-50 dark:bg-slate-900 border-t border-border/50 mt-auto">
                   <div className="flex items-center gap-3 mb-4">
                     <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center">
-                      <User className="w-5 h-5 text-slate-500" />
+                      <User className="w-5 h-5 text-slate-500 dark:text-slate-400" />
                     </div>
                     <div>
                       <p className="text-sm font-bold">Guest User</p>
@@ -326,13 +326,13 @@ export function Navbar() {
                       <Button variant="outline" className="w-full h-12 font-bold rounded-xl border-border/60 hover:bg-white dark:hover:bg-slate-800">Log In</Button>
                     </Link>
                     <Link href="/signup" onClick={() => setIsOpen(false)}>
-                      <Button className="w-full h-12 font-bold rounded-xl shadow-lg hover:shadow-primary/25 transition-all hover:-translate-y-0.5">Sign Up</Button>
+                      <Button className="w-full h-12 font-bold rounded-xl shadow-lg dark:shadow-zinc-900/50 hover:shadow-primary/25 transition-all hover:-translate-y-0.5">Sign Up</Button>
                     </Link>
                   </div>
                 </div>
               ) : (
                 <div className="p-6 bg-slate-50 dark:bg-slate-900 border-t border-border/50 mt-auto">
-                  <Button variant="outline" onClick={handleSignOut} className="w-full h-12 font-bold rounded-xl text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200">
+                  <Button variant="outline" onClick={handleSignOut} className="w-full h-12 font-bold rounded-xl text-red-600 hover:text-red-700 hover:bg-red-50 dark:bg-red-950/30 border-red-200">
                     <LogOut className="w-4 h-4 mr-2" /> Sign Out
                   </Button>
                 </div>

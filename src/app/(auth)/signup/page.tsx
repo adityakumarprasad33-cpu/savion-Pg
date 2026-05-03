@@ -206,7 +206,7 @@ export default function SignupPage() {
         </p>
       </div>
 
-      <div className="bg-card p-6 sm:p-8 rounded-2xl border shadow-sm">
+      <div className="bg-card p-6 sm:p-8 rounded-2xl border shadow-sm dark:shadow-slate-900/50">
         <div className="flex justify-center gap-2 mb-6 overflow-x-auto pb-2">
           <Button 
             variant={role === "tenant" ? "default" : "outline"} 
@@ -235,7 +235,7 @@ export default function SignupPage() {
         <div className="grid gap-6">
         {/* Error Banner */}
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3 flex items-start gap-2">
+          <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3 flex items-start gap-2">
             <span className="text-red-500 shrink-0 mt-0.5">⚠️</span>
             <span>{error}</span>
           </div>
@@ -255,7 +255,7 @@ export default function SignupPage() {
             />
             <div className="flex gap-2">
               <Select value={phoneCode} onValueChange={(val) => setPhoneCode(val || "+91")}>
-                <SelectTrigger className="w-[100px] h-12 bg-white">
+                <SelectTrigger className="w-[100px] h-12 bg-white dark:bg-zinc-900">
                   <SelectValue placeholder="Code" />
                 </SelectTrigger>
                 <SelectContent>
@@ -294,7 +294,7 @@ export default function SignupPage() {
               </div>
               {password.length > 0 && (
                 <div className="mt-2 space-y-1.5">
-                  <div className="flex gap-1 h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                  <div className="flex gap-1 h-1.5 w-full bg-slate-100 dark:bg-zinc-800 rounded-full overflow-hidden">
                     {[1, 2, 3, 4, 5].map((level) => (
                       <div 
                         key={level} 
@@ -328,7 +328,7 @@ export default function SignupPage() {
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-            <Button disabled={loading} onClick={onGoogle} variant="outline" type="button" className="h-12 bg-white shadow-sm font-semibold">
+            <Button disabled={loading} onClick={onGoogle} variant="outline" type="button" className="h-12 bg-white dark:bg-zinc-900 shadow-sm dark:shadow-slate-900/50 font-semibold">
                <svg viewBox="0 0 24 24" className="mr-2 h-5 w-5" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
                   <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>

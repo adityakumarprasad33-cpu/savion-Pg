@@ -27,7 +27,7 @@ function FilterCheckbox({
   return (
     <label
       className={`flex items-center gap-2 text-sm cursor-pointer transition-all rounded-lg px-2 py-1.5 -mx-2 select-none ${
-        active ? "bg-primary/10 text-primary font-semibold" : "hover:text-primary hover:bg-slate-50"
+        active ? "bg-primary/10 text-primary font-semibold" : "hover:text-primary hover:bg-slate-50 dark:bg-zinc-800/50"
       }`}
     >
       <input
@@ -193,7 +193,7 @@ function SearchContent() {
               variant="outline"
               size="sm"
               onClick={clearAllFilters}
-              className="text-red-600 border-red-300 hover:bg-red-50 shrink-0 gap-1"
+              className="text-red-600 border-red-300 hover:bg-red-50 dark:bg-red-950/30 shrink-0 gap-1"
             >
               <X className="w-3 h-3" /> Clear ({activeFilterCount})
             </Button>
@@ -214,7 +214,7 @@ function SearchContent() {
       <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-8 border-t pt-8">
         {/* Filters Sidebar */}
         <aside className="hidden lg:block animate-slide-in-left">
-          <div className="bg-card rounded-2xl border shadow-sm p-5 space-y-5 sticky top-24">
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl border shadow-sm dark:shadow-slate-900/50 p-5 space-y-5 sticky top-24">
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-base flex items-center gap-2">
                 <Filter className="w-4 h-4" /> Filters
@@ -231,7 +231,7 @@ function SearchContent() {
 
             {/* Price */}
             <div className="border-t pt-4">
-              <h4 className="font-semibold text-sm text-slate-700 mb-3">
+              <h4 className="font-semibold text-sm text-slate-700 dark:text-slate-300 mb-3">
                 💰 Price Range / Month
               </h4>
               <div className="space-y-1">
@@ -258,7 +258,7 @@ function SearchContent() {
 
             {/* Gender */}
             <div className="border-t pt-4">
-              <h4 className="font-semibold text-sm text-slate-700 mb-3">
+              <h4 className="font-semibold text-sm text-slate-700 dark:text-slate-300 mb-3">
                 👤 Gender Setting
               </h4>
               <div className="space-y-1">
@@ -285,7 +285,7 @@ function SearchContent() {
 
             {/* Amenities */}
             <div className="border-t pt-4">
-              <h4 className="font-semibold text-sm text-slate-700 mb-3">
+              <h4 className="font-semibold text-sm text-slate-700 dark:text-slate-300 mb-3">
                 🏠 Amenities
               </h4>
               <div className="space-y-1">
@@ -334,8 +334,8 @@ function SearchContent() {
               ))}
             </div>
           ) : filtered.length === 0 ? (
-            <div className="flex flex-col items-center justify-center p-12 text-center border rounded-2xl bg-card w-full min-h-[400px] animate-scale-in">
-              <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+            <div className="flex flex-col items-center justify-center p-12 text-center border rounded-2xl bg-white dark:bg-zinc-900 w-full min-h-[400px] animate-scale-in">
+              <div className="w-16 h-16 bg-slate-100 dark:bg-zinc-800 rounded-full flex items-center justify-center mb-4">
                 <span className="text-3xl">🏙️</span>
               </div>
               <h3 className="text-xl font-bold mb-2">
@@ -364,10 +364,10 @@ function SearchContent() {
                   <Link
                     href={`/pg/${pkg.id}`}
                     key={pkg.id}
-                    className="group flex flex-col bg-card border rounded-2xl overflow-hidden hover:shadow-xl transition-all duration-300 animate-fade-in-up card-hover"
+                    className="group flex flex-col bg-card border rounded-2xl overflow-hidden hover:shadow-xl dark:shadow-zinc-900/50 transition-all duration-300 animate-fade-in-up card-hover"
                   >
                     {/* Image */}
-                    <div className="relative aspect-[16/9] w-full overflow-hidden bg-slate-100">
+                    <div className="relative aspect-[16/9] w-full overflow-hidden bg-slate-100 dark:bg-zinc-800">
                       {pkg.img ? (
                         <Image
                           src={pkg.img}
@@ -383,7 +383,7 @@ function SearchContent() {
                       )}
                       {/* Top badges */}
                       <div className="absolute top-3 left-3 flex gap-2">
-                        <Badge className="bg-white/90 backdrop-blur text-foreground font-semibold text-xs">
+                        <Badge className="bg-white dark:bg-zinc-900/90 backdrop-blur text-foreground font-semibold text-xs">
                           {pkg.type || "Co-living"}
                         </Badge>
                         {isFull && (
@@ -396,7 +396,7 @@ function SearchContent() {
                         )}
                       </div>
                       {/* Rating */}
-                      <div className="absolute top-3 right-3 flex items-center gap-1 bg-white/90 backdrop-blur text-amber-600 px-2 py-0.5 rounded-full text-xs font-bold">
+                      <div className="absolute top-3 right-3 flex items-center gap-1 bg-white dark:bg-zinc-900/90 backdrop-blur text-amber-600 px-2 py-0.5 rounded-full text-xs font-bold">
                         <Star className="w-3 h-3 fill-current" />
                         {pkg.rating || "New"}
                       </div>
@@ -410,7 +410,7 @@ function SearchContent() {
                           {pkg.name}
                         </h3>
                         {pkg.city && (
-                          <span className="text-xs font-semibold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full shrink-0">
+                          <span className="text-xs font-semibold bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-slate-400 px-2 py-0.5 rounded-full shrink-0">
                             {pkg.city}
                           </span>
                         )}
@@ -485,7 +485,7 @@ export default function SearchPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="min-h-screen flex items-center justify-center bg-white dark:bg-zinc-900">
           <SpeedLoader text="Scanning Properties" subtext="Finding the best match..." />
         </div>
       }

@@ -19,7 +19,7 @@ export function SafetyPage() {
         </div>
       </Section>
 
-      <Section className="bg-slate-50">
+      <Section className="bg-slate-50 dark:bg-zinc-800/50">
         <SectionTitle>Safety for Tenants</SectionTitle>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <ValueCard icon="📱" title="Share Your Location" desc="Always share your PG address with a trusted family member or friend when moving to a new city." />
@@ -34,7 +34,7 @@ export function SafetyPage() {
         <Paragraph>Owners receive real-time notifications for every booking, complaint, and payment. The digital contract system ensures legal protection for both parties.</Paragraph>
       </Section>
 
-      <Section className="bg-slate-50">
+      <Section className="bg-slate-50 dark:bg-zinc-800/50">
         <SectionTitle>Report a Safety Concern</SectionTitle>
         <Paragraph>If you encounter any safety issue at a Savion-listed property, report it immediately:</Paragraph>
         <Paragraph><strong>Dashboard:</strong> File a complaint under the "Security" category from your tenant dashboard.</Paragraph>

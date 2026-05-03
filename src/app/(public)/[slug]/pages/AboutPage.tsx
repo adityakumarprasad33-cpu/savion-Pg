@@ -12,7 +12,7 @@ export function AboutPage() {
         <Paragraph>We connect verified PG owners with tenants through a transparent, digital-first platform. No broker fees. No hidden charges. No fake listings. Just real rooms, real prices, and real peace of mind.</Paragraph>
       </Section>
 
-      <Section className="bg-muted">
+      <Section className="bg-slate-50 dark:bg-zinc-800/50">
         <SectionTitle>How It Works</SectionTitle>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <StepCard step="1" title="Search & Discover" desc="Browse hundreds of verified PGs across 15+ cities. Filter by price, amenities, location, and gender preference." />
@@ -31,7 +31,7 @@ export function AboutPage() {
         </div>
       </Section>
 
-      <Section className="bg-muted">
+      <Section className="bg-slate-50 dark:bg-zinc-800/50">
         <SectionTitle>Savion in Numbers</SectionTitle>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
           <StatCard value="15+" label="Cities Covered" />

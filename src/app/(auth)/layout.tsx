@@ -13,7 +13,7 @@ export default function AuthLayout({
       <div className="relative hidden h-full flex-col bg-primary p-10 text-white lg:flex border-r animate-slide-in-left overflow-hidden">
         {/* Gradient layers */}
         <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary/90 to-orange-500/80" />
-        <div className="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-white/5 blur-3xl" />
+        <div className="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-white dark:bg-zinc-900/5 blur-3xl" />
         <div className="absolute bottom-0 -left-16 w-72 h-72 rounded-full bg-orange-400/10 blur-2xl" />
 
         <div className="relative z-10 flex items-center text-3xl font-black tracking-tight drop-shadow-md">

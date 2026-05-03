@@ -367,12 +367,12 @@ export default function TenantDashboard() {
     const isBan = error.includes("Account deleted or disabled");
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#fcfdfe]">
-        <div className="text-center max-w-md w-full px-6 bg-white/70 backdrop-blur-3xl p-12 rounded-[3.5rem] shadow-2xl shadow-slate-200/40 border border-white/60 animate-scale-in">
+        <div className="text-center max-w-md w-full px-6 bg-white dark:bg-zinc-900/70 backdrop-blur-3xl p-12 rounded-[3.5rem] shadow-2xl dark:shadow-zinc-900/60 shadow-slate-200/40 border border-white/60 animate-scale-in">
           <div className="w-24 h-24 bg-rose-50 rounded-[2.5rem] flex items-center justify-center mx-auto mb-8 shadow-inner">
             {isBan ? <Lock className="w-12 h-12 text-rose-500 animate-pulse" /> : <WifiOff className="w-12 h-12 text-rose-500" />}
           </div>
-          <h2 className="text-3xl font-black mb-3 text-slate-900 tracking-tighter">{isBan ? "Account Locked" : "System Offline"}</h2>
-          <p className="text-slate-500 font-medium mb-10 leading-relaxed">{error}</p>
+          <h2 className="text-3xl font-black mb-3 text-slate-900 dark:text-slate-100 tracking-tighter">{isBan ? "Account Locked" : "System Offline"}</h2>
+          <p className="text-slate-500 dark:text-slate-400 font-medium mb-10 leading-relaxed">{error}</p>
           {isBan ? (
             supportSent ? (
               <div className="bg-emerald-50 text-emerald-700 p-8 rounded-[2rem] text-sm font-bold border border-emerald-100 animate-scale-in">
@@ -384,15 +384,15 @@ export default function TenantDashboard() {
                   value={supportMessage}
                   onChange={(e) => setSupportMessage(e.target.value)}
                   placeholder="Describe the issue..." 
-                  className="w-full h-32 p-5 text-sm rounded-[1.5rem] bg-slate-50 border-transparent focus:bg-white focus:ring-2 focus:ring-primary transition-all resize-none font-medium"
+                  className="w-full h-32 p-5 text-sm rounded-[1.5rem] bg-slate-50 dark:bg-zinc-800/50 border-transparent focus:bg-white dark:bg-zinc-900 focus:ring-2 focus:ring-primary transition-all resize-none font-medium"
                 />
-                <Button onClick={handleSupportSubmit} disabled={!supportMessage.trim()} className="w-full h-16 bg-slate-900 hover:bg-black text-white font-black rounded-2xl shadow-xl shadow-slate-200">
+                <Button onClick={handleSupportSubmit} disabled={!supportMessage.trim()} className="w-full h-16 bg-slate-900 hover:bg-black text-white font-black rounded-2xl shadow-xl dark:shadow-zinc-900/50 shadow-slate-200">
                   Contact Support Terminal
                 </Button>
               </div>
             )
           ) : (
-            <Button onClick={() => window.location.reload()} variant="outline" className="w-full h-16 rounded-2xl font-black border-slate-200 hover:bg-slate-50 transition-all text-base">Re-establish Connection</Button>
+            <Button onClick={() => window.location.reload()} variant="outline" className="w-full h-16 rounded-2xl font-black border-slate-200 dark:border-zinc-700 hover:bg-slate-50 dark:bg-zinc-800/50 transition-all text-base">Re-establish Connection</Button>
           )}
         </div>
       </div>
@@ -416,13 +416,13 @@ export default function TenantDashboard() {
   return (
     <div className="flex flex-col min-h-screen bg-[#fcfdfe] selection:bg-primary/10 selection:text-primary">
       {/* Premium Glass Header */}
-      <header className="bg-white/60 backdrop-blur-3xl border-b border-white/40 sticky top-0 z-50 py-5 px-6 md:px-12 shadow-sm shadow-slate-200/10">
+      <header className="bg-white dark:bg-zinc-900/60 backdrop-blur-3xl border-b border-white/40 sticky top-0 z-50 py-5 px-6 md:px-12 shadow-sm dark:shadow-slate-900/50 shadow-slate-200/10">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center shadow-2xl shadow-primary/30 group cursor-pointer hover:rotate-6 transition-transform duration-500">
+            <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center shadow-2xl dark:shadow-zinc-900/60 shadow-primary/30 group cursor-pointer hover:rotate-6 transition-transform duration-500">
               <UserCircle className="w-6 h-6 text-white" />
             </div>
-            <h1 className="text-xl font-black tracking-tighter text-slate-900">Resident Portal</h1>
+            <h1 className="text-xl font-black tracking-tighter text-slate-900 dark:text-slate-100">Resident Portal</h1>
           </div>
           <div className="flex items-center gap-6">
             <NotificationDropdown userId={userId} />
@@ -430,7 +430,7 @@ export default function TenantDashboard() {
             <Button 
               variant="ghost" 
               onClick={() => auth.signOut()}
-              className="text-slate-500 hover:text-rose-600 hover:bg-rose-50 font-bold transition-all gap-2 hidden md:flex h-11 px-6 rounded-xl"
+              className="text-slate-500 dark:text-slate-400 hover:text-rose-600 hover:bg-rose-50 font-bold transition-all gap-2 hidden md:flex h-11 px-6 rounded-xl"
             >
               <LogOut className="w-4 h-4" /> Log Out
             </Button>
@@ -439,7 +439,7 @@ export default function TenantDashboard() {
       </header>
 
       {/* Modern Segmented Navigation */}
-      <div className="bg-white/50 border-b border-white/40 py-3 backdrop-blur-xl">
+      <div className="bg-white dark:bg-zinc-900/50 border-b border-white/40 py-3 backdrop-blur-xl">
         <div className="container max-w-7xl mx-auto px-6 flex gap-3">
           {([
             { key: "home", label: "Dashboard", icon: Home },
@@ -451,8 +451,8 @@ export default function TenantDashboard() {
               onClick={() => setActiveTab(tab.key)}
               className={`flex items-center gap-3 px-8 py-3 rounded-2xl text-[11px] font-black transition-all uppercase tracking-widest
                 ${activeTab === tab.key
-                  ? "bg-slate-900 text-white shadow-2xl shadow-slate-900/20 scale-105"
-                  : "text-slate-400 hover:text-slate-900 hover:bg-white/60"}`}
+                  ? "bg-slate-900 text-white shadow-2xl dark:shadow-zinc-900/60 shadow-slate-900/20 scale-105"
+                  : "text-slate-400 hover:text-slate-900 dark:text-slate-100 hover:bg-white dark:bg-zinc-900/60"}`}
             >
               <tab.icon className="w-4 h-4" />
               {tab.label}
@@ -474,11 +474,11 @@ export default function TenantDashboard() {
           >
             <motion.div variants={itemVariants} className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div>
-                <h2 className="text-3xl font-black text-slate-900 tracking-tight">Welcome, {tenantProfile?.name?.split(" ")[0] || "Resident"}!</h2>
-                <p className="text-slate-500 font-medium">Here&apos;s everything about your stay.</p>
+                <h2 className="text-3xl font-black text-slate-900 dark:text-slate-100 tracking-tight">Welcome, {tenantProfile?.name?.split(" ")[0] || "Resident"}!</h2>
+                <p className="text-slate-500 dark:text-slate-400 font-medium">Here&apos;s everything about your stay.</p>
               </div>
               <Link href="/search">
-                <Button className="h-12 px-6 bg-slate-900 hover:bg-black text-white font-black rounded-2xl shadow-xl shadow-slate-200 transition-all active:scale-95 gap-2">
+                <Button className="h-12 px-6 bg-slate-900 hover:bg-black text-white font-black rounded-2xl shadow-xl dark:shadow-zinc-900/50 shadow-slate-200 transition-all active:scale-95 gap-2">
                   Find New Property <ArrowUpRight className="w-4 h-4" />
                 </Button>
               </Link>
@@ -488,7 +488,7 @@ export default function TenantDashboard() {
 
             {/* Premium Info Grid */}
             <motion.div variants={containerVariants} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <motion.div variants={itemVariants} className="lg:col-span-1 bg-white/70 backdrop-blur-2xl p-10 rounded-[3.5rem] border border-white shadow-sm hover:shadow-2xl hover:shadow-primary/5 transition-all duration-500 relative overflow-hidden group">
+              <motion.div variants={itemVariants} className="lg:col-span-1 bg-white dark:bg-zinc-900/70 backdrop-blur-2xl p-10 rounded-[3.5rem] border border-white shadow-sm dark:shadow-slate-900/50 hover:shadow-2xl dark:shadow-zinc-900/60 hover:shadow-primary/5 transition-all duration-500 relative overflow-hidden group">
                 <div className="absolute top-0 right-0 w-40 h-40 bg-primary/5 rounded-full -mr-20 -mt-20 transition-transform group-hover:scale-150 duration-1000" />
                 <div className="relative z-10">
                   <div className="flex items-center gap-4 mb-8">
@@ -497,14 +497,14 @@ export default function TenantDashboard() {
                     </div>
                     <div>
                       <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Live Residence</p>
-                      <h3 className="font-black text-xl text-slate-900 tracking-tighter">Stay Terminal</h3>
+                      <h3 className="font-black text-xl text-slate-900 dark:text-slate-100 tracking-tighter">Stay Terminal</h3>
                     </div>
                   </div>
 
                   {activeBooking ? (
                     <div className="space-y-8">
                       <div>
-                        <h4 className="text-2xl font-black text-slate-900 group-hover:text-primary transition-colors tracking-tighter leading-none">{activeBooking.pgName}</h4>
+                        <h4 className="text-2xl font-black text-slate-900 dark:text-slate-100 group-hover:text-primary transition-colors tracking-tighter leading-none">{activeBooking.pgName}</h4>
                         <p className="text-xs font-bold text-slate-400 mt-2 uppercase tracking-widest">{activeBooking.roomType}</p>
                       </div>
 
@@ -515,12 +515,12 @@ export default function TenantDashboard() {
                                <AlertTriangle className="w-4 h-4 text-rose-600" />
                                <span className="text-[10px] font-black text-rose-600 uppercase tracking-widest">Move-out Active</span>
                             </div>
-                            <Button variant="outline" onClick={handleCancelNotice} disabled={leavingRoom} className="w-full h-14 rounded-2xl border-rose-200 text-rose-700 hover:bg-rose-50 font-black text-xs shadow-sm">
+                            <Button variant="outline" onClick={handleCancelNotice} disabled={leavingRoom} className="w-full h-14 rounded-2xl border-rose-200 text-rose-700 hover:bg-rose-50 font-black text-xs shadow-sm dark:shadow-slate-900/50">
                               Recall Notice Terminal
                             </Button>
                           </div>
                         ) : activeBooking.status === "notice_approved" ? (
-                          <div className="w-full flex flex-col items-center justify-center gap-2 py-4 px-4 bg-slate-900 rounded-2xl shadow-xl shadow-slate-900/20">
+                          <div className="w-full flex flex-col items-center justify-center gap-2 py-4 px-4 bg-slate-900 rounded-2xl shadow-xl dark:shadow-zinc-900/50 shadow-slate-900/20">
                              <div className="flex items-center gap-3">
                                <Clock className="w-4 h-4 text-white/40" />
                                <span className="text-[10px] font-black text-white uppercase tracking-[0.2em]">Checkout Approved</span>
@@ -550,8 +550,8 @@ export default function TenantDashboard() {
                       </div>
                     </div>
                   ) : (
-                    <div className="py-12 text-center bg-slate-50/50 rounded-[2rem] border-2 border-dashed border-slate-100">
-                       <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm">
+                    <div className="py-12 text-center bg-slate-50 dark:bg-zinc-800/50/50 rounded-[2rem] border-2 border-dashed border-slate-100">
+                       <div className="w-16 h-16 bg-white dark:bg-zinc-900 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm dark:shadow-slate-900/50">
                           <Home className="w-6 h-6 text-slate-200" />
                        </div>
                        <p className="text-slate-400 font-bold text-sm">No active stay detected.</p>
@@ -563,24 +563,24 @@ export default function TenantDashboard() {
               {/* Documentation & KYC */}
               <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
                  {/* Contract Card */}
-                 <motion.div variants={itemVariants} className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-primary/5 transition-all group">
+                 <motion.div variants={itemVariants} className="bg-white dark:bg-zinc-900 p-8 rounded-[2.5rem] border border-slate-100 shadow-sm dark:shadow-slate-900/50 hover:shadow-xl dark:shadow-zinc-900/50 hover:shadow-primary/5 transition-all group">
                     <div className="flex items-center gap-4 mb-8">
-                      <div className="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center shadow-lg shadow-slate-200">
+                      <div className="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center shadow-lg dark:shadow-zinc-900/50 shadow-slate-200">
                         <FileText className="w-6 h-6 text-white" />
                       </div>
                       <div>
                         <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Legal Documents</p>
-                        <h3 className="font-black text-lg text-slate-900">Rental Agreement</h3>
+                        <h3 className="font-black text-lg text-slate-900 dark:text-slate-100">Rental Agreement</h3>
                       </div>
                     </div>
                     {activeContract ? (
                       <div className="space-y-4">
-                        <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 group-hover:border-primary/20 group-hover:bg-primary/5 transition-all">
-                          <p className="font-black text-slate-900 truncate">{activeContract.pgName}</p>
+                        <div className="p-4 bg-slate-50 dark:bg-zinc-800/50 rounded-2xl border border-slate-100 group-hover:border-primary/20 group-hover:bg-primary/5 transition-all">
+                          <p className="font-black text-slate-900 dark:text-slate-100 truncate">{activeContract.pgName}</p>
                           <p className="text-xs font-bold text-slate-400 mt-1">Started: {new Date(activeContract.moveInDate).toLocaleDateString("en-IN")}</p>
                         </div>
                         <Link href={`/contract/${activeContract.id}`} className="block">
-                          <Button variant="outline" className="w-full h-12 rounded-xl border-slate-200 text-slate-700 hover:bg-slate-50 font-black group-hover:text-primary group-hover:border-primary/30 transition-all">
+                          <Button variant="outline" className="w-full h-12 rounded-xl border-slate-200 dark:border-zinc-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:bg-zinc-800/50 font-black group-hover:text-primary group-hover:border-primary/30 transition-all">
                             View Full Contract <ChevronRight className="w-4 h-4 ml-2" />
                           </Button>
                         </Link>
@@ -591,28 +591,28 @@ export default function TenantDashboard() {
                  </motion.div>
 
                  {/* KYC Card */}
-                 <motion.div variants={itemVariants} className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-primary/5 transition-all group">
+                 <motion.div variants={itemVariants} className="bg-white dark:bg-zinc-900 p-8 rounded-[2.5rem] border border-slate-100 shadow-sm dark:shadow-slate-900/50 hover:shadow-xl dark:shadow-zinc-900/50 hover:shadow-primary/5 transition-all group">
                     <div className="flex items-center gap-4 mb-8">
-                      <div className="w-12 h-12 bg-emerald-500 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-100">
+                      <div className="w-12 h-12 bg-emerald-500 rounded-2xl flex items-center justify-center shadow-lg dark:shadow-zinc-900/50 shadow-emerald-100">
                         <CheckCircle2 className="w-6 h-6 text-white" />
                       </div>
                       <div>
                         <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Profile Status</p>
-                        <h3 className="font-black text-lg text-slate-900">Resident Identity</h3>
+                        <h3 className="font-black text-lg text-slate-900 dark:text-slate-100">Resident Identity</h3>
                       </div>
                     </div>
                     <div className="space-y-5">
                        <div className="flex items-center justify-between">
-                         <span className="text-sm font-black text-slate-900">Verification Level</span>
+                         <span className="text-sm font-black text-slate-900 dark:text-slate-100">Verification Level</span>
                          {statusBadge(isVerified ? "verified" : verificationStatus)}
                        </div>
-                       <p className="text-xs font-medium text-slate-500 leading-relaxed">
+                       <p className="text-xs font-medium text-slate-500 dark:text-slate-400 leading-relaxed">
                          {isVerified 
                            ? "Your identity is verified. You have full access to all properties and priority support." 
                            : "Complete your identity verification to unlock fast bookings and automated contracts."}
                        </p>
                        {!isVerified && (
-                         <Button onClick={() => setShowVerifyModal(true)} className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl shadow-lg shadow-emerald-100">
+                         <Button onClick={() => setShowVerifyModal(true)} className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl shadow-lg dark:shadow-zinc-900/50 shadow-emerald-100">
                            Verify Identity Now
                          </Button>
                        )}
@@ -624,25 +624,25 @@ export default function TenantDashboard() {
             {/* My Bookings History */}
             <motion.div variants={itemVariants} className="space-y-6">
               <div className="flex items-center justify-between px-2">
-                <h3 className="font-black text-2xl text-slate-900 tracking-tight">Recent Activity</h3>
-                <span className="text-xs font-bold text-slate-400 bg-white px-3 py-1.5 rounded-full border border-slate-100">{bookings.length} Events</span>
+                <h3 className="font-black text-2xl text-slate-900 dark:text-slate-100 tracking-tight">Recent Activity</h3>
+                <span className="text-xs font-bold text-slate-400 bg-white dark:bg-zinc-900 px-3 py-1.5 rounded-full border border-slate-100">{bookings.length} Events</span>
               </div>
               
               {bookings.length === 0 ? (
-                  <div className="bg-white/60 backdrop-blur-xl border border-white rounded-[4rem] p-24 text-center animate-scale-in shadow-xl shadow-slate-200/20">
-                    <div className="w-24 h-24 bg-slate-50 rounded-[2.5rem] flex items-center justify-center mx-auto mb-10 shadow-inner">
+                  <div className="bg-white dark:bg-zinc-900/60 backdrop-blur-xl border border-white rounded-[4rem] p-24 text-center animate-scale-in shadow-xl dark:shadow-zinc-900/50 shadow-slate-200/20">
+                    <div className="w-24 h-24 bg-slate-50 dark:bg-zinc-800/50 rounded-[2.5rem] flex items-center justify-center mx-auto mb-10 shadow-inner">
                       <Package className="w-10 h-10 text-slate-200" />
                     </div>
-                    <h3 className="text-3xl font-black text-slate-900 mb-3 tracking-tighter">No active bookings</h3>
-                    <p className="text-slate-500 font-medium mb-12 max-w-sm mx-auto text-lg leading-relaxed">Start exploring premium verified properties nearby to find your perfect stay.</p>
+                    <h3 className="text-3xl font-black text-slate-900 dark:text-slate-100 mb-3 tracking-tighter">No active bookings</h3>
+                    <p className="text-slate-500 dark:text-slate-400 font-medium mb-12 max-w-sm mx-auto text-lg leading-relaxed">Start exploring premium verified properties nearby to find your perfect stay.</p>
                  </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                    {bookings.map((b, i) => (
-                     <motion.div variants={itemVariants} key={b.id} className="bg-white p-6 rounded-[2rem] border border-slate-50 shadow-sm hover:shadow-xl transition-all group">
+                     <motion.div variants={itemVariants} key={b.id} className="bg-white dark:bg-zinc-900 p-6 rounded-[2rem] border border-slate-50 shadow-sm dark:shadow-slate-900/50 hover:shadow-xl dark:shadow-zinc-900/50 transition-all group">
                         <div className="flex justify-between items-start mb-4">
                           <div>
-                            <h4 className="font-black text-lg text-slate-900 group-hover:text-primary transition-colors">{b.pgName}</h4>
+                            <h4 className="font-black text-lg text-slate-900 dark:text-slate-100 group-hover:text-primary transition-colors">{b.pgName}</h4>
                             <p className="text-xs font-bold text-slate-400">{b.roomType} · {b.moveInDate}</p>
                           </div>
                           <span className={`text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-xl
@@ -656,7 +656,7 @@ export default function TenantDashboard() {
                             <p className="text-xl font-black text-primary">₹{b.amount.toLocaleString("en-IN")}</p>
                           </div>
                           {b.status === "approved" && (
-                            <Button size="sm" onClick={() => payForBooking(b)} disabled={creatingSession} className="bg-primary hover:bg-primary/90 text-white font-black rounded-xl px-6 h-10 shadow-lg shadow-primary/20 animate-pulse">
+                            <Button size="sm" onClick={() => payForBooking(b)} disabled={creatingSession} className="bg-primary hover:bg-primary/90 text-white font-black rounded-xl px-6 h-10 shadow-lg dark:shadow-zinc-900/50 shadow-primary/20 animate-pulse">
                               Confirm & Pay
                             </Button>
                           )}
@@ -667,7 +667,7 @@ export default function TenantDashboard() {
                           )}
                           {b.contractId && (
                             <Link href={`/contract/${b.contractId}`}>
-                              <Button variant="ghost" size="sm" className="font-bold text-slate-500 hover:text-slate-900 rounded-xl h-10">Details</Button>
+                              <Button variant="ghost" size="sm" className="font-bold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-slate-100 rounded-xl h-10">Details</Button>
                             </Link>
                           )}
                         </div>
@@ -688,12 +688,12 @@ export default function TenantDashboard() {
             exit={{ opacity: 0, y: -20 }}
             className="space-y-8"
           >
-            <motion.h2 variants={itemVariants} className="text-3xl font-black text-slate-900">Financial Hub</motion.h2>
+            <motion.h2 variants={itemVariants} className="text-3xl font-black text-slate-900 dark:text-slate-100">Financial Hub</motion.h2>
             
             {activeBooking && ownerProfile?.upiId ? (
               <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
                  {/* Premium Credit Card Payment UI */}
-                 <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-black p-10 rounded-[3rem] text-white shadow-2xl relative overflow-hidden group">
+                 <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-black p-10 rounded-[3rem] text-white shadow-2xl dark:shadow-zinc-900/60 relative overflow-hidden group">
                     <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full -mr-32 -mt-32 blur-3xl group-hover:bg-primary/20 transition-all duration-1000" />
                     <div className="relative z-10 space-y-8">
                        <div className="flex justify-between items-start">
@@ -710,7 +710,7 @@ export default function TenantDashboard() {
                           <p className="text-2xl font-black tracking-tight">{ownerProfile.name}</p>
                        </div>
 
-                       <div className="p-5 bg-white/5 backdrop-blur-xl rounded-[1.5rem] border border-white/10 space-y-3">
+                       <div className="p-5 bg-white dark:bg-zinc-900/5 backdrop-blur-xl rounded-[1.5rem] border border-white/10 space-y-3">
                           <div className="flex justify-between items-center text-[10px] font-black uppercase text-white/40 tracking-widest">
                              <span>VPA / UPI ID</span>
                              <span className="text-primary font-black">SECURE TRANSIT</span>
@@ -726,7 +726,7 @@ export default function TenantDashboard() {
                           <Button 
                              onClick={goToPayPage} 
                              disabled={creatingSession}
-                             className="bg-white hover:bg-slate-100 text-slate-950 h-14 px-8 rounded-2xl font-black text-base shadow-xl shadow-white/5 active:scale-95 transition-all"
+                             className="bg-white dark:bg-zinc-900 hover:bg-slate-100 dark:bg-zinc-800 text-slate-950 h-14 px-8 rounded-2xl font-black text-base shadow-xl dark:shadow-zinc-900/50 shadow-white/5 active:scale-95 transition-all"
                           >
                              {creatingSession ? "Authorizing..." : "Initiate Payment →"}
                           </Button>
@@ -736,68 +736,68 @@ export default function TenantDashboard() {
 
                  {/* Recent Month Status */}
                  <div className="space-y-6">
-                    <h3 className="font-black text-xl text-slate-900 px-2">Current Cycle</h3>
+                    <h3 className="font-black text-xl text-slate-900 dark:text-slate-100 px-2">Current Cycle</h3>
                     {(() => {
                       const cur = payments.find((p) => p.month === payMonth && p.type === "rent");
                       return cur ? (
-                        <div className={`p-8 rounded-[2.5rem] border-2 transition-all duration-500 shadow-sm
+                        <div className={`p-8 rounded-[2.5rem] border-2 transition-all duration-500 shadow-sm dark:shadow-slate-900/50
                           ${cur.status === "verified" ? "bg-emerald-50 border-emerald-100" : cur.status === "rejected" ? "bg-rose-50 border-rose-100" : "bg-amber-50 border-amber-100"}`}>
                            <div className="flex items-center gap-4 mb-4">
-                              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg
+                              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg dark:shadow-zinc-900/50
                                 ${cur.status === "verified" ? "bg-emerald-500 text-white" : cur.status === "rejected" ? "bg-rose-500 text-white" : "bg-amber-500 text-white"}`}>
                                  {cur.status === "verified" ? <CheckCircle2 className="w-6 h-6" /> : cur.status === "rejected" ? <XCircle className="w-6 h-6" /> : <Clock className="w-6 h-6" />}
                               </div>
-                              <h4 className="font-black text-xl text-slate-900">
+                              <h4 className="font-black text-xl text-slate-900 dark:text-slate-100">
                                 {cur.status === "verified" ? "Rent Verified" : cur.status === "rejected" ? "Payment Rejected" : "Review Pending"}
                               </h4>
                            </div>
-                           <p className="text-slate-600 font-medium mb-6 leading-relaxed">
+                           <p className="text-slate-600 dark:text-slate-400 font-medium mb-6 leading-relaxed">
                              {cur.status === "verified" ? "Excellent! Your payment for the current month has been verified by the property owner." :
                               cur.status === "rejected" ? "The owner could not verify this transaction. Please re-check the UTR number or contact support." :
                               "Your transaction details are with the owner. Verification usually takes 1-4 hours."}
                           </p>
                            <Link href={`/dashboard/tenant/receipt/${cur.id}`}>
-                              <Button variant="outline" className="w-full h-12 rounded-xl bg-white border-transparent shadow-sm font-black hover:bg-slate-50">Download Receipt</Button>
+                              <Button variant="outline" className="w-full h-12 rounded-xl bg-white dark:bg-zinc-900 border-transparent shadow-sm dark:shadow-slate-900/50 font-black hover:bg-slate-50 dark:bg-zinc-800/50">Download Receipt</Button>
                            </Link>
                         </div>
                       ) : (
-                        <div className="p-10 rounded-[3rem] bg-white border border-white shadow-2xl shadow-slate-200/50 text-center animate-fade-in-up">
+                        <div className="p-10 rounded-[3rem] bg-white dark:bg-zinc-900 border border-white shadow-2xl dark:shadow-zinc-900/60 shadow-slate-200/50 text-center animate-fade-in-up">
                             <div className="w-20 h-20 bg-rose-50 rounded-[2rem] flex items-center justify-center mx-auto mb-8 shadow-inner">
                                <Clock className="w-10 h-10 text-rose-500 animate-pulse" />
                             </div>
-                            <h4 className="font-black text-2xl text-slate-900 mb-3 tracking-tighter">Rent Overdue</h4>
-                            <p className="text-slate-500 font-medium mb-10 leading-relaxed">Payment for {new Date().toLocaleString('default', { month: 'long' })} cycle is pending. Secure your stay by completing the transfer.</p>
-                            <Button onClick={goToPayPage} className="w-full h-16 bg-primary text-white font-black rounded-3xl shadow-2xl shadow-primary/20 transition-all active:scale-95 text-base">Pay Rent Instantly</Button>
+                            <h4 className="font-black text-2xl text-slate-900 dark:text-slate-100 mb-3 tracking-tighter">Rent Overdue</h4>
+                            <p className="text-slate-500 dark:text-slate-400 font-medium mb-10 leading-relaxed">Payment for {new Date().toLocaleString('default', { month: 'long' })} cycle is pending. Secure your stay by completing the transfer.</p>
+                            <Button onClick={goToPayPage} className="w-full h-16 bg-primary text-white font-black rounded-3xl shadow-2xl dark:shadow-zinc-900/60 shadow-primary/20 transition-all active:scale-95 text-base">Pay Rent Instantly</Button>
                          </div>
                       );
                     })()}
                  </div>
               </motion.div>
             ) : (
-               <div className="bg-white/60 backdrop-blur-xl border border-white rounded-[4rem] p-24 text-center animate-scale-in shadow-xl shadow-slate-200/20">
-                  <div className="w-24 h-24 bg-slate-50 rounded-[2.5rem] flex items-center justify-center mx-auto mb-10 shadow-inner">
+               <div className="bg-white dark:bg-zinc-900/60 backdrop-blur-xl border border-white rounded-[4rem] p-24 text-center animate-scale-in shadow-xl dark:shadow-zinc-900/50 shadow-slate-200/20">
+                  <div className="w-24 h-24 bg-slate-50 dark:bg-zinc-800/50 rounded-[2.5rem] flex items-center justify-center mx-auto mb-10 shadow-inner">
                     <CreditCard className="w-10 h-10 text-slate-200" />
                   </div>
-                  <h3 className="text-3xl font-black text-slate-900 mb-3 tracking-tighter">No Payment Targets</h3>
-                  <p className="text-slate-500 font-medium max-w-sm mx-auto text-lg leading-relaxed">Once your booking is confirmed and the owner activates their revenue gateway, you can manage finances here.</p>
+                  <h3 className="text-3xl font-black text-slate-900 dark:text-slate-100 mb-3 tracking-tighter">No Payment Targets</h3>
+                  <p className="text-slate-500 dark:text-slate-400 font-medium max-w-sm mx-auto text-lg leading-relaxed">Once your booking is confirmed and the owner activates their revenue gateway, you can manage finances here.</p>
                </div>
             )}
 
             {/* Comprehensive History */}
             {payments.length > 0 && (
-              <div className="bg-white rounded-[2.5rem] border border-slate-50 shadow-sm overflow-hidden">
+              <div className="bg-white dark:bg-zinc-900 rounded-[2.5rem] border border-slate-50 shadow-sm dark:shadow-slate-900/50 overflow-hidden">
                 <div className="px-10 py-6 border-b border-slate-50">
-                  <h3 className="font-black text-xl text-slate-900">Transaction History</h3>
+                  <h3 className="font-black text-xl text-slate-900 dark:text-slate-100">Transaction History</h3>
                 </div>
                 <div className="divide-y divide-slate-50">
                    {payments.map((p) => (
-                      <div key={p.id} className="px-10 py-6 flex flex-col md:flex-row items-center justify-between gap-6 hover:bg-slate-50/50 transition-colors">
+                      <div key={p.id} className="px-10 py-6 flex flex-col md:flex-row items-center justify-between gap-6 hover:bg-slate-50 dark:bg-zinc-800/50/50 transition-colors">
                          <div className="flex items-center gap-4 w-full md:w-auto">
-                            <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center">
-                               <Receipt className="w-5 h-5 text-slate-500" />
+                            <div className="w-12 h-12 bg-slate-100 dark:bg-zinc-800 rounded-2xl flex items-center justify-center">
+                               <Receipt className="w-5 h-5 text-slate-500 dark:text-slate-400" />
                             </div>
                             <div>
-                               <p className="font-black text-slate-900">{p.type === "rent" ? "Monthly Rent" : "Deposit"}</p>
+                               <p className="font-black text-slate-900 dark:text-slate-100">{p.type === "rent" ? "Monthly Rent" : "Deposit"}</p>
                                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">{p.month} · {new Date(p.createdAt).toLocaleDateString()}</p>
                             </div>
                          </div>
@@ -807,7 +807,7 @@ export default function TenantDashboard() {
                                <div className="flex justify-end mt-1">{statusBadge(p.status)}</div>
                             </div>
                             <Link href={`/dashboard/tenant/receipt/${p.id}`}>
-                               <button className="w-10 h-10 rounded-full border border-slate-200 flex items-center justify-center hover:border-primary hover:text-primary transition-all">
+                               <button className="w-10 h-10 rounded-full border border-slate-200 dark:border-zinc-700 flex items-center justify-center hover:border-primary hover:text-primary transition-all">
                                   <ArrowUpRight className="w-4 h-4" />
                                </button>
                             </Link>
@@ -831,26 +831,26 @@ export default function TenantDashboard() {
           >
             <motion.div variants={itemVariants} className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div>
-                <h2 className="text-3xl font-black text-slate-900 tracking-tight">Resident Assistance</h2>
-                <p className="text-slate-500 font-medium">Report issues or request maintenance.</p>
+                <h2 className="text-3xl font-black text-slate-900 dark:text-slate-100 tracking-tight">Resident Assistance</h2>
+                <p className="text-slate-500 dark:text-slate-400 font-medium">Report issues or request maintenance.</p>
               </div>
-              <Button onClick={() => { if (!activeBooking) { alert("You need an active booking to raise a complaint."); return; } setIsComplaintModalOpen(true); }} className="h-12 px-6 bg-rose-600 hover:bg-rose-700 text-white font-black rounded-2xl shadow-xl shadow-rose-100 transition-all active:scale-95 gap-2">
+              <Button onClick={() => { if (!activeBooking) { alert("You need an active booking to raise a complaint."); return; } setIsComplaintModalOpen(true); }} className="h-12 px-6 bg-rose-600 hover:bg-rose-700 text-white font-black rounded-2xl shadow-xl dark:shadow-zinc-900/50 shadow-rose-100 transition-all active:scale-95 gap-2">
                 <MessageSquareWarning className="w-4 h-4" /> Raise Issue
               </Button>
             </motion.div>
 
             {complaints.length === 0 ? (
-               <div className="bg-white/60 backdrop-blur-xl border border-white rounded-[4rem] p-24 text-center animate-scale-in shadow-xl shadow-slate-200/20">
+               <div className="bg-white dark:bg-zinc-900/60 backdrop-blur-xl border border-white rounded-[4rem] p-24 text-center animate-scale-in shadow-xl dark:shadow-zinc-900/50 shadow-slate-200/20">
                   <div className="w-24 h-24 bg-emerald-50 rounded-[2.5rem] flex items-center justify-center mx-auto mb-10 shadow-inner">
                     <ShieldCheck className="w-10 h-10 text-emerald-400" />
                   </div>
-                  <h3 className="text-3xl font-black text-slate-900 mb-3 tracking-tighter">Peace of mind</h3>
-                  <p className="text-slate-500 font-medium max-w-sm mx-auto text-lg leading-relaxed">No active support tickets found. Your residence experience is currently optimal.</p>
+                  <h3 className="text-3xl font-black text-slate-900 dark:text-slate-100 mb-3 tracking-tighter">Peace of mind</h3>
+                  <p className="text-slate-500 dark:text-slate-400 font-medium max-w-sm mx-auto text-lg leading-relaxed">No active support tickets found. Your residence experience is currently optimal.</p>
                </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                  {complaints.map((c) => (
-                    <div key={c.id} className="bg-white border border-slate-100 rounded-[2rem] p-8 shadow-sm hover:shadow-xl transition-all group">
+                    <div key={c.id} className="bg-white dark:bg-zinc-900 border border-slate-100 rounded-[2rem] p-8 shadow-sm dark:shadow-slate-900/50 hover:shadow-xl dark:shadow-zinc-900/50 transition-all group">
                        <div className="flex justify-between items-start mb-4">
                           <span className="text-[10px] font-black uppercase tracking-widest text-primary bg-primary/5 px-3 py-1.5 rounded-lg border border-primary/10">{c.category}</span>
                           <span className={`text-[10px] font-black px-3 py-1.5 rounded-lg tracking-widest
@@ -858,10 +858,10 @@ export default function TenantDashboard() {
                             {c.status.toUpperCase()}
                           </span>
                        </div>
-                       <p className="text-slate-800 font-bold text-lg mb-2 group-hover:text-primary transition-colors leading-snug">{c.description}</p>
+                       <p className="text-slate-800 dark:text-slate-200 font-bold text-lg mb-2 group-hover:text-primary transition-colors leading-snug">{c.description}</p>
                        <div className="pt-4 border-t border-slate-50 mt-4 flex justify-between items-center">
                           <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">{new Date(c.createdAt).toLocaleDateString("en-IN")}</p>
-                          <p className="text-xs font-black text-slate-700">{c.pgName}</p>
+                          <p className="text-xs font-black text-slate-700 dark:text-slate-300">{c.pgName}</p>
                        </div>
                     </div>
                  ))}
@@ -874,11 +874,11 @@ export default function TenantDashboard() {
 
       {/* Review Dialog */}
       <Dialog open={isReviewModalOpen} onOpenChange={setIsReviewModalOpen}>
-        <DialogContent className="sm:max-w-[450px] rounded-[2.5rem] p-8 border-none shadow-2xl">
+        <DialogContent className="sm:max-w-[450px] rounded-[2.5rem] p-8 border-none shadow-2xl dark:shadow-zinc-900/60">
           <form onSubmit={submitReview}>
             <DialogHeader className="mb-6">
-              <DialogTitle className="text-2xl font-black text-slate-900 tracking-tight">Rate Your Stay</DialogTitle>
-              <DialogDescription className="font-medium text-slate-500">How was your experience at {reviewBooking?.pgName}?</DialogDescription>
+              <DialogTitle className="text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight">Rate Your Stay</DialogTitle>
+              <DialogDescription className="font-medium text-slate-500 dark:text-slate-400">How was your experience at {reviewBooking?.pgName}?</DialogDescription>
             </DialogHeader>
             <div className="space-y-6 py-2">
               <div className="space-y-2">
@@ -894,7 +894,7 @@ export default function TenantDashboard() {
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Review</label>
                 <textarea
-                  className="w-full min-h-[100px] rounded-2xl bg-slate-50 border-transparent p-4 text-sm focus:ring-2 focus:ring-amber-400 focus:bg-white transition-all resize-none font-medium"
+                  className="w-full min-h-[100px] rounded-2xl bg-slate-50 dark:bg-zinc-800/50 border-transparent p-4 text-sm focus:ring-2 focus:ring-amber-400 focus:bg-white dark:bg-zinc-900 transition-all resize-none font-medium"
                   placeholder="Share your experience..."
                   value={reviewComment}
                   onChange={(e) => setReviewComment(e.target.value)}
@@ -904,7 +904,7 @@ export default function TenantDashboard() {
             </div>
             <DialogFooter className="mt-8 flex gap-3">
               <Button type="button" variant="ghost" onClick={() => setIsReviewModalOpen(false)} className="flex-1 h-12 rounded-xl font-bold">Cancel</Button>
-              <Button type="submit" disabled={submittingReview} className="flex-1 h-12 bg-amber-500 hover:bg-amber-600 text-white font-black rounded-xl shadow-lg shadow-amber-500/20">
+              <Button type="submit" disabled={submittingReview} className="flex-1 h-12 bg-amber-500 hover:bg-amber-600 text-white font-black rounded-xl shadow-lg dark:shadow-zinc-900/50 shadow-amber-500/20">
                 {submittingReview ? "Submitting..." : "Submit Review"}
               </Button>
             </DialogFooter>
@@ -914,18 +914,18 @@ export default function TenantDashboard() {
 
       {/* Modern Dialog Overhaul */}
       <Dialog open={isComplaintModalOpen} onOpenChange={setIsComplaintModalOpen}>
-        <DialogContent className="sm:max-w-[450px] rounded-[2.5rem] p-8 border-none shadow-2xl">
+        <DialogContent className="sm:max-w-[450px] rounded-[2.5rem] p-8 border-none shadow-2xl dark:shadow-zinc-900/60">
           <form onSubmit={submitComplaint}>
             <DialogHeader className="mb-6">
-              <DialogTitle className="text-2xl font-black text-slate-900 tracking-tight">Issue Report</DialogTitle>
-              <DialogDescription className="font-medium text-slate-500">Provide details about the issue. Our team will assist you shortly.</DialogDescription>
+              <DialogTitle className="text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight">Issue Report</DialogTitle>
+              <DialogDescription className="font-medium text-slate-500 dark:text-slate-400">Provide details about the issue. Our team will assist you shortly.</DialogDescription>
             </DialogHeader>
             <div className="space-y-6 py-2">
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Category</label>
                 <Select value={complaintCategory} onValueChange={(val) => val && setComplaintCategory(val)}>
-                  <SelectTrigger className="h-12 rounded-xl bg-slate-50 border-transparent focus:ring-primary"><SelectValue placeholder="Select category" /></SelectTrigger>
-                  <SelectContent className="rounded-2xl border-slate-100 shadow-2xl p-2">
+                  <SelectTrigger className="h-12 rounded-xl bg-slate-50 dark:bg-zinc-800/50 border-transparent focus:ring-primary"><SelectValue placeholder="Select category" /></SelectTrigger>
+                  <SelectContent className="rounded-2xl border-slate-100 shadow-2xl dark:shadow-zinc-900/60 p-2">
                     <SelectItem value="maintenance" className="rounded-xl p-3"><div className="flex items-center gap-3 font-black text-xs uppercase tracking-widest"><Wrench className="w-4 h-4 text-primary" /> Maintenance</div></SelectItem>
                     <SelectItem value="cleanliness" className="rounded-xl p-3"><div className="flex items-center gap-3 font-black text-xs uppercase tracking-widest"><Eraser className="w-4 h-4 text-primary" /> Cleanliness</div></SelectItem>
                     <SelectItem value="security" className="rounded-xl p-3"><div className="flex items-center gap-3 font-black text-xs uppercase tracking-widest"><Shield className="w-4 h-4 text-primary" /> Security</div></SelectItem>
@@ -936,7 +936,7 @@ export default function TenantDashboard() {
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Description</label>
                 <textarea
-                  className="w-full min-h-[120px] rounded-2xl bg-slate-50 border-transparent p-4 text-sm focus:ring-2 focus:ring-primary focus:bg-white transition-all resize-none font-medium"
+                  className="w-full min-h-[120px] rounded-2xl bg-slate-50 dark:bg-zinc-800/50 border-transparent p-4 text-sm focus:ring-2 focus:ring-primary focus:bg-white dark:bg-zinc-900 transition-all resize-none font-medium"
                   placeholder="Tell us what's wrong..."
                   value={complaintDescription}
                   onChange={(e) => setComplaintDescription(e.target.value)}
@@ -946,7 +946,7 @@ export default function TenantDashboard() {
             </div>
             <DialogFooter className="mt-8 flex gap-3">
               <Button type="button" variant="ghost" onClick={() => setIsComplaintModalOpen(false)} className="flex-1 h-12 rounded-xl font-bold">Cancel</Button>
-              <Button type="submit" disabled={submittingComplaint} className="flex-1 h-12 bg-primary hover:bg-primary/90 text-white font-black rounded-xl shadow-lg shadow-primary/20">
+              <Button type="submit" disabled={submittingComplaint} className="flex-1 h-12 bg-primary hover:bg-primary/90 text-white font-black rounded-xl shadow-lg dark:shadow-zinc-900/50 shadow-primary/20">
                 {submittingComplaint ? "Sending..." : "Submit Report"}
               </Button>
             </DialogFooter>

@@ -52,7 +52,7 @@ export default function ContractViewer() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
+      <div className="min-h-screen flex items-center justify-center bg-white dark:bg-zinc-900">
         <SpeedLoader text="Loading Agreement" subtext="Fetching your legal documents..." />
       </div>
     );
@@ -83,7 +83,7 @@ export default function ContractViewer() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 py-10 print:bg-white print:py-0">
+    <div className="min-h-screen bg-slate-50 dark:bg-zinc-800/50 py-10 print:bg-white dark:bg-zinc-900 print:py-0">
       <div className="container max-w-3xl mx-auto px-4">
         {/* Actions bar — hidden on print */}
         <div className="flex justify-between items-center mb-6 print:hidden animate-fade-in-down">
@@ -94,7 +94,7 @@ export default function ContractViewer() {
         </div>
 
         {/* Contract Document */}
-        <div className="bg-white rounded-3xl border shadow-sm p-8 md:p-12 print:rounded-none print:shadow-none print:border-0 animate-fade-in-up">
+        <div className="bg-white dark:bg-zinc-900 rounded-3xl border shadow-sm dark:shadow-slate-900/50 p-8 md:p-12 print:rounded-none print:shadow-none print:border-0 animate-fade-in-up">
           {/* Header */}
           <div className="text-center border-b pb-8 mb-8">
             <div className="flex items-center justify-center gap-2 mb-3">
@@ -113,7 +113,7 @@ export default function ContractViewer() {
           <section className="mb-8">
             <h2 className="text-base font-bold uppercase tracking-wider text-slate-400 mb-4">Parties to the Agreement</h2>
             <div className="grid md:grid-cols-2 gap-4">
-              <div className="bg-slate-50 rounded-2xl p-5">
+              <div className="bg-slate-50 dark:bg-zinc-800/50 rounded-2xl p-5">
                 <p className="text-xs text-slate-400 font-semibold uppercase mb-2">Landlord / Owner</p>
                 <p className="font-bold text-lg">Property Owner</p>
                 <p className="text-sm text-muted-foreground">UID: {contract.ownerId}</p>
@@ -129,17 +129,17 @@ export default function ContractViewer() {
           {/* Property Details */}
           <section className="mb-8">
             <h2 className="text-base font-bold uppercase tracking-wider text-slate-400 mb-4">Property Details</h2>
-            <div className="bg-slate-50 rounded-2xl p-5 grid md:grid-cols-2 gap-3 text-sm">
-              <div><span className="text-slate-500">Property Name: </span><strong>{contract.pgName}</strong></div>
-              <div><span className="text-slate-500">Location: </span><strong>{contract.pgLocation}</strong></div>
-              <div><span className="text-slate-500">Monthly Rent: </span><strong>{contract.monthlyRent}</strong></div>
-              <div><span className="text-slate-500">Security Deposit: </span><strong>{contract.securityDeposit}</strong></div>
-              <div><span className="text-slate-500">Move-In Date: </span><strong>{formatDate(contract.moveInDate)}</strong></div>
-              <div><span className="text-slate-500">Lock-In Period: </span><strong>{contract.lockInMonths} Months</strong></div>
-              <div><span className="text-slate-500">Notice Period: </span><strong>{contract.noticePeriodDays} Days</strong></div>
+            <div className="bg-slate-50 dark:bg-zinc-800/50 rounded-2xl p-5 grid md:grid-cols-2 gap-3 text-sm">
+              <div><span className="text-slate-500 dark:text-slate-400">Property Name: </span><strong>{contract.pgName}</strong></div>
+              <div><span className="text-slate-500 dark:text-slate-400">Location: </span><strong>{contract.pgLocation}</strong></div>
+              <div><span className="text-slate-500 dark:text-slate-400">Monthly Rent: </span><strong>{contract.monthlyRent}</strong></div>
+              <div><span className="text-slate-500 dark:text-slate-400">Security Deposit: </span><strong>{contract.securityDeposit}</strong></div>
+              <div><span className="text-slate-500 dark:text-slate-400">Move-In Date: </span><strong>{formatDate(contract.moveInDate)}</strong></div>
+              <div><span className="text-slate-500 dark:text-slate-400">Lock-In Period: </span><strong>{contract.lockInMonths} Months</strong></div>
+              <div><span className="text-slate-500 dark:text-slate-400">Notice Period: </span><strong>{contract.noticePeriodDays} Days</strong></div>
               <div>
-                <span className="text-slate-500">Status: </span>
-                <span className={`font-bold ${contract.status === "active" ? "text-green-600" : contract.status === "disputed" ? "text-red-600" : "text-slate-500"}`}>
+                <span className="text-slate-500 dark:text-slate-400">Status: </span>
+                <span className={`font-bold ${contract.status === "active" ? "text-green-600" : contract.status === "disputed" ? "text-red-600" : "text-slate-500 dark:text-slate-400"}`}>
                   {contract.status.toUpperCase()}
                 </span>
               </div>
@@ -155,7 +155,7 @@ export default function ContractViewer() {
                   <span className="w-6 h-6 rounded-full bg-primary/10 text-primary font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">
                     {i + 1}
                   </span>
-                  <span className="text-slate-700">{term}</span>
+                  <span className="text-slate-700 dark:text-slate-300">{term}</span>
                 </li>
               ))}
             </ol>
@@ -165,14 +165,14 @@ export default function ContractViewer() {
           {contract.tenantAadhaarUrl && (
             <section className="mb-8 block break-inside-avoid">
               <h2 className="text-base font-bold uppercase tracking-wider text-slate-400 mb-4">Identity Document (KYC)</h2>
-              <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100">
-                <div className="flex items-center justify-between mb-4 pb-4 border-b border-slate-200">
+              <div className="bg-slate-50 dark:bg-zinc-800/50 rounded-2xl p-5 border border-slate-100">
+                <div className="flex items-center justify-between mb-4 pb-4 border-b border-slate-200 dark:border-zinc-700">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center shrink-0">
                       <FileText className="w-5 h-5 text-blue-600" />
                     </div>
                     <div>
-                      <p className="font-bold text-sm text-slate-800">Aadhaar / Government ID</p>
+                      <p className="font-bold text-sm text-slate-800 dark:text-slate-200">Aadhaar / Government ID</p>
                       <a href={contract.tenantAadhaarUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-primary font-semibold hover:underline print:hidden">
                         View Uploaded Image →
                       </a>
@@ -183,16 +183,16 @@ export default function ContractViewer() {
                 
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-y-4 gap-x-6 text-sm mt-2">
                   <div>
-                    <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider block mb-1">Name on Document</span>
-                    <p className="font-semibold text-slate-900">{contract.tenantName || "N/A"}</p>
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-bold tracking-wider block mb-1">Name on Document</span>
+                    <p className="font-semibold text-slate-900 dark:text-slate-100">{contract.tenantName || "N/A"}</p>
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider block mb-1">Aadhaar Number</span>
-                    <p className="font-semibold text-slate-900 font-mono tracking-widest">{contract.tenantAadhaarNumber || "XXXX-XXXX-XXXX"}</p>
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-bold tracking-wider block mb-1">Aadhaar Number</span>
+                    <p className="font-semibold text-slate-900 dark:text-slate-100 font-mono tracking-widest">{contract.tenantAadhaarNumber || "XXXX-XXXX-XXXX"}</p>
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider block mb-1">Date of Birth</span>
-                    <p className="font-semibold text-slate-900">{contract.tenantDob || "N/A"}</p>
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-bold tracking-wider block mb-1">Date of Birth</span>
+                    <p className="font-semibold text-slate-900 dark:text-slate-100">{contract.tenantDob || "N/A"}</p>
                   </div>
                 </div>
               </div>
@@ -202,8 +202,8 @@ export default function ContractViewer() {
           {/* Signature */}
           <section className="mb-8">
             <h2 className="text-base font-bold uppercase tracking-wider text-slate-400 mb-4">Tenant Signature</h2>
-            <div className="border-2 border-dashed border-slate-200 rounded-2xl p-6 flex flex-col items-center gap-3">
-              <div className="bg-white rounded-xl border overflow-hidden max-w-xs w-full">
+            <div className="border-2 border-dashed border-slate-200 dark:border-zinc-700 rounded-2xl p-6 flex flex-col items-center gap-3">
+              <div className="bg-white dark:bg-zinc-900 rounded-xl border overflow-hidden max-w-xs w-full">
                 <Image
                   src={contract.signatureUrl}
                   alt="Tenant signature"
@@ -212,13 +212,13 @@ export default function ContractViewer() {
                   className="w-full object-contain"
                 />
               </div>
-              <p className="text-xs text-slate-500">{contract.tenantName} — Digitally signed on {formatCreatedAt(contract.createdAt)}</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">{contract.tenantName} — Digitally signed on {formatCreatedAt(contract.createdAt)}</p>
             </div>
           </section>
 
           {/* Footer */}
           <div className="border-t pt-6 text-center text-xs text-muted-foreground space-y-1">
-            <p>Contract ID: <code className="font-mono bg-slate-100 px-2 py-0.5 rounded">{contract.id}</code></p>
+            <p>Contract ID: <code className="font-mono bg-slate-100 dark:bg-zinc-800 px-2 py-0.5 rounded">{contract.id}</code></p>
             <p>Generated by Savion Platform · This is a legally binding digital agreement.</p>
             <p className="text-slate-400">In case of dispute, either party can present this document as proof of the rental agreement.</p>
           </div>
