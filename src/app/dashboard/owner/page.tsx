@@ -198,14 +198,20 @@ export default function OwnerDashboard() {
       const payments = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as any));
       setRawPayments(payments);
       
-      const now = new Date();
-      const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-      const thisMonthVerified = payments
-        .filter(p => p.status === "verified" && p.month === currentMonth)
+      // Count total verified revenue for the stat card
+      const totalVerified = payments
+        .filter(p => p.status === "verified")
         .reduce((sum, p) => sum + (p.amount || 0), 0);
-      setMonthlyRevenue(thisMonthVerified);
+      setMonthlyRevenue(totalVerified);
+
+      // Count pending (submitted) payments waiting for owner action
+      const pendingCount = payments.filter(p => p.status === "submitted").length;
+      if (pendingCount > 0) {
+        console.info(`[OwnerDash] ${pendingCount} payment(s) awaiting verification.`);
+      }
 
       const months = [];
+      const now = new Date();
       for(let i=5; i>=0; i--) {
         const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
         const monthStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
@@ -289,10 +295,10 @@ export default function OwnerDashboard() {
 
   return (
     <div className="flex flex-col min-h-screen bg-slate-50 dark:bg-zinc-800/50 selection:bg-primary/10 selection:text-primary relative overflow-hidden">
-      {/* Subtle blueprint grid background */}
-      <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))] opacity-[0.03] pointer-events-none" />
+      {/* Subtle blueprint grid background — CSS-only, no SVG file needed */}
+      <div className="absolute inset-0 pointer-events-none opacity-[0.4]" style={{backgroundImage: 'radial-gradient(circle, #cbd5e1 1px, transparent 1px)', backgroundSize: '24px 24px'}} />
       
-      <header className="bg-white dark:bg-zinc-900/80 backdrop-blur-2xl border-b border-slate-200 dark:border-zinc-700/50 sticky top-0 z-50 py-3 px-6 md:px-8">
+      <header className="bg-white dark:bg-zinc-900 border-b border-slate-200 dark:border-zinc-700/50 sticky top-0 z-50 py-3 px-6 md:px-8">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 bg-slate-900 rounded-lg flex items-center justify-center shadow-md">
@@ -343,7 +349,7 @@ export default function OwnerDashboard() {
         {/* High-Density Stat Grid */}
         <motion.div variants={containerVariants} className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           {[
-            { label: "Revenue", value: `₹${monthlyRevenue.toLocaleString()}`, icon: Wallet, color: "text-emerald-600", bg: "bg-emerald-50" },
+            { label: "Total Revenue", value: `₹${monthlyRevenue.toLocaleString()}`, icon: Wallet, color: "text-emerald-600", bg: "bg-emerald-50" },
             { label: "Properties", value: pgs.length, icon: Building2, color: "text-primary", bg: "bg-primary/5" },
             { label: "Residents", value: activeTenants, icon: Users, color: "text-blue-600", bg: "bg-blue-50" },
             { label: "Issues", value: openComplaintsCount, icon: MessageSquare, color: "text-rose-600", bg: "bg-rose-50" },

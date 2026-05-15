@@ -88,33 +88,33 @@ export default function TenantDashboard() {
     const qBookings = query(collection(db, "bookings"), where("tenantId", "==", userId));
     const unsubBookings = onSnapshot(qBookings, (snap) => {
       setBookings(snap.docs.map(d => ({ id: d.id, ...d.data() })) as Booking[]);
-    });
+    }, (err) => console.error("[TenantDash] Bookings sync error:", err));
 
     // 2. Real-time Contracts
     const qContracts = query(collection(db, "contracts"), where("tenantId", "==", userId));
     const unsubContracts = onSnapshot(qContracts, (snap) => {
       setContracts(snap.docs.map(d => ({ id: d.id, ...d.data() })) as RentalContract[]);
-    });
+    }, (err) => console.error("[TenantDash] Contracts sync error:", err));
 
     // 3. Real-time Complaints
     const qComplaints = query(collection(db, "complaints"), where("tenantId", "==", userId));
     const unsubComplaints = onSnapshot(qComplaints, (snap) => {
       setComplaints(snap.docs.map(d => ({ id: d.id, ...d.data() })) as Complaint[]);
-    });
+    }, (err) => console.error("[TenantDash] Complaints sync error:", err));
 
     // 4. Real-time Payments
     const qPayments = query(collection(db, "payments"), where("tenantId", "==", userId));
     const unsubPayments = onSnapshot(qPayments, (snap) => {
       setPayments(snap.docs.map(d => ({ id: d.id, ...d.data() })) as Payment[]);
-    });
+    }, (err) => console.error("[TenantDash] Payments sync error:", err));
 
-    // 5. Profile & Verification
-    getUserProfile(userId).then(p => {
-      if (p) { setTenantProfile(p); setIsVerified(p.isVerified === true); }
-    });
-    getVerificationStatus(userId).then(v => {
-      setVerificationStatus(v?.status || "not_started");
-    });
+    // 5. Profile & Verification — BUG-07 FIX: added .catch() so errors don't silently vanish
+    getUserProfile(userId)
+      .then(p => { if (p) { setTenantProfile(p); setIsVerified(p.isVerified === true); } })
+      .catch(err => console.error("[TenantDash] Profile fetch failed:", err));
+    getVerificationStatus(userId)
+      .then(v => { setVerificationStatus(v?.status || "not_started"); })
+      .catch(err => console.error("[TenantDash] Verification status fetch failed:", err));
 
     return () => {
       unsubBookings();
@@ -416,7 +416,7 @@ export default function TenantDashboard() {
   return (
     <div className="flex flex-col min-h-screen bg-[#fcfdfe] selection:bg-primary/10 selection:text-primary">
       {/* Premium Glass Header */}
-      <header className="bg-white dark:bg-zinc-900/60 backdrop-blur-3xl border-b border-white/40 sticky top-0 z-50 py-5 px-6 md:px-12 shadow-sm dark:shadow-slate-900/50 shadow-slate-200/10">
+      <header className="bg-white dark:bg-zinc-900 border-b border-slate-200 dark:border-zinc-700/50 sticky top-0 z-50 py-5 px-6 md:px-12 shadow-sm">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center shadow-2xl dark:shadow-zinc-900/60 shadow-primary/30 group cursor-pointer hover:rotate-6 transition-transform duration-500">

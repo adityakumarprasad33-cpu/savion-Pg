@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -54,10 +54,13 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   
+  const alreadyRouted = useRef(false);
+
   useEffect(() => {
-    // Automatically navigate if user is already logged in or logging in
+    // BUG-C8 FIX: Track whether we already routed so token refreshes don't re-fire handleRoute.
     const unsub = onAuthStateChanged(auth, (user) => {
-      if (user) {
+      if (user && !alreadyRouted.current) {
+        alreadyRouted.current = true;
         handleRoute(user);
       }
     });
@@ -201,6 +204,11 @@ export default function LoginPage() {
             <Button type="submit" disabled={loading} className="h-12 font-bold w-full">
               {loading ? "Processing..." : "Sign In"}
             </Button>
+            <div className="text-center">
+              <Link href="/forgot-password" className="text-xs text-muted-foreground hover:text-primary underline underline-offset-4">
+                Forgot your password?
+              </Link>
+            </div>
           </div>
         </form>
 

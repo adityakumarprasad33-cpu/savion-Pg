@@ -5,24 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MapPin, Search, ShieldCheck, Zap, Sparkles, Building, ChevronRight, Star } from "lucide-react";
 import Link from "next/link";
-import { motion, useScroll, useTransform } from "framer-motion";
-import { useRef, useEffect, useState } from "react";
+import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
 import { MainPageDynamicArea } from "@/components/ui/main-page-dynamic-area";
-import { getAllReviews } from "@/lib/db/reviews";
-import { collection, getDocs } from "firebase/firestore";
-import { db } from "@/lib/firebase/client";
 import { getPlatformStats } from "@/lib/db/platformStats";
 
 export default function Homepage() {
-  const containerRef = useRef(null);
-  const { scrollYProgress } = useScroll({
-    target: containerRef,
-    offset: ["start start", "end start"],
-  });
-
-  const y1 = useTransform(scrollYProgress, [0, 1], [0, 200]);
-  const y2 = useTransform(scrollYProgress, [0, 1], [0, -200]);
-  const opacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
+  // BUG-01 FIX: Removed useScroll + useTransform — they fired JS on every scroll
+  // pixel and were the primary cause of PC lag. Now using CSS-only transitions.
 
   const [platformStats, setPlatformStats] = useState({ 
     count: 0, 
@@ -69,10 +59,10 @@ export default function Homepage() {
   };
 
   return (
-    <div className="w-full bg-background overflow-hidden selection:bg-primary/20" ref={containerRef}>
-      {/* Dynamic Background Elements */}
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-primary/5 blur-[120px] pointer-events-none" />
-      <div className="absolute top-[20%] right-[-5%] w-[30%] h-[30%] rounded-full bg-orange-400/5 blur-[100px] pointer-events-none" />
+    <div className="w-full bg-background overflow-hidden selection:bg-primary/20">
+      {/* Static CSS radial-gradient orbs — BUG-01 FIX: no more blur-[120px] GPU drain */}
+      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full pointer-events-none" style={{background: 'radial-gradient(circle at center, rgba(249,115,22,0.06) 0%, transparent 70%)'}} />
+      <div className="absolute top-[20%] right-[-5%] w-[30%] h-[30%] rounded-full pointer-events-none" style={{background: 'radial-gradient(circle at center, rgba(251,146,60,0.05) 0%, transparent 70%)'}} />
       
       {/* HERO SECTION */}
       <section className="relative w-full min-h-[90vh] flex items-center pt-20 pb-16 md:pt-32 md:pb-24">
@@ -162,11 +152,8 @@ export default function Homepage() {
               </motion.div>
             </motion.div>
 
-            {/* Right Images / Visuals */}
-            <motion.div 
-              style={{ y: y1, opacity }} 
-              className="relative hidden lg:flex items-center justify-center h-full w-full"
-            >
+            {/* Right Images / Visuals — BUG-01 FIX: removed scroll-driven y1/opacity */}
+            <div className="relative hidden lg:flex items-center justify-center h-full w-full">
               <div className="relative w-full aspect-square max-w-[600px]">
                 {/* Main large image */}
                 <motion.div 
@@ -224,7 +211,7 @@ export default function Homepage() {
                   </div>
                 </motion.div>
               </div>
-            </motion.div>
+            </div>
 
           </div>
         </div>
@@ -373,8 +360,8 @@ export default function Homepage() {
             { city: "Bangalore", places: "320+", img: "https://images.unsplash.com/photo-1596176530529-78163a4f7af2?q=80&w=800&auto=format&fit=crop", tag: "Tech Hub" },
             { city: "Pune", places: "210+", img: "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=500&q=80", tag: "Student Paradise" },
             { city: "Delhi", places: "450+", img: "https://images.unsplash.com/photo-1587474260584-136574528ed5?q=80&w=800&auto=format&fit=crop", tag: "Capital" },
-            { city: "Mumbai", places: "180+", img: "https://images.unsplash.com/photo-1522536830740-4ca046d5c64b?q=80&w=800&auto=format&fit=crop", tag: "City of Dreams" },
-            { city: "Hyderabad", places: "250+", img: "https://images.unsplash.com/photo-1588713028246-880c54157e8c?q=80&w=800&auto=format&fit=crop", tag: "Pearl City" },
+            { city: "Mumbai", places: "180+", img: "https://images.unsplash.com/photo-1566438480900-0609be27a4be?q=80&w=800&auto=format&fit=crop", tag: "City of Dreams" },
+            { city: "Hyderabad", places: "250+", img: "https://images.unsplash.com/photo-1570168007204-dfb528c6958f?q=80&w=800&auto=format&fit=crop", tag: "Pearl City" },
           ].map((item, index) => (
             <motion.div 
               initial={{ opacity: 0, x: 50 }}

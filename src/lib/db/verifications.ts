@@ -9,7 +9,8 @@ import {
   where, 
   getDocs,
   orderBy,
-  serverTimestamp 
+  serverTimestamp,
+  Timestamp
 } from "firebase/firestore";
 
 export interface VerificationRecord {
@@ -23,9 +24,11 @@ export interface VerificationRecord {
   rejectionReason?: string;
   mlConfidence?: number;
   faceMatchScore?: number;
-  createdAt: any;
-  updatedAt: any;
+  // BUG-Q5 FIX: Replaced 'any' with proper Firestore Timestamp union
+  createdAt: Timestamp | number;
+  updatedAt: Timestamp | number;
 }
+
 
 const COLLECTION_NAME = "verifications";
 

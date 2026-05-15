@@ -15,7 +15,7 @@ const stagger = {
 export function PageHero({ title, subtitle, badge }: { title: string; subtitle: string; badge?: string }) {
   return (
     <section className="relative py-20 md:py-28 bg-gradient-to-br from-primary/5 via-background to-orange-50 overflow-hidden">
-      <div className="absolute top-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-primary/5 blur-[120px] pointer-events-none" />
+      <div className="absolute top-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full pointer-events-none" style={{background: 'radial-gradient(circle at center, rgba(249,115,22,0.07) 0%, transparent 70%)'}} />
       <motion.div initial="hidden" animate="show" variants={stagger} className="container mx-auto px-4 md:px-6 max-w-4xl text-center relative z-10">
         {badge && (
           <motion.span variants={fadeUp} className="inline-block text-xs font-bold uppercase tracking-widest text-primary bg-primary/10 px-4 py-1.5 rounded-full mb-6">{badge}</motion.span>

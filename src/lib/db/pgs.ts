@@ -128,8 +128,8 @@ export async function deletePG(id: string): Promise<void> {
 
 export async function getRecentPGs(): Promise<PG[]> {
   try {
-    // Basic fetch of first 4 for the homepage widget
-    const q = query(collection(db, "pgs"), limit(4));
+    // BUG-L6 FIX: Added orderBy so newest PGs are returned, not arbitrary ones.
+    const q = query(collection(db, "pgs"), orderBy("createdAt", "desc"), limit(4));
     const snapshot = await getDocs(q);
     if (snapshot.empty) return [];
     return snapshot.docs.map((d) => ({ id: d.id, ...d.data() })) as PG[];

@@ -235,8 +235,8 @@ export function SpeedLoader({ text = "Loading", subtext = "Please wait...", clas
         )}
 
         {/* Progress Bar Mockup */}
-        <div className="w-48 md:w-64 h-1 bg-gray-200 rounded-full mx-auto mt-6 overflow-hidden relative">
-          <div className="h-full bg-black w-1/3 animate-[progress_bar_2s_ease-in-out_infinite]"></div>
+        <div className="w-48 md:w-64 h-1 bg-gray-200 dark:bg-zinc-800 rounded-full mx-auto mt-6 overflow-hidden relative">
+          <div className="h-full bg-black dark:bg-white w-1/3 animate-[progress_bar_2s_ease-in-out_infinite]"></div>
         </div>
       </div>
 

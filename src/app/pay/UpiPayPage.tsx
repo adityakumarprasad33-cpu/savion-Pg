@@ -9,7 +9,7 @@ import { CheckCircle2, Clock, AlertTriangle, Copy, ArrowLeft, ShieldCheck, Lock 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
-import { submitPayment, getPaymentsByTenant } from "@/lib/db/payments";
+import { submitPayment, getPaymentsByTenant, getPaymentByUTR } from "@/lib/db/payments";
 import { createNotification } from "@/lib/db/notifications";
 import { updateBooking } from "@/lib/db/bookings";
 import {
@@ -175,17 +175,17 @@ export default function UpiPayPage() {
     try {
       // Re-fetch session to ensure it's still valid and still pending (replay protection)
       const freshSession = await getPaymentSession(session.id);
+      // BUG-S2 FIX: Replaced alert() with inline state error
       if (!freshSession || freshSession.status !== "pending" || Date.now() > freshSession.expiresAt) {
-        alert("Session is no longer valid. Please go back and start a new payment.");
+        setUtrError("Session is no longer valid. Please go back and start a new payment.");
         setExpired(true);
         return;
       }
 
-      // Check for duplicate UTR across ALL payments
-      const allPayments = await getPaymentsByTenant(authUid);
-      const utrAlreadyUsed = allPayments.some((p) => p.utrNumber === cleanUtr);
-      if (utrAlreadyUsed) {
-        setUtrError("This UTR number has already been submitted. Please check your transaction details.");
+      // BUG-L2 FIX: Check UTR globally across ALL payments (not just this tenant)
+      const existingByUTR = await getPaymentByUTR(cleanUtr);
+      if (existingByUTR) {
+        setUtrError("This UTR number has already been used on this platform. Please check your transaction details.");
         return;
       }
 
@@ -241,7 +241,7 @@ export default function UpiPayPage() {
         title: "❌ Payment Failed",
         message: `Your payment attempt for ${session.month} at ${session.pgName} failed. Please try again.`,
         type: "booking",
-      }).catch(() => {});
+      }).catch((notifErr) => console.warn("[UpiPay] Failed to send failure notification:", notifErr));
       setUtrError("Submission failed. Please check your connection and try again.");
     } finally {
       setSubmitting(false);
@@ -416,7 +416,7 @@ export default function UpiPayPage() {
           <form onSubmit={handleConfirm} className="space-y-3">
             <div>
               <Input
-                placeholder="12-24 character UTR e.g. 425234567891"
+                placeholder="10-24 character UTR e.g. 425234567891"
                 value={utr}
                 onChange={(e) => { setUtr(e.target.value); setUtrError(""); }}
                 className={`h-11 font-mono text-sm ${utrError ? "border-red-400 focus-visible:ring-red-400" : ""}`}

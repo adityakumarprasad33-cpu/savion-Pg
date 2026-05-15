@@ -1,5 +1,5 @@
 import {
-  collection, doc, getDocs, query, setDoc, updateDoc, where, orderBy
+  collection, doc, getDoc, getDocs, query, setDoc, updateDoc, where, orderBy
 } from "firebase/firestore";
 import { db } from "../firebase/client";
 
@@ -31,7 +31,9 @@ export async function submitPayment(
   const payment: Payment = {
     ...data,
     id: ref.id,
-    status: "verified",   // Auto-verified on submission — no manual owner step needed
+    // BUG-L1 FIX: Status starts as "submitted". Owner must verify in the Payments tab.
+    // This prevents any random UTR string from being counted as verified revenue.
+    status: "submitted",
     createdAt: Date.now(),
   };
   const sanitized = Object.fromEntries(
@@ -81,9 +83,17 @@ export async function updatePaymentStatus(
   await updateDoc(ref, { status });
 }
 
+// BUG-Q1 FIX: Removed unnecessary dynamic import — getDoc is statically imported above.
 export async function getPaymentById(id: string): Promise<Payment | null> {
-  const { getDoc } = await import("firebase/firestore");
   const snap = await getDoc(doc(db, "payments", id));
   if (snap.exists()) return snap.data() as Payment;
+  return null;
+}
+
+// BUG-L2 FIX: Global UTR duplicate check across ALL payments (not just one tenant).
+export async function getPaymentByUTR(utrNumber: string): Promise<Payment | null> {
+  const q = query(collection(db, "payments"), where("utrNumber", "==", utrNumber));
+  const snap = await getDocs(q);
+  if (!snap.empty) return snap.docs[0].data() as Payment;
   return null;
 }

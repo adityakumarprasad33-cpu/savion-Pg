@@ -42,23 +42,33 @@ export default function CaretakerDashboard() {
       if (p) setCaretakerProfile(p);
     });
 
+    let unsubComplaints: (() => void) | null = null;
+
     // Fetch PGs assigned to this caretaker
     const qPgs = query(collection(db, "pgs"), where("caretakerId", "==", caretakerId));
     const unsubPgs = onSnapshot(qPgs, (snapshot) => {
       const pgsData = snapshot.docs.map(d => ({ id: d.id, ...d.data() })) as PG[];
       setAssignedPGs(pgsData);
       
+      // Clean up previous complaints listener before creating a new one
+      if (unsubComplaints) unsubComplaints();
+
       if (pgsData.length > 0) {
         // Fetch complaints for these PGs
         const pgIds = pgsData.map(pg => pg.id);
         const qComplaints = query(collection(db, "complaints"), where("pgId", "in", pgIds));
-        onSnapshot(qComplaints, (compSnap) => {
+        unsubComplaints = onSnapshot(qComplaints, (compSnap) => {
           setComplaints(compSnap.docs.map(d => ({ id: d.id, ...d.data() })) as Complaint[]);
         });
+      } else {
+        setComplaints([]);
       }
     });
 
-    return () => unsubPgs();
+    return () => {
+      unsubPgs();
+      if (unsubComplaints) unsubComplaints();
+    };
   }, [caretakerId]);
 
   const handleResolve = async (complaintId: string) => {
@@ -102,7 +112,7 @@ export default function CaretakerDashboard() {
   return (
     <div className="flex flex-col min-h-screen bg-[#fcfdfe] selection:bg-primary/10 selection:text-primary">
       {/* Header */}
-      <header className="bg-white dark:bg-zinc-900/60 backdrop-blur-3xl border-b border-white/40 sticky top-0 z-50 py-5 px-6 md:px-12 shadow-sm dark:shadow-slate-900/50 shadow-slate-200/10">
+      <header className="bg-white dark:bg-zinc-900 border-b border-slate-200 dark:border-zinc-700/50 sticky top-0 z-50 py-5 px-6 md:px-12 shadow-sm">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 bg-emerald-600 rounded-2xl flex items-center justify-center shadow-2xl dark:shadow-zinc-900/60 shadow-emerald-500/30 group cursor-pointer hover:rotate-6 transition-transform duration-500">

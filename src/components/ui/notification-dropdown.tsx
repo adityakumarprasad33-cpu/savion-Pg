@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { getUserNotifications, markNotificationAsRead, markAllNotificationsAsRead, Notification } from "@/lib/db/notifications";
 import { Bell } from "lucide-react";
 import {
@@ -9,24 +9,45 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
+import { db } from "@/lib/firebase/client";
+import { collection, query, where, onSnapshot, orderBy } from "firebase/firestore";
 
+// BUG-P7 FIX: Replaced one-shot getDocs with onSnapshot for real-time badge updates.
+// Also added proper cleanup on unmount.
 export function NotificationDropdown({ userId }: { userId: string | null | undefined }) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  
+  const unsubRef = useRef<(() => void) | null>(null);
+
   useEffect(() => {
-    if (userId) {
-      getUserNotifications(userId).catch(e => { console.error("Notifications error:", e); return []; }).then(setNotifications);
-    }
+    if (!userId) return;
+
+    const q = query(
+      collection(db, "notifications"),
+      where("userId", "==", userId),
+      orderBy("createdAt", "desc")
+    );
+
+    unsubRef.current = onSnapshot(q, (snap) => {
+      setNotifications(snap.docs.map(d => ({ id: d.id, ...d.data() }) as Notification));
+    }, (err) => {
+      console.error("[NotificationDropdown] Listener error:", err);
+    });
+
+    return () => {
+      if (unsubRef.current) unsubRef.current();
+    };
   }, [userId]);
 
   if (!userId) return null;
+
+  const unreadCount = notifications.filter(n => !n.read).length;
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button className="relative p-2 rounded-full hover:bg-slate-100 dark:bg-zinc-800/20 transition-colors focus:outline-none">
           <Bell className="w-5 h-5 text-current opacity-80 hover:opacity-100" />
-          {notifications.filter(n => !n.read).length > 0 && (
+          {unreadCount > 0 && (
             <span className="absolute top-1 right-1.5 w-2 h-2 bg-red-500 rounded-full animate-pulse border border-white"></span>
           )}
         </button>
@@ -34,7 +55,7 @@ export function NotificationDropdown({ userId }: { userId: string | null | undef
       <DropdownMenuContent align="end" className="w-80 max-h-[80vh] overflow-y-auto z-50 bg-white dark:bg-zinc-900">
         <div className="flex items-center justify-between px-3 py-2 border-b">
           <span className="font-bold">Notifications</span>
-          {notifications.some(n => !n.read) && (
+          {unreadCount > 0 && (
              <button 
                onClick={async () => {
                  if(userId) await markAllNotificationsAsRead(userId, notifications);
