@@ -27,21 +27,30 @@ export default function Homepage() {
   useEffect(() => {
     async function fetchStats() {
       try {
-        const stats = await getPlatformStats();
-        if (stats) {
-          setPlatformStats({
-            count: stats.count,
-            rating: stats.rating,
-            reviews: stats.reviews
-          });
-          if (stats.topCities && stats.topCities.length > 0) {
-            setTopCities(stats.topCities);
-          }
-        }
-        
-        // Fetch real active locations from PGs
         const locations = await getActiveLocations();
         setActiveLocations(locations);
+
+        const { getAllReviews } = await import("@/lib/db/reviews");
+        const { collection, getDocs } = await import("firebase/firestore");
+        const { db } = await import("@/lib/firebase/client");
+        
+        const allReviews = await getAllReviews();
+        const reviewsCount = allReviews.length;
+        let avgRating = 0;
+        if (reviewsCount > 0) {
+          const totalRating = allReviews.reduce((sum, r) => sum + r.rating, 0);
+          avgRating = Number((totalRating / reviewsCount).toFixed(1));
+        }
+
+        // Fetch bookings to count active users
+        const bookingsSnap = await getDocs(collection(db, "bookings"));
+        const studentsCount = bookingsSnap.docs.length;
+
+        setPlatformStats({
+          count: studentsCount,
+          rating: avgRating,
+          reviews: reviewsCount
+        });
       } catch (e) {
         console.error("Failed to fetch platform stats or locations", e);
       }
