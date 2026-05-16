@@ -70,7 +70,7 @@ export default function TenantDashboard() {
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState("");
   const [submittingReview, setSubmittingReview] = useState(false);
-  
+  const [nocBooking, setNocBooking] = useState<Booking | null>(null);
   // Animation Variants
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -124,62 +124,7 @@ export default function TenantDashboard() {
     };
   }, [userId]);
 
-  // --- AUTO-VANISH LOGIC (5:00 PM CHECKOUT → HARD DELETE) ---
-  // Track bookings already cleaned up to prevent re-firing
-  const deletedBookingsRef = useRef<Set<string>>(new Set());
 
-  useEffect(() => {
-    if (!userId || bookings.length === 0) return;
-
-    const checkAndTerminate = async () => {
-      const now = new Date();
-      for (const booking of bookings) {
-        if (booking.status === "notice_approved" && booking.moveOutDate) {
-          // Skip if already processed
-          if (deletedBookingsRef.current.has(booking.id)) continue;
-
-          const [year, month, day] = booking.moveOutDate.split("-").map(Number);
-          const checkoutTime = new Date(year, month - 1, day, 17, 0, 0); // 5:00 PM
-
-          if (now >= checkoutTime) {
-            // Mark as processing immediately to prevent re-entry
-            deletedBookingsRef.current.add(booking.id);
-            try {
-              // 1. Restore Room Availability
-              if (booking.roomId) {
-                await restoreRoomAvailability(booking.pgId, booking.roomId);
-              }
-
-              // 2. Delete all complaints for this tenant at this PG
-              await deleteComplaintsByTenantAndPG(userId, booking.pgId);
-
-              // 3. Delete the contract
-              const relatedContract = contracts.find(
-                (c) => c.bookingId === booking.id || c.tenantId === userId
-              );
-              if (relatedContract) {
-                await deleteContract(relatedContract.id);
-              }
-
-              // 4. Delete the booking itself (LAST — so the loop doesn't refire)
-              await deleteBooking(booking.id);
-
-              // NOTE: payments and reviews are intentionally preserved.
-              console.log(`[Auto-Vanish] Cleanup complete for ${booking.pgName}. Payments & reviews retained.`);
-            } catch (err) {
-              console.error("[Auto-Vanish] Error during cleanup:", err);
-              // Remove from processed set so it can retry next cycle
-              deletedBookingsRef.current.delete(booking.id);
-            }
-          }
-        }
-      }
-    };
-
-    const interval = setInterval(checkAndTerminate, 60000); // Check every minute
-    checkAndTerminate(); // Initial check on mount
-    return () => clearInterval(interval);
-  }, [userId, bookings, contracts]);
 
   const activeBooking = bookings.find((b) => b.status === "confirmed" || b.status === "notice_given" || b.status === "notice_approved");
   const activeContract = contracts.find((c) => c.status === "active");
@@ -305,12 +250,12 @@ export default function TenantDashboard() {
       alert("⚠️ You have pending dues. Please clear all outstanding payments before initiating a move-out notice.");
       return;
     }
-    const confirmLeave = confirm("Are you sure you want to give your 7-day move-out notice?");
+    const confirmLeave = confirm("Are you sure you want to give your 1-month move-out notice?");
     if (!confirmLeave) return;
     setLeavingRoom(true);
     try {
       const moveOutDate = new Date();
-      moveOutDate.setDate(moveOutDate.getDate() + 7);
+      moveOutDate.setMonth(moveOutDate.getMonth() + 1);
       const moveOutStr = moveOutDate.toISOString().split("T")[0];
 
       await updateBooking(activeBooking.id, { status: "notice_given", moveOutDate: moveOutStr });
@@ -413,10 +358,16 @@ export default function TenantDashboard() {
     return <span className="text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-600 border border-amber-100 dark:border-amber-900/50">Pending</span>;
   };
 
+  const rentPayment = payments.find((p) => p.month === payMonth && p.type === "rent");
+  const isRentDue = activeBooking && activeBooking.status === "confirmed" && (!rentPayment || rentPayment.status === "rejected");
+
   return (
-    <div className="flex flex-col min-h-screen bg-slate-50 dark:bg-zinc-950 selection:bg-primary/10 selection:text-primary">
+    <div className="flex flex-col min-h-screen bg-slate-50 dark:bg-zinc-950 selection:bg-primary/10 selection:text-primary relative overflow-x-hidden">
+      {/* Premium Ambient Glows */}
+      <div className="absolute top-0 left-0 w-full h-[500px] bg-gradient-to-b from-primary/5 via-primary/[0.02] to-transparent pointer-events-none" />
+      <div className="absolute -top-40 -right-40 w-96 h-96 bg-primary/20 rounded-full blur-[100px] pointer-events-none opacity-50 dark:opacity-20" />
       {/* Premium Glass Header */}
-      <header className="bg-white dark:bg-zinc-900 border-b border-slate-200 dark:border-zinc-700/50 sticky top-0 z-50 py-5 px-6 md:px-12 shadow-sm">
+      <header className="sticky top-0 z-50 py-5 px-6 md:px-12 bg-white/70 dark:bg-zinc-950/70 backdrop-blur-2xl border-b border-slate-200/50 dark:border-white/5 transition-all">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center shadow-2xl dark:shadow-zinc-900/60 shadow-primary/30 group cursor-pointer hover:rotate-6 transition-transform duration-500">
@@ -438,26 +389,28 @@ export default function TenantDashboard() {
         </div>
       </header>
 
-      {/* Modern Segmented Navigation */}
-      <div className="bg-white dark:bg-zinc-900/50 border-b border-white/40 py-3 backdrop-blur-xl">
-        <div className="container max-w-7xl mx-auto px-6 flex gap-3">
-          {([
-            { key: "home", label: "Dashboard", icon: Home },
-            { key: "payments", label: "Finances", icon: CreditCard },
-            { key: "complaints", label: "Support", icon: MessageSquareWarning },
-          ] as const).map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className={`flex items-center gap-3 px-8 py-3 rounded-2xl text-[11px] font-black transition-all uppercase tracking-widest
-                ${activeTab === tab.key
-                  ? "bg-slate-900 text-white shadow-2xl dark:shadow-zinc-900/60 shadow-slate-900/20 scale-105"
-                  : "text-slate-400 hover:text-slate-900 dark:text-slate-100 hover:bg-white dark:bg-zinc-900/60"}`}
-            >
-              <tab.icon className="w-4 h-4" />
-              {tab.label}
-            </button>
-          ))}
+      {/* Modern Floating Pill Navigation */}
+      <div className="bg-transparent pt-6 pb-2 relative z-10">
+        <div className="container max-w-7xl mx-auto px-6 flex justify-start">
+          <div className="flex gap-2 p-1.5 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl border border-slate-200/80 dark:border-zinc-800/80 rounded-full shadow-sm">
+            {([
+              { key: "home", label: "Dashboard", icon: Home },
+              { key: "payments", label: "Finances", icon: CreditCard },
+              { key: "complaints", label: "Support", icon: MessageSquareWarning },
+            ] as const).map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={`flex items-center gap-2 px-6 py-2.5 rounded-full text-[11px] font-black transition-all uppercase tracking-widest duration-300
+                  ${activeTab === tab.key
+                    ? "bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow-xl scale-100"
+                    : "text-slate-500 hover:text-slate-900 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-zinc-800 scale-95"}`}
+              >
+                <tab.icon className="w-4 h-4" />
+                {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -486,9 +439,30 @@ export default function TenantDashboard() {
 
             {userId && <VerificationBanner userId={userId} />}
 
+            {/* BIG RENT DUE ALERT */}
+            {isRentDue && (
+              <motion.div variants={itemVariants} className="bg-gradient-to-br from-rose-500 to-red-600 dark:from-rose-600 dark:to-red-800 p-8 md:p-10 rounded-[3.5rem] shadow-2xl shadow-rose-500/30 text-white relative overflow-hidden flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-20 -mt-20 blur-3xl pointer-events-none" />
+                <div className="relative z-10 flex items-center gap-6">
+                   <div className="w-16 h-16 bg-white/20 backdrop-blur-xl rounded-[1.5rem] flex items-center justify-center shrink-0 shadow-inner">
+                      <AlertTriangle className="w-8 h-8 text-white animate-pulse" />
+                   </div>
+                   <div>
+                      <h3 className="text-2xl md:text-3xl font-black tracking-tight mb-1">Rent Payment Due!</h3>
+                      <p className="text-rose-100 font-medium max-w-lg">Your rent for {new Date().toLocaleString('default', { month: 'long', year: 'numeric' })} is currently pending. Please clear your dues immediately to maintain your active stay status.</p>
+                   </div>
+                </div>
+                <div className="relative z-10 w-full md:w-auto">
+                   <Button onClick={goToPayPage} disabled={creatingSession} className="w-full md:w-auto h-16 px-10 bg-white hover:bg-rose-50 text-rose-600 font-black rounded-2xl shadow-xl transition-all active:scale-95 text-base">
+                      {creatingSession ? "Processing..." : "Pay Rent Now"}
+                   </Button>
+                </div>
+              </motion.div>
+            )}
+
             {/* Premium Info Grid */}
             <motion.div variants={containerVariants} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <motion.div variants={itemVariants} className="lg:col-span-1 bg-white dark:bg-zinc-900/70 backdrop-blur-2xl p-10 rounded-[3.5rem] border border-white shadow-sm dark:shadow-slate-900/50 hover:shadow-2xl dark:shadow-zinc-900/60 hover:shadow-primary/5 transition-all duration-500 relative overflow-hidden group">
+              <motion.div variants={itemVariants} className="lg:col-span-1 bg-white/60 dark:bg-zinc-900/40 backdrop-blur-3xl p-10 rounded-[3.5rem] border border-white/80 dark:border-white/5 shadow-xl shadow-slate-200/40 dark:shadow-none hover:shadow-2xl hover:bg-white/80 dark:hover:bg-zinc-900/60 transition-all duration-500 relative overflow-hidden group">
                 <div className="absolute top-0 right-0 w-40 h-40 bg-primary/5 rounded-full -mr-20 -mt-20 transition-transform group-hover:scale-150 duration-1000" />
                 <div className="relative z-10">
                   <div className="flex items-center gap-4 mb-8">
@@ -563,7 +537,7 @@ export default function TenantDashboard() {
               {/* Documentation & KYC */}
               <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
                  {/* Contract Card */}
-                 <motion.div variants={itemVariants} className="bg-white dark:bg-zinc-900 p-8 rounded-[2.5rem] border border-slate-100 shadow-sm dark:shadow-slate-900/50 hover:shadow-xl dark:shadow-zinc-900/50 hover:shadow-primary/5 transition-all group">
+                 <motion.div variants={itemVariants} className="bg-white/60 dark:bg-zinc-900/40 backdrop-blur-xl p-8 rounded-[2.5rem] border border-white/80 dark:border-white/5 shadow-lg shadow-slate-200/30 dark:shadow-none hover:shadow-xl hover:bg-white/80 dark:hover:bg-zinc-900/60 transition-all group">
                     <div className="flex items-center gap-4 mb-8">
                       <div className="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center shadow-lg dark:shadow-zinc-900/50 shadow-slate-200">
                         <FileText className="w-6 h-6 text-white" />
@@ -591,7 +565,7 @@ export default function TenantDashboard() {
                  </motion.div>
 
                  {/* KYC Card */}
-                 <motion.div variants={itemVariants} className="bg-white dark:bg-zinc-900 p-8 rounded-[2.5rem] border border-slate-100 shadow-sm dark:shadow-slate-900/50 hover:shadow-xl dark:shadow-zinc-900/50 hover:shadow-primary/5 transition-all group">
+                 <motion.div variants={itemVariants} className="bg-white/60 dark:bg-zinc-900/40 backdrop-blur-xl p-8 rounded-[2.5rem] border border-white/80 dark:border-white/5 shadow-lg shadow-slate-200/30 dark:shadow-none hover:shadow-xl hover:bg-white/80 dark:hover:bg-zinc-900/60 transition-all group">
                     <div className="flex items-center gap-4 mb-8">
                       <div className="w-12 h-12 bg-emerald-500 rounded-2xl flex items-center justify-center shadow-lg dark:shadow-zinc-900/50 shadow-emerald-100">
                         <CheckCircle2 className="w-6 h-6 text-white" />
@@ -629,8 +603,9 @@ export default function TenantDashboard() {
               </div>
               
               {bookings.length === 0 ? (
-                  <div className="bg-white dark:bg-zinc-900/60 backdrop-blur-xl border border-white rounded-[4rem] p-24 text-center animate-scale-in shadow-xl dark:shadow-zinc-900/50 shadow-slate-200/20">
-                    <div className="w-24 h-24 bg-slate-50 dark:bg-zinc-800/50 rounded-[2.5rem] flex items-center justify-center mx-auto mb-10 shadow-inner">
+                  <div className="bg-white/40 dark:bg-zinc-900/30 backdrop-blur-2xl border border-white/60 dark:border-white/5 rounded-[4rem] p-24 text-center animate-scale-in shadow-2xl shadow-slate-200/20 dark:shadow-none relative overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-br from-white/40 to-transparent dark:from-white/5 pointer-events-none" />
+                    <div className="relative z-10 w-24 h-24 bg-white/80 dark:bg-zinc-800/80 backdrop-blur-sm rounded-[2.5rem] flex items-center justify-center mx-auto mb-10 shadow-inner">
                       <Package className="w-10 h-10 text-slate-200" />
                     </div>
                     <h3 className="text-3xl font-black text-slate-900 dark:text-slate-100 mb-3 tracking-tighter">No active bookings</h3>
@@ -639,7 +614,7 @@ export default function TenantDashboard() {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                    {bookings.map((b, i) => (
-                     <motion.div variants={itemVariants} key={b.id} className="bg-white dark:bg-zinc-900 p-6 rounded-[2rem] border border-slate-50 shadow-sm dark:shadow-slate-900/50 hover:shadow-xl dark:shadow-zinc-900/50 transition-all group">
+                     <motion.div variants={itemVariants} key={b.id} className="bg-white/60 dark:bg-zinc-900/40 backdrop-blur-xl p-6 rounded-[2.5rem] border border-white/80 dark:border-white/5 shadow-lg shadow-slate-200/30 dark:shadow-none hover:shadow-xl hover:bg-white/80 dark:hover:bg-zinc-900/60 transition-all group">
                         <div className="flex justify-between items-start mb-4">
                           <div>
                             <h4 className="font-black text-lg text-slate-900 dark:text-slate-100 group-hover:text-primary transition-colors">{b.pgName}</h4>
@@ -665,7 +640,12 @@ export default function TenantDashboard() {
                               <Star className="w-3.5 h-3.5 mr-1.5" /> Rate Stay
                             </Button>
                           )}
-                          {b.contractId && (
+                          {b.status === "past" && (
+                            <Button size="sm" onClick={() => setNocBooking(b)} className="bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-xl px-6 h-10 shadow-lg dark:shadow-zinc-900/50 shadow-emerald-200">
+                              View NOC
+                            </Button>
+                          )}
+                          {b.contractId && b.status !== "past" && (
                             <Link href={`/contract/${b.contractId}`}>
                               <Button variant="ghost" size="sm" className="font-bold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-slate-100 rounded-xl h-10">Details</Button>
                             </Link>
@@ -761,7 +741,7 @@ export default function TenantDashboard() {
                            </Link>
                         </div>
                       ) : (
-                        <div className="p-10 rounded-[3rem] bg-white dark:bg-zinc-900 border border-white shadow-2xl dark:shadow-zinc-900/60 shadow-slate-200/50 text-center animate-fade-in-up">
+                        <div className="p-10 rounded-[3rem] bg-white/60 dark:bg-zinc-900/40 backdrop-blur-xl border border-white/80 dark:border-white/5 shadow-lg shadow-slate-200/30 dark:shadow-none text-center animate-fade-in-up">
                             <div className="w-20 h-20 bg-rose-50 rounded-[2rem] flex items-center justify-center mx-auto mb-8 shadow-inner">
                                <Clock className="w-10 h-10 text-rose-500 animate-pulse" />
                             </div>
@@ -774,8 +754,9 @@ export default function TenantDashboard() {
                  </div>
               </motion.div>
             ) : (
-               <div className="bg-white dark:bg-zinc-900/60 backdrop-blur-xl border border-white rounded-[4rem] p-24 text-center animate-scale-in shadow-xl dark:shadow-zinc-900/50 shadow-slate-200/20">
-                  <div className="w-24 h-24 bg-slate-50 dark:bg-zinc-800/50 rounded-[2.5rem] flex items-center justify-center mx-auto mb-10 shadow-inner">
+               <div className="bg-white/40 dark:bg-zinc-900/30 backdrop-blur-2xl border border-white/60 dark:border-white/5 rounded-[4rem] p-24 text-center animate-scale-in shadow-2xl shadow-slate-200/20 dark:shadow-none relative overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-br from-white/40 to-transparent dark:from-white/5 pointer-events-none" />
+                  <div className="relative z-10 w-24 h-24 bg-white/80 dark:bg-zinc-800/80 backdrop-blur-sm rounded-[2.5rem] flex items-center justify-center mx-auto mb-10 shadow-inner">
                     <CreditCard className="w-10 h-10 text-slate-200" />
                   </div>
                   <h3 className="text-3xl font-black text-slate-900 dark:text-slate-100 mb-3 tracking-tighter">No Payment Targets</h3>
@@ -785,13 +766,13 @@ export default function TenantDashboard() {
 
             {/* Comprehensive History */}
             {payments.length > 0 && (
-              <div className="bg-white dark:bg-zinc-900 rounded-[2.5rem] border border-slate-50 shadow-sm dark:shadow-slate-900/50 overflow-hidden">
-                <div className="px-10 py-6 border-b border-slate-50">
+              <div className="bg-white/60 dark:bg-zinc-900/40 backdrop-blur-xl rounded-[2.5rem] border border-white/80 dark:border-white/5 shadow-lg shadow-slate-200/30 dark:shadow-none overflow-hidden">
+                <div className="px-10 py-6 border-b border-white/40 dark:border-white/5">
                   <h3 className="font-black text-xl text-slate-900 dark:text-slate-100">Transaction History</h3>
                 </div>
-                <div className="divide-y divide-slate-50">
+                <div className="divide-y divide-white/40 dark:divide-white/5">
                    {payments.map((p) => (
-                      <div key={p.id} className="px-10 py-6 flex flex-col md:flex-row items-center justify-between gap-6 hover:bg-slate-50 dark:bg-zinc-800/50/50 transition-colors">
+                      <div key={p.id} className="px-10 py-6 flex flex-col md:flex-row items-center justify-between gap-6 hover:bg-white/80 dark:hover:bg-zinc-800/50 transition-colors">
                          <div className="flex items-center gap-4 w-full md:w-auto">
                             <div className="w-12 h-12 bg-slate-100 dark:bg-zinc-800 rounded-2xl flex items-center justify-center">
                                <Receipt className="w-5 h-5 text-slate-500 dark:text-slate-400" />
@@ -840,8 +821,9 @@ export default function TenantDashboard() {
             </motion.div>
 
             {complaints.length === 0 ? (
-               <div className="bg-white dark:bg-zinc-900/60 backdrop-blur-xl border border-white rounded-[4rem] p-24 text-center animate-scale-in shadow-xl dark:shadow-zinc-900/50 shadow-slate-200/20">
-                  <div className="w-24 h-24 bg-emerald-50 rounded-[2.5rem] flex items-center justify-center mx-auto mb-10 shadow-inner">
+               <div className="bg-white/40 dark:bg-zinc-900/30 backdrop-blur-2xl border border-white/60 dark:border-white/5 rounded-[4rem] p-24 text-center animate-scale-in shadow-2xl shadow-slate-200/20 dark:shadow-none relative overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-br from-white/40 to-transparent dark:from-white/5 pointer-events-none" />
+                  <div className="relative z-10 w-24 h-24 bg-emerald-50/80 backdrop-blur-sm rounded-[2.5rem] flex items-center justify-center mx-auto mb-10 shadow-inner">
                     <ShieldCheck className="w-10 h-10 text-emerald-400" />
                   </div>
                   <h3 className="text-3xl font-black text-slate-900 dark:text-slate-100 mb-3 tracking-tighter">Peace of mind</h3>
@@ -850,7 +832,7 @@ export default function TenantDashboard() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                  {complaints.map((c) => (
-                    <div key={c.id} className="bg-white dark:bg-zinc-900 border border-slate-100 rounded-[2rem] p-8 shadow-sm dark:shadow-slate-900/50 hover:shadow-xl dark:shadow-zinc-900/50 transition-all group">
+                    <div key={c.id} className="bg-white/60 dark:bg-zinc-900/40 backdrop-blur-xl border border-white/80 dark:border-white/5 rounded-[2.5rem] p-8 shadow-lg shadow-slate-200/30 dark:shadow-none hover:shadow-xl hover:bg-white/80 dark:hover:bg-zinc-900/60 transition-all group">
                        <div className="flex justify-between items-start mb-4">
                           <span className="text-[10px] font-black uppercase tracking-widest text-primary bg-primary/5 px-3 py-1.5 rounded-lg border border-primary/10">{c.category}</span>
                           <span className={`text-[10px] font-black px-3 py-1.5 rounded-lg tracking-widest
@@ -967,6 +949,43 @@ export default function TenantDashboard() {
           }}
         />
       )}
+
+      {/* NOC Modal */}
+      <Dialog open={!!nocBooking} onOpenChange={(open) => !open && setNocBooking(null)}>
+        <DialogContent className="sm:max-w-[600px] bg-white dark:bg-zinc-900 border-slate-200 dark:border-zinc-800 rounded-[2.5rem] p-0 overflow-hidden">
+          <div className="bg-emerald-500 p-8 text-center text-white relative">
+             <div className="w-20 h-20 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
+                <ShieldCheck className="w-10 h-10 text-white" />
+             </div>
+             <h2 className="text-3xl font-black tracking-tight mb-2">No Objection Certificate</h2>
+             <p className="text-emerald-100 font-medium">Clearance & Security Release</p>
+          </div>
+          <div className="p-8 md:p-12 space-y-8">
+             <div className="text-center space-y-4">
+                <p className="text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
+                  This document serves as an official confirmation that <strong className="text-slate-900 dark:text-slate-100">{tenantProfile?.name}</strong> has successfully vacated <strong className="text-slate-900 dark:text-slate-100">{nocBooking?.pgName}</strong>.
+                </p>
+                <div className="bg-slate-50 dark:bg-zinc-800/50 rounded-2xl p-6 border border-slate-100 dark:border-zinc-800">
+                   <h4 className="text-sm font-black uppercase tracking-widest text-emerald-600 mb-2">Clearance Status: Verified</h4>
+                   <p className="text-slate-600 dark:text-slate-300 text-sm font-medium">All financial dues, including rent and utility charges for the duration of the stay, have been fully cleared. There are no outstanding claims or pending actions against the tenant.</p>
+                </div>
+             </div>
+             <div className="flex justify-between items-end border-t border-slate-100 dark:border-zinc-800 pt-8 mt-8">
+                <div>
+                   <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Date Issued</p>
+                   <p className="text-sm font-bold text-slate-900 dark:text-slate-100">{new Date().toLocaleDateString('en-IN')}</p>
+                </div>
+                <div className="text-right">
+                   <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Authorized By</p>
+                   <p className="text-sm font-bold text-slate-900 dark:text-slate-100">Savion Management</p>
+                </div>
+             </div>
+             <Button onClick={() => window.print()} className="w-full h-14 bg-slate-900 hover:bg-black text-white font-black rounded-xl shadow-xl dark:shadow-zinc-900/50">
+                Print Certificate
+             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

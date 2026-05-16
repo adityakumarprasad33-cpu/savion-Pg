@@ -112,42 +112,7 @@ export default function ManagePGPage() {
     };
   }, [params?.id]);
 
-  // --- AUTO-VANISH MONITOR (5:00 PM CHECKOUT SYNC) ---
-  useEffect(() => {
-    if (bookings.length === 0) return;
 
-    const checkAndTerminate = async () => {
-      const now = new Date();
-      for (const booking of bookings) {
-        if (booking.status === "notice_approved" && booking.moveOutDate) {
-          const [year, month, day] = booking.moveOutDate.split("-").map(Number);
-          const checkoutTime = new Date(year, month - 1, day, 17, 0, 0); // 5:00 PM
-
-          if (now >= checkoutTime) {
-            console.log(`[Auto-Vanish Sync] Terminating booking ${booking.id} - Checkout passed.`);
-            try {
-              // 1. Terminate Booking
-              await updateBooking(booking.id, { status: "cancelled" }); // Move to history
-              
-              // 2. Terminate Contract
-              if (booking.contractId) {
-                await updateContractStatus(booking.contractId, "terminated");
-              }
-
-              // 3. Room Availability is usually handled manually or via a cloud function, 
-              // but we ensure the status change reflects in the UI.
-            } catch (err) {
-              console.error("[Auto-Vanish Sync] Error:", err);
-            }
-          }
-        }
-      }
-    };
-
-    const interval = setInterval(checkAndTerminate, 60000); // Minute check
-    checkAndTerminate(); 
-    return () => clearInterval(interval);
-  }, [bookings]);
 
   useEffect(() => {
     if (pg && ownerId && pg.ownerId !== ownerId) {
@@ -236,6 +201,44 @@ export default function ManagePGPage() {
         : `Your move-out notice for ${pg.name} was not accepted. Please contact the owner for details.`,
       type: "booking"
     });
+  };
+
+  const handleFinalizeCheckout = async (booking: Booking) => {
+    if (!pg) return;
+    const confirmFinalize = confirm(`Are you sure you want to finalize checkout for ${booking.tenantName || 'this tenant'} and free the room?`);
+    if (!confirmFinalize) return;
+
+    try {
+      // 1. Update Booking Status
+      await updateBooking(booking.id, { status: "past" });
+      
+      // 2. Update Contract Status
+      if (booking.contractId) {
+        await updateContractStatus(booking.contractId, "terminated");
+      }
+
+      // 3. Restore Room Availability
+      if (booking.roomId && pg.rooms) {
+        // match by ID or roomNumber
+        const targetRoom = pg.rooms.find(r => r.id === booking.roomId || r.roomNumber === booking.roomId);
+        if (targetRoom) {
+          await updateRoomAvail(targetRoom.id, targetRoom.available + 1);
+        }
+      }
+
+      setBookings(bookings.map(b => b.id === booking.id ? { ...b, status: "past" } : b));
+
+      await createNotification({
+        userId: booking.tenantId,
+        title: "Checkout Completed",
+        message: `Your checkout at ${pg.name} has been finalized. Thank you for staying with us!`,
+        type: "system"
+      });
+      alert("Checkout finalized successfully. Room is now available.");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to finalize checkout.");
+    }
   };
 
   const handleComplaintAction = async (complaintId: string, tenantId: string, status: any, category: string) => {
@@ -514,6 +517,15 @@ export default function ManagePGPage() {
                               Stay Active
                             </Button>
                           </div>
+                        )}
+
+                        {b.status === "notice_approved" && (
+                          <Button 
+                            onClick={() => handleFinalizeCheckout(b)}
+                            className="h-12 px-6 bg-slate-900 hover:bg-black text-white font-black rounded-xl shadow-lg flex-1 text-xs"
+                          >
+                            Finalize Move-Out
+                          </Button>
                         )}
 
                         {b.contractId && (
