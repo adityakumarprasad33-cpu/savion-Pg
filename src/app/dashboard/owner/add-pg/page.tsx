@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, Plus, Trash2, MapPin, Loader2, CheckCircle2, UserPlus, Users, User, UsersRound, Handshake, BedSingle, BedDouble, Building2, Home, ImagePlus, Navigation } from "lucide-react";
+import { getStates, getDistricts, getCities, findLocationByCity } from "@/lib/data/indiaLocations";
 
 const STEP_LABELS = ["Basic Info", "Location", "Rooms", "Facilities", "Caretaker"];
 const ALL_FACILITIES = [
@@ -37,8 +38,11 @@ export default function AddPGPage() {
   const [mainImageFile, setMainImageFile] = useState<File | null>(null);
   const [mainImagePreview, setMainImagePreview] = useState<string | null>(null);
 
+
   // ── Step 2: Location ────────────────────────────────────────────────────────
   const [location, setLocation] = useState("");
+  const [selectedState, setSelectedState] = useState("");
+  const [selectedDistrict, setSelectedDistrict] = useState("");
   const [city, setCity] = useState("");
   const [lat, setLat] = useState<number | null>(null);
   const [lng, setLng] = useState<number | null>(null);
@@ -120,7 +124,39 @@ export default function AddPGPage() {
           const data = await res.json();
           const addr = data.address;
           setLocation(data.display_name || "");
-          setCity(addr.city || addr.town || addr.suburb || addr.state_district || "");
+          
+          const detectedCity = addr.city || addr.town || addr.suburb || addr.state_district || "";
+          const detectedState = addr.state || "";
+          
+          // Try to match with our location data
+          const match = findLocationByCity(detectedCity);
+          if (match) {
+            setSelectedState(match.state);
+            setSelectedDistrict(match.district);
+            setCity(match.city);
+          } else {
+            // Fallback: try state-level matching
+            const states = getStates();
+            const matchedState = states.find(s => s.toLowerCase() === detectedState.toLowerCase());
+            if (matchedState) {
+              setSelectedState(matchedState);
+              // Try to find district from addr.state_district or addr.county
+              const districtName = addr.state_district || addr.county || "";
+              const districts = getDistricts(matchedState);
+              const matchedDistrict = districts.find(d => d.toLowerCase() === districtName.toLowerCase());
+              if (matchedDistrict) {
+                setSelectedDistrict(matchedDistrict);
+                const cities = getCities(matchedState, matchedDistrict);
+                const matchedCity = cities.find(c => c.toLowerCase() === detectedCity.toLowerCase());
+                setCity(matchedCity || detectedCity);
+              } else {
+                setSelectedDistrict("");
+                setCity(detectedCity);
+              }
+            } else {
+              setCity(detectedCity);
+            }
+          }
         } catch {
           // geocoding failed, just use coordinates
           setLocation(`${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
@@ -212,6 +248,8 @@ export default function AddPGPage() {
         type,
         location,
         city,
+        state: selectedState,
+        district: selectedDistrict,
         ...(lat !== null ? { lat } : {}),
         ...(lng !== null ? { lng } : {}),
         price: `₹${lowestRent.toLocaleString("en-IN")}`,
@@ -282,7 +320,7 @@ export default function AddPGPage() {
 
   const canNext = () => {
     if (step === 1) return name.trim().length > 0;
-    if (step === 2) return location.trim().length > 0 && city.trim().length > 0;
+    if (step === 2) return location.trim().length > 0 && selectedState.length > 0 && selectedDistrict.length > 0 && city.trim().length > 0;
     if (step === 3) {
       const dups = duplicateRoomNumbers();
       return rooms.length > 0 && rooms.every((r) => r.monthlyRent > 0) && dups.size === 0;
@@ -406,15 +444,63 @@ export default function AddPGPage() {
               />
             </div>
 
-            <div>
-              <label className="label-sm">City <span className="text-red-500">*</span></label>
-              <Input
-                placeholder="e.g. Bangalore"
-                value={city}
-                onChange={(e) => setCity(e.target.value)}
-                className="h-11 mt-1.5"
-              />
+            {/* Cascading Location Dropdowns */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* State Dropdown */}
+              <div>
+                <label className="label-sm">State <span className="text-red-500">*</span></label>
+                <select
+                  value={selectedState}
+                  onChange={(e) => { setSelectedState(e.target.value); setSelectedDistrict(""); setCity(""); }}
+                  className="w-full h-11 mt-1.5 rounded-xl border border-border bg-background px-3 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all appearance-none cursor-pointer"
+                >
+                  <option value="">Select State</option>
+                  {getStates().map((s) => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* District Dropdown */}
+              <div>
+                <label className="label-sm">District <span className="text-red-500">*</span></label>
+                <select
+                  value={selectedDistrict}
+                  onChange={(e) => { setSelectedDistrict(e.target.value); setCity(""); }}
+                  disabled={!selectedState}
+                  className="w-full h-11 mt-1.5 rounded-xl border border-border bg-background px-3 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all appearance-none cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <option value="">Select District</option>
+                  {getDistricts(selectedState).map((d) => (
+                    <option key={d} value={d}>{d}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* City Dropdown */}
+              <div>
+                <label className="label-sm">City <span className="text-red-500">*</span></label>
+                <select
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  disabled={!selectedDistrict}
+                  className="w-full h-11 mt-1.5 rounded-xl border border-border bg-background px-3 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all appearance-none cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <option value="">Select City</option>
+                  {getCities(selectedState, selectedDistrict).map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              </div>
             </div>
+
+            {/* Selected location summary */}
+            {selectedState && selectedDistrict && city && (
+              <div className="flex items-center gap-2 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/50 rounded-xl px-4 py-2.5 text-sm animate-fade-in-up">
+                <MapPin className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span className="font-semibold text-emerald-700 dark:text-emerald-400">{city}, {selectedDistrict}, {selectedState}</span>
+              </div>
+            )}
 
             {/* GPS Button */}
             <button
@@ -426,6 +512,7 @@ export default function AddPGPage() {
               {geoLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Navigation className="w-4 h-4" />}
               {geoLoading ? "Detecting location..." : "Auto-detect my location (GPS)"}
             </button>
+            <p className="text-xs text-muted-foreground -mt-3 ml-1">GPS will auto-fill the dropdowns above with your precise location.</p>
 
             {/* Map preview */}
             {lat && lng && (
@@ -434,7 +521,7 @@ export default function AddPGPage() {
                   title="Map"
                   width="100%"
                   height="100%"
-                  src={`https://www.openstreetmap.org/export/embed.html?bbox=${lng - 0.005},${lat - 0.005},${lng + 0.005},${lat + 0.005}&layer=mapnik&marker=${lat},${lng}`}
+                  src={`https://maps.google.com/maps?q=${lat},${lng}&z=15&output=embed`}
                   style={{ border: 0 }}
                 />
               </div>

@@ -1,0 +1,202 @@
+================================================================================
+                        SAVION PLATFORM — ACKNOWLEDGMENT
+                        Test Frontend — Build Summary
+================================================================================
+
+Project     : Savion — Premium PG Booking & Management Platform
+Version     : 1.2.0 (Test Build)
+Environment : test_Frontend
+Date        : May 2026
+Author      : Built with Antigravity (Google DeepMind)
+
+================================================================================
+  PLATFORM OVERVIEW
+================================================================================
+
+Savion is a full-stack, production-grade PG (Paying Guest) accommodation 
+management platform built with Next.js 15, Firebase, and Framer Motion. 
+It serves four distinct user roles with role-based dashboards, real-time 
+data sync, and automated lifecycle management.
+
+================================================================================
+  USER ROLES & CAPABILITIES
+================================================================================
+
+  [ADMIN]
+  • Full platform control center with animated tab navigation
+  • Real-time user, property, and booking oversight
+  • Verification document review and approval workflow
+  • Identity (KYC / Aadhaar) approval queue
+
+  [OWNER]
+  • Premium dashboard with live revenue trajectory chart (5 time filters)
+  • Platform Pulse — real-time activity feed (payments, complaints, bookings)
+  • Bento-grid property portfolio
+  • UPI payment gateway integration
+  • Booking inquiry approval flow
+
+  [CARETAKER]
+  • Property management with real-time status sync
+  • Complaint monitoring and resolution tracking
+
+  [TENANT]
+  • Smart booking wizard with KYC identity verification bypass for verified users
+  • Digital rental agreement with e-signature
+  • Payment hub with UPI QR-code flow
+  • Move-out notice system (7-day checkout timeline)
+  • Review and rating system (post-stay)
+  • Complaint filing system
+
+================================================================================
+  BOOKING LIFECYCLE (ENFORCED)
+================================================================================
+
+  pending → confirmed → notice_given → notice_approved → [AUTO CHECKOUT @ 5 PM]
+
+  On Auto-Checkout (Hard Cleanup):
+  ✓ Room availability RESTORED (occupancy-- and available++)
+  ✓ All complaints for that tenant-PG pair deleted
+  ✓ Contract record deleted from Firestore
+  ✓ Booking record deleted from Firestore (last, to prevent re-fire)
+  ✓ Payment history PRESERVED
+  ✓ User reviews PRESERVED
+
+  Re-Booking Gate Logic:
+  ✗ Cannot book if status is: confirmed, notice_given, notice_approved
+  ✓ Can book if: no active booking, or all prior records deleted post-checkout
+
+================================================================================
+  REVENUE CHART FILTERS
+================================================================================
+
+  The Owner Dashboard Revenue Trajectory chart supports 5 real-time filters:
+  • Last Hour  → 12 × 5-minute buckets
+  • Daily      → Last 14 days
+  • Weekly     → Last 8 weeks
+  • Monthly    → Last 6 months (default)
+  • Yearly     → Last 3 years
+  
+  All filters recompute live from rawPayments state (no extra Firestore calls).
+
+================================================================================
+  BUGS FOUND & FIXED (FULL AUDIT)
+================================================================================
+
+  --- Session 1 (Core Logic) ---
+  1. JSX tag mismatch in tenant/page.tsx (</div> → </motion.div>)
+  2. Map function closing tag mismatch in tenant/page.tsx
+  3. Booking guard only blocked confirmed+pending — now also blocks
+     notice_given and notice_approved statuses
+  4. Auto-vanish only mutated status; now performs hard Firestore deletes
+  5. Revenue chart used hardcoded mock data; now reads live rawPayments
+  6. Activity feed used mock items; now reads real Firestore events
+  7. "View All Activity" button had no onClick handler; now toggles feed
+  8. Header "Book Now" button had no active-booking check; now disabled
+     with contextual reason text
+
+  --- Session 2 (Deep Audit — Firebase Permissions + Data Integrity) ---
+  9.  🔴 CRITICAL: Complaint interface missing `ownerId` field.
+      Owner dashboard queried `where("ownerId", "==", ownerId)` on complaints
+      collection but complaints never stored ownerId.
+      → Caused: "Missing or insufficient permissions" Firebase error
+      → Fixed: Added `ownerId` to Complaint interface + createComplaint call
+
+  10. 🟡 MEDIUM: `restoreRoomAvailability()` used `r.id === roomId` but
+      PGRoom interface only has `roomNumber`, not `id`. Room matching
+      would NEVER succeed, making rooms appear permanently occupied.
+      → Fixed: Now matches on `r.roomNumber === roomId || (r as any).id === roomId`
+
+  11. 🟡 MEDIUM: Owner dashboard `timeAgo()` typed parameter as `string`
+      but `createdAt` is stored as `number` (Unix milliseconds). This caused
+      incorrect or NaN time calculations in the activity feed.
+      → Fixed: Accepts `string | number`, handles both via typeof check
+
+  12. 🟡 MEDIUM: Auto-Vanish effect re-triggered infinitely. useEffect
+      depended on `[bookings, contracts]` — deleting a booking fires
+      onSnapshot, updates bookings state, re-triggers effect, tries to
+      delete again (fails silently but wastes resources/logs errors).
+      → Fixed: Added `deletedBookingsRef` (useRef<Set>) to skip already-
+        processed booking IDs. On error, ID is removed so retry works.
+
+================================================================================
+  BEAST-LEVEL SEO OPTIMIZATIONS
+================================================================================
+
+  Advanced Indexing & Crawlability:
+  ├── public/robots.txt              — Crawler rules (allow public, block dashboards)
+  ├── public/manifest.json           — Web Manifest for PWA & mobile search signals
+  ├── public/og-image.jpg            — 1200×630 Premium Open Graph banner
+  ├── src/app/sitemap.ts             — Dynamic XML sitemap including all city pages
+  ├── src/app/layout.tsx             — Full metadata suite + FAQ Rich Snippets
+  ├── src/app/(public)/search/metadata.ts     — Search page SEO
+  ├── src/app/(public)/pg/[id]/metadata.ts   — Dynamic PG metadata + LodgingBusiness Schema
+  └── src/app/(public)/pgs-in-[city]/page.tsx — 15 SEO landing pages for major cities
+
+  Structured Data (JSON-LD) Integrated:
+  • WebApplication (Root)
+  • FAQPage (Root — enables FAQ rich snippets in search results)
+  • LodgingBusiness (Per property — enables business card in search)
+  • ItemList (City-specific — enables list rich snippet)
+
+  Targeted Keywords:
+  "PG accommodation", "paying guest", "PG near me", "boys PG", "girls PG",
+  "co-living", "PG booking online", "verified PG", "affordable PG",
+  "digital rental agreement", "PG rooms", "student accommodation India"
+
+================================================================================
+  CUSTOM IMAGERY
+================================================================================
+
+  4 AI-generated, high-contrast images integrated into landing page cards:
+  • card-verified.png   — Modern PG room interior with verification badge
+  • card-booking.png    — Digital booking/payment UI concept
+  • card-amenities.png  — Flat-lay of premium PG amenities
+  • card-community.png  — Co-living common area lifestyle shot
+
+================================================================================
+  COMMUNITY HUB FEATURES
+================================================================================
+
+  A Discord-inspired live community hub for real-time engagement:
+  • Role-Gated Channels: #tenants-only and #owners-only private lounges
+  • Public Channels: #general, #ideas (with upvotes), #help, #off-topic
+  • PG Reviews Channel: Restricted to Tenants only
+  • Interactive PG Tagging: Typing '@' in the review title opens a dynamic 
+    dropdown to select a verified PG.
+  • Automated Notifications: Owners are instantly notified when their PG 
+    is tagged in a review.
+  • Dashboard Integration: Owner Dashboard intercepts #pg-reviews and 
+    displays them directly in the owner's Recent Activity feed.
+  • Auto-Cleanup: 30-day lifecycle task purges old messages (ideas preserved).
+  • Security: Profanity filter (80+ terms) and message length limits.
+
+================================================================================
+  TECH STACK
+================================================================================
+
+  Frontend   : Next.js 15 (App Router), TypeScript, Tailwind CSS
+  Animation  : Framer Motion (spring-based, staggered)
+  Charts     : Recharts (Dynamic AreaChart)
+  Auth       : Firebase Authentication
+  Database   : Firebase Firestore (Real-time onSnapshot listeners)
+  Media      : Cloudinary (KYC & Image hosting)
+  Design     : Premium Glassmorphism & High-Contrast Custom Imagery
+
+================================================================================
+  DEPLOYMENT CHECKLIST
+================================================================================
+
+  • Update BASE_URL in layout.tsx and sitemap.ts with production domain
+  • Submit sitemap.xml to Google Search Console
+  • Add Google Search Console verification meta tag in layout.tsx
+  • Verify Firestore composite indexes:
+    - complaints: (ownerId ASC, createdAt DESC)
+    - complaints: (tenantId ASC, pgId ASC)
+    - reviews: (pgId ASC, createdAt DESC)
+    - verifications: (status ASC, updatedAt DESC)
+  • Backfill ownerId on any existing complaint documents in Firestore
+  • Production build test: 'npm run build'
+
+================================================================================
+                          END OF ACKNOWLEDGMENT
+================================================================================

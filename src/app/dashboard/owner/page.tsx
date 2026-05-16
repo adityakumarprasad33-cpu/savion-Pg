@@ -272,7 +272,7 @@ export default function OwnerDashboard() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#fcfdfe]">
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-zinc-950">
         <div className="text-center max-w-md w-full px-6 bg-white dark:bg-zinc-900/70 backdrop-blur-3xl p-12 rounded-[3.5rem] shadow-2xl dark:shadow-zinc-900/60 shadow-slate-200/40 border border-white/60 animate-scale-in">
           <div className="w-24 h-24 bg-rose-50 rounded-[2.5rem] flex items-center justify-center mx-auto mb-8 shadow-inner">
             <ShieldAlert className="w-12 h-12 text-rose-500 animate-pulse" />
@@ -287,7 +287,7 @@ export default function OwnerDashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#fcfdfe]">
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-zinc-950">
         <SpeedLoader text="Preparing Your Hub" subtext="Fetching premium data assets..." />
       </div>
     );
@@ -296,12 +296,12 @@ export default function OwnerDashboard() {
   return (
     <div className="flex flex-col min-h-screen bg-slate-50 dark:bg-zinc-800/50 selection:bg-primary/10 selection:text-primary relative overflow-hidden">
       {/* Subtle blueprint grid background — CSS-only, no SVG file needed */}
-      <div className="absolute inset-0 pointer-events-none opacity-[0.4]" style={{backgroundImage: 'radial-gradient(circle, #cbd5e1 1px, transparent 1px)', backgroundSize: '24px 24px'}} />
+      <div className="absolute inset-0 pointer-events-none opacity-[0.4] dark:opacity-[0.08]" style={{backgroundImage: 'radial-gradient(circle, #cbd5e1 1px, transparent 1px)', backgroundSize: '24px 24px'}} />
       
       <header className="bg-white dark:bg-zinc-900 border-b border-slate-200 dark:border-zinc-700/50 sticky top-0 z-50 py-3 px-6 md:px-8">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-slate-900 rounded-lg flex items-center justify-center shadow-md">
+            <div className="w-9 h-9 bg-slate-900 dark:bg-zinc-700 rounded-lg flex items-center justify-center shadow-md">
               <LayoutDashboard className="w-4.5 h-4.5 text-white" />
             </div>
             <div>
@@ -340,7 +340,7 @@ export default function OwnerDashboard() {
             </h2>
           </div>
           <Link href="/dashboard/owner/add-pg">
-            <Button className="h-10 px-5 bg-slate-900 hover:bg-black text-white font-black rounded-lg shadow-md transition-all active:scale-95 gap-2 text-[10px]">
+            <Button className="h-10 px-5 bg-slate-900 dark:bg-primary hover:bg-black dark:hover:bg-primary/90 text-white font-black rounded-lg shadow-md transition-all active:scale-95 gap-2 text-[10px]">
                <Plus className="w-3.5 h-3.5" /> Deploy Asset
             </Button>
           </Link>
@@ -349,10 +349,10 @@ export default function OwnerDashboard() {
         {/* High-Density Stat Grid */}
         <motion.div variants={containerVariants} className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           {[
-            { label: "Total Revenue", value: `₹${monthlyRevenue.toLocaleString()}`, icon: Wallet, color: "text-emerald-600", bg: "bg-emerald-50" },
-            { label: "Properties", value: pgs.length, icon: Building2, color: "text-primary", bg: "bg-primary/5" },
-            { label: "Residents", value: activeTenants, icon: Users, color: "text-blue-600", bg: "bg-blue-50" },
-            { label: "Issues", value: openComplaintsCount, icon: MessageSquare, color: "text-rose-600", bg: "bg-rose-50" },
+            { label: "Total Revenue", value: `₹${monthlyRevenue.toLocaleString()}`, icon: Wallet, color: "text-emerald-600", bg: "bg-emerald-50 dark:bg-emerald-950/40" },
+            { label: "Properties", value: pgs.length, icon: Building2, color: "text-primary", bg: "bg-primary/5 dark:bg-primary/10" },
+            { label: "Residents", value: activeTenants, icon: Users, color: "text-blue-600", bg: "bg-blue-50 dark:bg-blue-950/40" },
+            { label: "Issues", value: openComplaintsCount, icon: MessageSquare, color: "text-rose-600", bg: "bg-rose-50 dark:bg-rose-950/40" },
           ].map((stat, i) => (
             <motion.div 
               variants={itemVariants}
@@ -431,8 +431,8 @@ export default function OwnerDashboard() {
                     <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 'bold' }} />
                     <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 'bold' }} width={40} />
                     <Tooltip 
-                      contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)' }}
-                      itemStyle={{ fontWeight: 'black', color: '#0f172a' }}
+                      contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.15)', backgroundColor: 'var(--color-card, #fff)' }}
+                      itemStyle={{ fontWeight: 'black', color: 'var(--color-foreground, #0f172a)' }}
                     />
                     <Area type="monotone" dataKey="value" stroke="#4f46e5" strokeWidth={3} fillOpacity={1} fill="url(#colorValue)" />
                   </AreaChart>
@@ -492,7 +492,7 @@ export default function OwnerDashboard() {
         <motion.div variants={containerVariants} className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Compact Revenue Panel */}
           <motion.div variants={itemVariants} className="lg:col-span-4">
-            <div className="bg-slate-900 p-6 rounded-2xl shadow-lg dark:shadow-zinc-900/50 text-white relative overflow-hidden sticky top-24">
+            <div className="bg-slate-900 dark:bg-zinc-800 p-6 rounded-2xl shadow-lg dark:shadow-zinc-900/50 text-white relative overflow-hidden sticky top-24">
               <div className="absolute top-0 right-0 w-32 h-32 bg-primary/20 rounded-full -mr-16 -mt-16 blur-2xl opacity-40" />
               
               <div className="relative z-10 space-y-6">

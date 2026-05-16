@@ -254,25 +254,25 @@ export default function ManagePGPage() {
     document.body.appendChild(link); link.click(); document.body.removeChild(link);
   };
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center bg-[#f8fafc]"><SpeedLoader text="Loading Property" subtext="Syncing your assets..." /></div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-zinc-950"><SpeedLoader text="Loading Property" subtext="Syncing your assets..." /></div>;
   if (!pg) return null;
 
   const confirmedBookings = bookings.filter((b) => b.status === "confirmed");
   const pendingBookings = bookings.filter((b) => b.status === "pending");
 
   return (
-    <div className="min-h-screen bg-slate-50 selection:bg-primary/10 selection:text-primary">
+    <div className="min-h-screen bg-slate-50 dark:bg-zinc-950 selection:bg-primary/10 selection:text-primary">
       {/* Clean White Header */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-50 py-4 px-6 md:px-10 shadow-sm">
+      <header className="bg-white dark:bg-zinc-900 border-b border-slate-200 dark:border-zinc-800 sticky top-0 z-50 py-4 px-6 md:px-10 shadow-sm">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Link href="/dashboard/owner">
-              <button className="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-all">
-                <ChevronLeft className="w-5 h-5 text-slate-600" />
+              <button className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 dark:hover:bg-zinc-700 flex items-center justify-center transition-all">
+                <ChevronLeft className="w-5 h-5 text-slate-600 dark:text-slate-400" />
               </button>
             </Link>
             <div>
-              <h1 className="font-black text-xl tracking-tight text-slate-900 leading-none">{pg.name}</h1>
+              <h1 className="font-black text-xl tracking-tight text-slate-900 dark:text-slate-100 leading-none">{pg.name}</h1>
               <div className="flex items-center gap-2 mt-1">
                 <MapPin className="w-3 h-3 text-primary" />
                 <p className="text-xs text-slate-500 font-medium">{pg.city} · {pg.location.split(',')[0]}</p>
@@ -295,18 +295,18 @@ export default function ManagePGPage() {
         {/* Clean Stat Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           {[
-            { label: "Total Units", value: pg.totalRooms || pg.rooms?.length || 0, icon: LayoutDashboard, color: "text-slate-600", bg: "bg-slate-100" },
-            { label: "Available", value: pg.availableRooms ?? 0, icon: ClipboardCheck, color: "text-emerald-600", bg: "bg-emerald-100" },
-            { label: "Residents", value: confirmedBookings.length, icon: Users, color: "text-primary", bg: "bg-orange-100" },
-            { label: "Pending", value: pendingBookings.length, icon: AlertTriangle, color: "text-rose-600", bg: "bg-rose-100" },
+            { label: "Total Units", value: pg.totalRooms || pg.rooms?.length || 0, icon: LayoutDashboard, color: "text-slate-600 dark:text-slate-300", bg: "bg-slate-100 dark:bg-zinc-800" },
+            { label: "Available", value: pg.availableRooms ?? 0, icon: ClipboardCheck, color: "text-emerald-600", bg: "bg-emerald-100 dark:bg-emerald-950/40" },
+            { label: "Residents", value: confirmedBookings.length, icon: Users, color: "text-primary", bg: "bg-orange-100 dark:bg-orange-950/40" },
+            { label: "Pending", value: pendingBookings.length, icon: AlertTriangle, color: "text-rose-600", bg: "bg-rose-100 dark:bg-rose-950/40" },
           ].map((s) => (
-            <div key={s.label} className="bg-white rounded-2xl border border-slate-200 p-5 flex items-center gap-4 shadow-sm hover:shadow-md transition-shadow">
+            <div key={s.label} className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 p-5 flex items-center gap-4 shadow-sm hover:shadow-md transition-shadow">
               <div className={`w-11 h-11 rounded-xl ${s.bg} flex items-center justify-center shrink-0`}>
                 <s.icon className={`w-5 h-5 ${s.color}`} />
               </div>
               <div>
                 <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{s.label}</p>
-                <p className="text-2xl font-black text-slate-900 tracking-tight leading-none mt-0.5">{s.value}</p>
+                <p className="text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight leading-none mt-0.5">{s.value}</p>
               </div>
             </div>
           ))}

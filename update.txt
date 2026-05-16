@@ -1,0 +1,136 @@
+================================================================================
+        UPDATE PLAN — SAVION COMMUNITY PAGE
+        Route: /community (Authenticated Users Only)
+================================================================================
+
+CONCEPT:
+  A Discord-inspired community hub for Savion users — live chat, idea sharing,
+  and community discussions. Text-only. Real-time via Firebase Firestore
+  onSnapshot listeners. Fully integrated with existing auth system.
+
+================================================================================
+  PAGE LAYOUT (3-Panel Design)
+================================================================================
+
+  ┌──────────────┬───────────────────────────────┬──────────────────┐
+  │  CHANNELS    │      MAIN CONTENT AREA        │  ONLINE USERS    │
+  │  (Sidebar)   │                               │  (Right Panel)   │
+  │              │                               │                  │
+  │ # general    │  ┌─────────────────────────┐   │  ● Rahul (you)  │
+  │ # ideas      │  │ Message / Post Feed     │   │  ● Priya        │
+  │ # pg-reviews │  │ (scrollable, real-time)  │   │  ● Arjun        │
+  │ # help       │  │                         │   │  ● 12 more...   │
+  │ # off-topic  │  └─────────────────────────┘   │                  │
+  │              │  ┌─────────────────────────┐   │                  │
+  │              │  │ Compose Input Bar       │   │                  │
+  │              │  └─────────────────────────┘   │                  │
+  └──────────────┴───────────────────────────────┴──────────────────┘
+
+  On Mobile: Sidebar becomes a top tab bar, right panel collapses to a
+  toggle-able drawer.
+
+================================================================================
+  CHANNELS (5 Default Channels)
+================================================================================
+
+  1. #general       — Open chat. Say hi, share updates, casual conversation.
+  2. #ideas         — Share & discuss ideas for improving PG life, campus,
+                      or the Savion platform itself. Upvote system.
+  3. #pg-reviews    — Honest reviews & experiences about PGs. Help others.
+  4. #help          — Ask questions about bookings, payments, move-in, etc.
+  5. #off-topic     — Memes, random chats, fun stuff. Anything goes.
+
+================================================================================
+  FEATURES
+================================================================================
+
+  A) LIVE CHAT (Channels #general, #help, #off-topic)
+     • Real-time messages via Firestore onSnapshot
+     • Message structure: { userId, userName, text, channel, createdAt }
+     • Auto-scroll to latest message
+     • Timestamp display (relative: "2 min ago")
+     • User avatar (first letter of name, colored)
+     • "X is typing..." indicator (optional — Firestore presence doc)
+
+  B) IDEA SHARING (#ideas channel)
+     • Post format: Title + Description (longer text)
+     • Upvote system: Users can upvote ideas (toggle, 1 per user)
+     • Sort by: Newest / Most Upvoted
+     • Reply thread: Click on an idea to see replies (flat, not nested)
+
+  C) COMMUNITY DISCUSSIONS (#pg-reviews)
+     • Similar to ideas but focused on PG experiences
+     • Star rating inline (1-5 stars with the post)
+     • Linked PG name if user has an active/past booking
+
+  D) ONLINE PRESENCE (Right Panel)
+     • Show currently active users using Firestore presence system
+     • Display name + colored status dot (green = online)
+     • Count of total online users
+
+  E) AUTH GATE
+     • Must be logged in to view or post
+     • Role displayed as badge next to name (tenant/owner/admin)
+     • Only authenticated users can send messages
+
+================================================================================
+  FIREBASE COLLECTIONS (New)
+================================================================================
+
+  Collection: "communityMessages"
+  Document Fields:
+    - id: string (auto)
+    - channel: "general" | "ideas" | "pg-reviews" | "help" | "off-topic"
+    - userId: string
+    - userName: string
+    - userRole: string ("tenant" | "owner" | "admin")
+    - text: string
+    - title?: string (only for #ideas and #pg-reviews)
+    - rating?: number (only for #pg-reviews, 1-5)
+    - upvotes?: string[] (array of userIds who upvoted)
+    - createdAt: number (Date.now())
+
+  Collection: "communityPresence"
+  Document ID = userId
+  Fields:
+    - userName: string
+    - userRole: string
+    - lastSeen: number (timestamp)
+    - online: boolean
+
+================================================================================
+  UI/UX DETAILS
+================================================================================
+
+  • Dark theme sidebar (Discord-style: zinc-900 bg)
+  • Framer Motion: message fade-in, channel switch transitions
+  • Responsive:
+    - Desktop: 3-panel layout
+    - Tablet: 2-panel (sidebar + main)
+    - Mobile: Tab bar at top + main content, no right panel
+  • Glassmorphism on compose input bar
+  • Animated "new message" indicator when scrolled up
+  • Premium feel: hover effects on channels, smooth scrolling
+
+================================================================================
+  FILES TO CREATE / MODIFY
+================================================================================
+
+  [CREATE] src/app/(public)/community/page.tsx
+     → Main community page (client component)
+
+  [CREATE] src/lib/db/community.ts
+     → Firestore CRUD for messages, presence
+
+  [MODIFY] src/components/layout/Navbar.tsx
+     → Add "Community" link in nav
+
+  [MODIFY] src/components/layout/Footer.tsx
+     → Link "Join the community" button to /community
+
+  [MODIFY] src/app/sitemap.ts
+     → Add /community URL
+
+================================================================================
+  ESTIMATED SCOPE: ~400 lines (page) + ~80 lines (db layer)
+================================================================================

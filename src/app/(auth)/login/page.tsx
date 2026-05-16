@@ -196,6 +196,7 @@ export default function LoginPage() {
                 id="password"
                 placeholder="Password"
                 type="password"
+                autoComplete="current-password"
                 className="h-12"
                 value={password}
                 onChange={e=>setPassword(e.target.value)}

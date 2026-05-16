@@ -366,8 +366,8 @@ export default function TenantDashboard() {
   if (error) {
     const isBan = error.includes("Account deleted or disabled");
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#fcfdfe]">
-        <div className="text-center max-w-md w-full px-6 bg-white dark:bg-zinc-900/70 backdrop-blur-3xl p-12 rounded-[3.5rem] shadow-2xl dark:shadow-zinc-900/60 shadow-slate-200/40 border border-white/60 animate-scale-in">
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-zinc-950">
+        <div className="text-center max-w-md w-full px-6 bg-white dark:bg-zinc-900 backdrop-blur-3xl p-12 rounded-[3.5rem] shadow-2xl dark:shadow-zinc-900/60 shadow-slate-200/40 border border-white/60 dark:border-zinc-800 animate-scale-in">
           <div className="w-24 h-24 bg-rose-50 rounded-[2.5rem] flex items-center justify-center mx-auto mb-8 shadow-inner">
             {isBan ? <Lock className="w-12 h-12 text-rose-500 animate-pulse" /> : <WifiOff className="w-12 h-12 text-rose-500" />}
           </div>
@@ -401,20 +401,20 @@ export default function TenantDashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#f8fafc]">
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-zinc-950">
         <SpeedLoader text="Preparing Your Space" subtext="Setting up the dashboard..." />
       </div>
     );
   }
 
   const statusBadge = (status: string) => {
-    if (status === "verified") return <span className="text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-100">Verified</span>;
-    if (status === "rejected") return <span className="text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded-lg bg-rose-50 text-rose-600 border border-rose-100">Rejected</span>;
-    return <span className="text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded-lg bg-amber-50 text-amber-600 border border-amber-100">Pending</span>;
+    if (status === "verified") return <span className="text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 border border-emerald-100 dark:border-emerald-900/50">Verified</span>;
+    if (status === "rejected") return <span className="text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded-lg bg-rose-50 dark:bg-rose-950/40 text-rose-600 border border-rose-100 dark:border-rose-900/50">Rejected</span>;
+    return <span className="text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-600 border border-amber-100 dark:border-amber-900/50">Pending</span>;
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#fcfdfe] selection:bg-primary/10 selection:text-primary">
+    <div className="flex flex-col min-h-screen bg-slate-50 dark:bg-zinc-950 selection:bg-primary/10 selection:text-primary">
       {/* Premium Glass Header */}
       <header className="bg-white dark:bg-zinc-900 border-b border-slate-200 dark:border-zinc-700/50 sticky top-0 z-50 py-5 px-6 md:px-12 shadow-sm">
         <div className="max-w-7xl mx-auto flex justify-between items-center">

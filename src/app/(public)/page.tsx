@@ -9,6 +9,7 @@ import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { MainPageDynamicArea } from "@/components/ui/main-page-dynamic-area";
 import { getPlatformStats } from "@/lib/db/platformStats";
+import { getActiveLocations } from "@/lib/db/pgs";
 
 export default function Homepage() {
   // BUG-01 FIX: Removed useScroll + useTransform — they fired JS on every scroll
@@ -21,6 +22,7 @@ export default function Homepage() {
   });
   
   const [topCities, setTopCities] = useState<{city: string, places: string, img: string, tag: string}[]>([]);
+  const [activeLocations, setActiveLocations] = useState<{ state: string; city: string; count: number; image?: string }[]>([]);
 
   useEffect(() => {
     async function fetchStats() {
@@ -36,8 +38,12 @@ export default function Homepage() {
             setTopCities(stats.topCities);
           }
         }
+        
+        // Fetch real active locations from PGs
+        const locations = await getActiveLocations();
+        setActiveLocations(locations);
       } catch (e) {
-        console.error("Failed to fetch platform stats", e);
+        console.error("Failed to fetch platform stats or locations", e);
       }
     }
     fetchStats();
@@ -167,6 +173,8 @@ export default function Homepage() {
                     src="https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?q=80&w=1000&auto=format&fit=crop" 
                     alt="Premium PG" 
                     fill 
+                    sizes="(max-width: 1024px) 100vw, 50vw"
+                    priority
                     className="object-cover hover:scale-105 transition-transform duration-700" 
                     unoptimized
                   />
@@ -260,7 +268,7 @@ export default function Homepage() {
                 </div>
               </div>
               <div className="absolute right-0 bottom-0 w-1/2 h-full hidden md:block opacity-90 group-hover:opacity-100 transition-opacity duration-500">
-                <Image src="/card-verified.png" alt="Verified PG Room" fill className="object-cover" />
+                <Image src="/card-verified.png" alt="Verified PG Room" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover" />
                 <div className="absolute inset-0 bg-gradient-to-r from-white via-white/10 to-transparent" />
               </div>
             </motion.div>
@@ -276,7 +284,7 @@ export default function Homepage() {
             >
               {/* Custom booking image as background */}
               <div className="absolute inset-0 z-0">
-                <Image src="/card-booking.png" alt="Instant Booking" fill className="object-cover opacity-100 group-hover:scale-105 transition-all duration-500" />
+                <Image src="/card-booking.png" alt="Instant Booking" fill sizes="(max-width: 768px) 100vw, 33vw" className="object-cover opacity-100 group-hover:scale-105 transition-all duration-500" />
               </div>
               <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent z-[1]" />
               <div className="relative z-10 p-8 flex flex-col h-full justify-between">
@@ -301,7 +309,7 @@ export default function Homepage() {
             >
               {/* Amenities image background */}
               <div className="absolute inset-0 z-0">
-                <Image src="/card-amenities.png" alt="Premium Amenities" fill className="object-cover opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500" />
+                <Image src="/card-amenities.png" alt="Premium Amenities" fill sizes="(max-width: 768px) 100vw, 33vw" className="object-cover opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500" />
                 <div className="absolute inset-0 bg-white dark:bg-zinc-900/20" />
               </div>
               <div className="relative z-10 p-8 flex flex-col h-full justify-between">
@@ -325,7 +333,7 @@ export default function Homepage() {
               className="md:col-span-2 relative rounded-3xl overflow-hidden bg-zinc-900 text-white shadow-xl dark:shadow-zinc-900/50 group"
             >
               <div className="absolute inset-0 bg-gradient-to-r from-zinc-900/60 via-zinc-900/30 to-transparent z-10" />
-              <Image src="/card-community.png" alt="Vibrant Community" fill className="object-cover z-0 opacity-100 group-hover:scale-110 transition-transform duration-700" />
+              <Image src="/card-community.png" alt="Vibrant Community" fill sizes="(max-width: 768px) 100vw, 66vw" className="object-cover z-0 opacity-100 group-hover:scale-110 transition-transform duration-700" />
               <div className="relative z-20 p-8 flex flex-col h-full justify-center w-full md:w-2/3">
                 <h3 className="text-3xl font-bold mb-4">Vibrant Community</h3>
                 <p className="text-zinc-300 mb-6 text-lg">Connect with like-minded students, attend exclusive events, and make memories that last a lifetime.</p>
@@ -356,32 +364,32 @@ export default function Homepage() {
         </div>
 
         <div className="flex gap-6 px-4 md:px-6 overflow-x-auto pb-8 snap-x snap-mandatory scrollbar-hide" style={{ scrollbarWidth: 'none' }}>
-          {[
-            { city: "Bangalore", places: "320+", img: "https://images.unsplash.com/photo-1596176530529-78163a4f7af2?q=80&w=800&auto=format&fit=crop", tag: "Tech Hub" },
-            { city: "Pune", places: "210+", img: "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=500&q=80", tag: "Student Paradise" },
-            { city: "Delhi", places: "450+", img: "https://images.unsplash.com/photo-1587474260584-136574528ed5?q=80&w=800&auto=format&fit=crop", tag: "Capital" },
-            { city: "Mumbai", places: "180+", img: "https://images.unsplash.com/photo-1566438480900-0609be27a4be?q=80&w=800&auto=format&fit=crop", tag: "City of Dreams" },
-            { city: "Hyderabad", places: "250+", img: "https://images.unsplash.com/photo-1570168007204-dfb528c6958f?q=80&w=800&auto=format&fit=crop", tag: "Pearl City" },
-          ].map((item, index) => (
+          {(activeLocations.length > 0 ? activeLocations : [
+            { city: "Bangalore", state: "Karnataka", count: 320, image: "https://images.unsplash.com/photo-1596176530529-78163a4f7af2?q=80&w=800&auto=format&fit=crop" },
+            { city: "Pune", state: "Maharashtra", count: 210, image: "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=500&q=80" },
+            { city: "Delhi", state: "Delhi", count: 450, image: "https://images.unsplash.com/photo-1587474260584-136574528ed5?q=80&w=800&auto=format&fit=crop" },
+            { city: "Mumbai", state: "Maharashtra", count: 180, image: "https://images.unsplash.com/photo-1566438480900-0609be27a4be?q=80&w=800&auto=format&fit=crop" },
+            { city: "Hyderabad", state: "Telangana", count: 250, image: "https://images.unsplash.com/photo-1570168007204-dfb528c6958f?q=80&w=800&auto=format&fit=crop" },
+          ]).map((item, index) => (
             <motion.div 
               initial={{ opacity: 0, x: 50 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
               transition={{ delay: index * 0.1 }}
-              key={item.city} 
+              key={`${item.state}-${item.city}`} 
             >
-              <Link href={`/search?location=${item.city.toLowerCase()}`} className="group relative w-[300px] h-[400px] rounded-3xl overflow-hidden cursor-pointer snap-center block flex-shrink-0">
-                <Image src={item.img} unoptimized alt={item.city} fill className="object-cover group-hover:scale-110 transition-transform duration-700 ease-out" />
+              <Link href={`/search?state=${item.state.toLowerCase()}&city=${item.city.toLowerCase()}`} className="group relative w-[300px] h-[400px] rounded-3xl overflow-hidden cursor-pointer snap-center block flex-shrink-0">
+                <Image src={item.image || "https://images.unsplash.com/photo-1596176530529-78163a4f7af2?q=80&w=800&auto=format&fit=crop"} unoptimized alt={item.city} fill className="object-cover group-hover:scale-110 transition-transform duration-700 ease-out" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent opacity-80 group-hover:opacity-90 transition-opacity"></div>
                 <div className="absolute top-6 left-6">
-                  <span className="bg-white dark:bg-zinc-900/20 backdrop-blur-md text-white text-xs font-bold px-3 py-1.5 rounded-full uppercase tracking-wider">
-                    {item.tag}
+                  <span className="bg-black/40 backdrop-blur-md text-white text-xs font-bold px-3 py-1.5 rounded-full uppercase tracking-wider border border-white/10">
+                    {item.state}
                   </span>
                 </div>
                 <div className="absolute bottom-6 left-6 text-white text-left transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
                   <h3 className="text-3xl font-bold mb-1">{item.city}</h3>
                   <p className="text-sm font-medium text-white/80 flex items-center gap-2">
-                    <Building className="w-4 h-4"/> {item.places} properties
+                    <Building className="w-4 h-4"/> {item.count} properties
                   </p>
                 </div>
               </Link>

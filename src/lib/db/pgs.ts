@@ -34,6 +34,8 @@ export interface PG {
   // Location
   location: string;        // full display address
   city: string;
+  state?: string;          // state from cascading dropdown
+  district?: string;       // district from cascading dropdown
   lat?: number;
   lng?: number;
   // Pricing (auto-set to lowest room rent)
@@ -163,4 +165,42 @@ export async function restoreRoomAvailability(pgId: string, roomId: string): Pro
     rooms: updatedRooms,
     availableRooms: totalAvailable,
   });
+}
+
+/** 
+ * Gets an aggregated list of unique states and cities where PGs actually exist.
+ * Useful for the homepage to show active locations.
+ */
+export async function getActiveLocations(): Promise<{ state: string; city: string; count: number; image?: string }[]> {
+  try {
+    const snapshot = await getDocs(collection(db, "pgs"));
+    if (snapshot.empty) return [];
+    
+    const locationMap = new Map<string, { state: string; city: string; count: number; image: string }>();
+    
+    snapshot.docs.forEach(doc => {
+      const data = doc.data() as PG;
+      const state = data.state || "Unknown State";
+      const city = data.city || "Unknown City";
+      const key = `${state}-${city}`;
+      
+      if (!locationMap.has(key)) {
+        locationMap.set(key, {
+          state,
+          city,
+          count: 1,
+          image: data.img || "https://images.unsplash.com/photo-1596176530529-78163a4f7af2?q=80&w=800&auto=format&fit=crop"
+        });
+      } else {
+        const existing = locationMap.get(key)!;
+        existing.count += 1;
+        // Keep the first image or try to find a better one if needed
+      }
+    });
+    
+    return Array.from(locationMap.values()).sort((a, b) => b.count - a.count);
+  } catch (error) {
+    console.error("Error fetching active locations:", error);
+    return [];
+  }
 }
