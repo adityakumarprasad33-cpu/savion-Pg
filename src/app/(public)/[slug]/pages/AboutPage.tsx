@@ -1,10 +1,8 @@
 "use client";
 import { useState, useEffect } from "react";
 import { PageHero, Section, SectionTitle, Paragraph, StatCard, ValueCard, StepCard } from "@/components/layout/InfoPageWrapper";
-import { collection, getDocs } from "firebase/firestore";
-import { db } from "@/lib/firebase/client";
 import { getAllReviews } from "@/lib/db/reviews";
-import { getPlatformStats } from "@/lib/db/platformStats";
+import { getActiveLocations, getPGs } from "@/lib/db/pgs";
 
 export function AboutPage() {
   const [stats, setStats] = useState({ cities: 0, pgs: 0, reviews: 0, rating: 0 });
@@ -12,15 +10,28 @@ export function AboutPage() {
   useEffect(() => {
     async function fetchRealStats() {
       try {
-        const platformStats = await getPlatformStats();
-        if (platformStats) {
-          setStats({
-            cities: platformStats.cities,
-            pgs: platformStats.pgs,
-            reviews: platformStats.reviews,
-            rating: platformStats.rating
-          });
+        const [locations, allPGs, allReviews] = await Promise.all([
+          getActiveLocations(),
+          getPGs(),
+          getAllReviews()
+        ]);
+        
+        const citiesCount = locations.length;
+        const pgsCount = allPGs.length;
+        const reviewsCount = allReviews.length;
+        
+        let avgRating = 0;
+        if (reviewsCount > 0) {
+          const totalRating = allReviews.reduce((sum, r) => sum + r.rating, 0);
+          avgRating = Number((totalRating / reviewsCount).toFixed(1));
         }
+
+        setStats({
+          cities: citiesCount,
+          pgs: pgsCount,
+          reviews: reviewsCount,
+          rating: avgRating
+        });
       } catch (err) {
         console.error("Failed to fetch stats", err);
       }
