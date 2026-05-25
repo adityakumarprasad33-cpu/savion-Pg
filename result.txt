@@ -1,0 +1,389 @@
+Savion Codebase Audit Result
+Date: 2026-05-25
+Scope: frontend, deployment_ready, test_Frontend, shared, Application, root Firebase/Netlify config.
+Excluded from manual review: node_modules, package-lock generated content, binary image/icon assets.
+
+Summary
+-------
+The codebase contains several high-risk authorization and data-integrity issues, especially in Firestore rules and payment/booking flows. There is also substantial hardcoded/demo content that should come from Firestore or a managed CMS/config collection. The active frontend does not pass lint or TypeScript checks.
+
+Important note about duplicated apps
+------------------------------------
+There are multiple copies of the same app:
+- frontend/
+- deployment_ready/
+- test_Frontend/
+- shared/
+
+Many files are duplicated but not identical. The Firestore rules differ between root firestore.rules, frontend/firestore.rules, and deployment_ready/firestore.rules. This is dangerous because the deployed rules may not be the rules developers are reviewing.
+
+Critical / High Findings
+------------------------
+
+1. Firestore rules allow excessive cross-user reads and writes.
+   Files:
+   - firestore.rules:28,51,69,79,91,98,105,119,126
+   - frontend/firestore.rules:20,36,38,43,48,53,65,70,71
+   - deployment_ready/firestore.rules:144,166,178,190
+
+   Problems:
+   - Many collections allow any authenticated user to read all documents, including users, bookings, payments, complaints, contracts, caretakers, verifications, and community data.
+   - frontend/firestore.rules allows any authenticated user to read/write all paymentSessions at line 43.
+   - frontend/firestore.rules allows overly broad contract, payment, complaint, and caretaker access.
+   - root firestore.rules allows paymentSessions read/update by any authenticated user at line 69.
+   - root firestore.rules allows complaints update by any authenticated user at line 79.
+   - root firestore.rules allows contracts read/create/update by any authenticated user at line 91.
+   - root firestore.rules allows verification records read by any authenticated user at line 105.
+
+   Impact:
+   User PII, KYC status, rent/payment data, contracts, complaints, and caretaker data can be exposed or modified by users who should not have access.
+
+   Fix:
+   Rules must enforce ownership per document:
+   - users/{uid}: only self and admin can read/write, and role changes only by admin.
+   - bookings: only tenantId, ownerId, assigned caretaker, or admin.
+   - payments/paymentSessions: only tenantId, ownerId, or admin; status changes only by owner/admin or trusted server.
+   - contracts: only tenantId, ownerId, admin.
+   - verifications: only self, admin, and explicitly authorized reviewers.
+
+2. frontend/firestore.rules permits role escalation.
+   File: frontend/firestore.rules:21
+
+   Problem:
+   allow create, update: if request.auth != null && request.auth.uid == userId;
+
+   A user can write their own profile with role = "admin", "owner", or any role if these rules are deployed. Because admin access is based on users/{uid}.role, this can become full database compromise.
+
+   Fix:
+   Never let clients set privileged roles. On create, allow only safe roles. On update, require role to be unchanged unless the caller is an admin through a trusted server/admin function.
+
+3. Payment sessions are client-created and client-updated.
+   Files:
+   - frontend/src/lib/db/paymentSessions.ts:28-40,48-56
+   - frontend/src/app/(public)/pg/[id]/book/page.tsx:206-224
+   - frontend/src/app/pay/UpiPayPage.tsx:177-215
+
+   Problem:
+   Comments say "server-side payment session", but createPaymentSession uses the browser Firebase SDK. Session expiry, amount, status, and mark-used logic are all client-side writes.
+
+   Impact:
+   If Firestore rules are permissive or bypassed by a logic gap, users can create, expire, reuse, or modify payment sessions. Payment and booking state should not be trusted when controlled by the client.
+
+   Fix:
+   Move payment session creation, expiry, and consumption to a Cloud Function/API route using Firebase Admin SDK. Rules should block client updates to sensitive fields.
+
+4. Payment confirmation text says auto-verified while DB status is submitted.
+   Files:
+   - frontend/src/lib/db/payments.ts:27-40
+   - frontend/src/app/pay/UpiPayPage.tsx:193-229,297
+
+   Problem:
+   submitPayment creates status = "submitted", but the UI and notifications say "Payment auto-verified" and "Payment Verified".
+
+   Impact:
+   Tenants and owners receive incorrect payment status. Booking is also updated to confirmed immediately at frontend/src/app/pay/UpiPayPage.tsx:215, before owner verification.
+
+   Fix:
+   Decide one workflow:
+   - Manual verification: payment status submitted, booking not confirmed until owner verifies.
+   - Automatic verification: server-side payment provider/UPI verification must verify UTR before status becomes verified.
+
+5. Booking can overfill rooms because room capacity is not reserved atomically.
+   Files:
+   - frontend/src/app/(public)/pg/[id]/book/page.tsx:120-135,182-224
+   - frontend/src/lib/db/pgs.ts:141-163
+
+   Problem:
+   The UI checks room.available > 0, but booking creation does not run a Firestore transaction that increments occupancy/decrements availability. Multiple users can book the same final slot at the same time.
+
+   Fix:
+   Use a Firestore transaction or server function:
+   - Re-read PG room availability.
+   - Abort if available <= 0.
+   - Create booking.
+   - Increment currentOccupancy and recompute availableRooms atomically.
+
+6. Contract is created before booking and keeps bookingId empty.
+   File: frontend/src/app/(public)/pg/[id]/book/page.tsx:151-174
+
+   Problem:
+   createContract is called with bookingId: "" and no later update fills the real booking id.
+
+   Impact:
+   Contract-to-booking linkage is broken. Contract pages, receipts, admin queries, and dispute flows may not be able to trace the real booking.
+
+   Fix:
+   Create booking first, then contract, then update booking.contractId; or create both in a transaction/server function.
+
+7. Wrong room value stored in payment session.
+   File: frontend/src/app/(public)/pg/[id]/book/page.tsx:213
+
+   Problem:
+   roomNo is assigned roomType instead of the selected room number:
+   roomNo: roomType
+
+   Impact:
+   Payment receipts and owner notifications show "Single/Double/etc." instead of actual room number.
+
+   Fix:
+   Use roomNo: selectedRoomDetails?.roomNumber or the already computed roomNo variable.
+
+8. Missing owner UPI falls back to unknown@upi.
+   File: frontend/src/app/(public)/pg/[id]/book/page.tsx:209
+
+   Problem:
+   If an owner has not configured UPI, payment sessions are still created using "unknown@upi".
+
+   Impact:
+   Tenant may pay to an invalid/non-owned UPI handle or fail in a confusing way.
+
+   Fix:
+   Block payment session creation until ownerProfile.upiId is present and validated.
+
+9. Netlify secret scanning disabled.
+   Files:
+   - frontend/netlify.toml:6
+   - deployment_ready/netlify.toml:6
+   - test_Frontend/netlify.toml:6
+
+   Problem:
+   SECRETS_SCAN_ENABLED = "false"
+
+   Impact:
+   Accidental secret commits/deploys are less likely to be caught.
+
+   Fix:
+   Re-enable Netlify secret scanning unless there is a documented deployment blocker.
+
+10. Environment files are present in the workspace.
+    Files:
+    - Application/.env
+    - frontend/.env.local
+    - deployment_ready/.env.local
+    - test_Frontend/.env.local
+
+    Variables found:
+    - Firebase public config variables.
+    - Cloudinary public cloud name and unsigned upload preset.
+
+    Impact:
+    NEXT_PUBLIC/EXPO_PUBLIC Firebase keys are not true secrets, but committed .env files and unsigned Cloudinary preset details increase abuse risk. The Cloudinary upload preset is especially sensitive because uploads are client-side.
+
+    Fix:
+    Ensure .env* files are gitignored and not deployed unnecessarily. Lock the Cloudinary unsigned preset to strict folder, size, format, moderation, and rate limits.
+
+Medium Findings
+---------------
+
+11. KYC/Aadhaar handling stores sensitive identity artifacts.
+    Files:
+    - frontend/src/components/booking/AadhaarVerifier.tsx:12,279
+    - frontend/src/app/(public)/pg/[id]/book/page.tsx:162-164,217
+    - frontend/src/lib/db/contracts.ts:13-15
+    - frontend/src/lib/db/payments.ts:11
+
+    Problem:
+    Aadhaar image URL, masked Aadhaar number, DOB, and verification-derived identity data are written into contracts/payments. The frontend also temporarily keeps fullNumber in memory.
+
+    Impact:
+    High privacy/compliance risk if Firestore rules are loose or logs/errors leak data.
+
+    Fix:
+    Store the minimum required KYC metadata. Avoid copying Aadhaar data into payments. Restrict KYC access with strict rules. Consider server-side encryption/tokenization for document URLs.
+
+12. Cloudinary unsigned upload is used from the browser.
+    File: frontend/src/lib/cloudinary.ts:1-84
+
+    Problem:
+    Uploads use NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET. Client-side validation limits MIME and size, but client validation can be bypassed outside the app.
+
+    Impact:
+    Attackers can upload directly to Cloudinary if the preset allows it.
+
+    Fix:
+    Use signed uploads from a server endpoint or lock the unsigned preset in Cloudinary to images only, max size, allowed folders, moderation, and rate limits.
+
+13. Firebase initialization can silently export fake auth/db objects.
+    File: frontend/src/lib/firebase/client.ts:19-25
+
+    Problem:
+    If firebaseConfig.apiKey is missing, auth and db become {} as any.
+
+    Impact:
+    Runtime failures appear later and are harder to diagnose. TypeScript also loses safety.
+
+    Fix:
+    Fail fast with a clear error if required env vars are missing.
+
+14. Admin dashboard exposes all users, bookings, PGs in client.
+    File: frontend/src/app/admin/page.tsx:67-89
+
+    Problem:
+    Admin page fetches full collections directly from the client. This relies entirely on Firestore rules and transfers large/sensitive datasets to the browser.
+
+    Fix:
+    Use paginated admin API/server functions, restrict fields, and keep Firestore rules tight.
+
+15. Static legal contract terms are hardcoded.
+    File: frontend/src/lib/db/contracts.ts:26-36
+
+    Problem:
+    DEFAULT_TERMS are embedded in code.
+
+    Impact:
+    Legal/business terms cannot be versioned, localized, or updated without redeployment.
+
+    Fix:
+    Store contract templates in Firestore/CMS with version IDs and attach the version to each generated contract.
+
+16. Homepage fetches platformStats.topCities but never uses it.
+    File: frontend/src/app/(public)/page.tsx:23,35-36,360-364
+
+    Problem:
+    topCities state is set from Firestore but rendered city cards are hardcoded.
+
+    Fix:
+    Render topCities from platformStats and fall back to config only if the DB document is missing.
+
+17. Hardcoded/demo homepage data should come from DB or config.
+    File: frontend/src/app/(public)/page.tsx:120-123,167-178,190,360-364
+
+    Hardcoded examples:
+    - Unsplash user avatars.
+    - Featured property "The Luxe Residency" in Bangalore.
+    - City property counts like 320+, 210+, 450+.
+    - Static city images/tags.
+
+    Fix:
+    Use Firestore collections such as platformStats, featuredProperties, topCities, testimonials, and mediaAssets.
+
+18. Mobile Application screens also contain hardcoded/fallback public data.
+    Files:
+    - Application/src/screens/public/HomeScreen.tsx:88-93,120
+    - Application/src/screens/public/SearchScreen.tsx:89
+    - Application/src/screens/public/PGDetailScreen.tsx:40
+    - Application/src/screens/public/CityListingsScreen.tsx:43
+    - Application/src/screens/mobile/SavedPropertiesScreen.tsx:55
+    - Application/src/screens/dashboard/owner/OwnerDashboardScreen.tsx:81
+
+    Problem:
+    City cards, counts, and fallback PG images are hardcoded.
+
+    Fix:
+    Load the same real Firestore data used by the web app, with a shared data layer.
+
+19. Hardcoded production domain and Firebase console project link.
+    Files:
+    - frontend/src/app/layout.tsx:12
+    - frontend/src/app/sitemap.ts:3
+    - frontend/src/app/(public)/pgs-in-[city]/page.tsx:5
+    - frontend/src/app/(public)/search/metadata.ts:3
+    - frontend/src/app/(public)/pg/[id]/metadata.ts:4
+    - frontend/src/app/admin/page.tsx:179
+
+    Problem:
+    BASE_URL and Firebase project console URL are hardcoded.
+
+    Fix:
+    Use NEXT_PUBLIC_SITE_URL and an admin-only config value for console links.
+
+20. Third-party model CDN is hardcoded.
+    File: frontend/src/components/verification/VerificationModal.tsx:17
+
+    Problem:
+    Face-api model URL points to jsdelivr directly.
+
+    Impact:
+    Availability and supply-chain risk. If CDN content changes or is unavailable, verification breaks.
+
+    Fix:
+    Pin and self-host model assets, or verify integrity and versioning.
+
+21. Service/business logic duplicated between frontend, deployment_ready, test_Frontend, and shared.
+    Problem:
+    Fixes can land in one copy but not another. Example: Firestore rules are materially different across copies.
+
+    Fix:
+    Pick a single source of truth. Remove stale copies or generate them from shared code.
+
+Build / Quality Findings
+------------------------
+
+22. frontend lint fails.
+    Command run:
+    npm run lint
+
+    Result:
+    200 problems: 83 errors and 117 warnings.
+
+    Examples:
+    - no-explicit-any in many auth, community, PG, verification, cloudinary, firebase files.
+    - React hook dependency issues.
+    - React 19 purity rules: Date.now during render in dashboard/owner/reviews/page.tsx:113 and Math.random during render in components/ui/FaultyTerminalBackground.tsx:263.
+    - Next Link violations where <a> is used for internal routes.
+
+    Fix:
+    Treat lint as a blocking CI check and clear errors before production deploy.
+
+23. frontend TypeScript check fails.
+    Command run:
+    npx tsc --noEmit
+
+    Result:
+    src/app/dashboard/owner/page.tsx(4,77): Cannot find module 'recharts' or its corresponding type declarations.
+
+    Fix:
+    Run npm install in frontend or repair dependency installation. Verify node_modules and package-lock are in sync.
+
+24. Dependency vulnerability audit could not be completed.
+    Command attempted:
+    npm audit --omit=dev --json
+
+    Result:
+    The sandboxed request failed, and the escalation was rejected because npm audit would send dependency metadata to the external npm registry.
+
+    Fix:
+    Run npm audit in an approved environment, or use an internal/private dependency scanner.
+
+Lower Severity / Cleanup
+------------------------
+
+25. Console logging exists in production paths.
+    Examples:
+    - frontend/src/app/(community)/community/page.tsx:180
+    - frontend/src/app/dashboard/tenant/page.tsx:168
+    - frontend/src/app/dashboard/owner/pg/[id]/page.tsx:127
+
+    Fix:
+    Use a proper logger with environment gating.
+
+26. Browser alert/confirm is used heavily in user flows.
+    Examples:
+    - frontend/src/app/dashboard/tenant/page.tsx
+    - frontend/src/app/dashboard/owner/page.tsx
+    - frontend/src/app/(public)/pg/[id]/book/page.tsx
+    - frontend/src/components/verification/VerificationModal.tsx
+
+    Fix:
+    Replace with app-native dialogs/toasts so flows are testable and accessible.
+
+27. Character encoding corruption is visible in many source files.
+    Examples:
+    - firestore.rules comments show mojibake.
+    - Several UI strings display corrupted emoji/rupee symbols in source output.
+
+    Fix:
+    Normalize files to UTF-8 and avoid re-saving with the wrong encoding.
+
+Recommended Fix Priority
+------------------------
+
+1. Consolidate and deploy one Firestore rules file.
+2. Lock down Firestore rules by document owner/role.
+3. Move booking/payment/session state transitions to a trusted server function.
+4. Fix booking-contract-room linkage bugs.
+5. Remove hardcoded marketplace/public stats and use Firestore-backed content.
+6. Re-enable secret scanning and remove .env files from source control.
+7. Make lint and TypeScript checks pass.
+8. Run dependency audit in an approved environment.
+

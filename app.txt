@@ -1,0 +1,178 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# SAVION MOBILE APPLICATION — COMPLETE ENGINEERING REPORT
+# ═══════════════════════════════════════════════════════════════════════════════
+# Platform: React Native (Expo) + TypeScript
+# Design System: Lumina SaaS (via MCP Stitch)
+# Backend: Firebase (Firestore + Auth) — shared with web
+# ═══════════════════════════════════════════════════════════════════════════════
+
+## ──────────────────────────────────────────────────────────
+## SECTION 1: COMPLETE PAGE INVENTORY (WEB → MOBILE)
+## ──────────────────────────────────────────────────────────
+
+### 1.1 — PUBLIC STACK (No auth required)
+| #  | Web Route                        | Mobile Screen          | Status   |
+|----|----------------------------------|------------------------|----------|
+| P1 | / (Homepage)                     | HomeScreen             | BUILD    |
+| P2 | /search                          | SearchScreen           | BUILD    |
+| P3 | /pg/[id]                         | PGDetailScreen         | BUILD    |
+| P4 | /pgs-in-[city]                   | CityListingsScreen     | BUILD    |
+| P5 | /[slug] (about, terms, privacy)  | InfoScreen             | BUILD    |
+| P6 | /[slug]/pages/PressPage          | PressScreen            | BUILD    |
+
+### 1.2 — AUTH STACK
+| #  | Web Route               | Mobile Screen            | Status   |
+|----|-------------------------|--------------------------|----------|
+| A1 | /login                  | LoginScreen              | BUILD    |
+| A2 | /signup                 | SignupScreen             | BUILD    |
+| A3 | /forgot-password        | ForgotPasswordScreen     | BUILD    |
+| A4 | /caretaker-login        | CaretakerLoginScreen     | BUILD    |
+
+### 1.3 — TENANT DASHBOARD
+| #  | Web Route                        | Mobile Screen               | Status   |
+|----|----------------------------------|-----------------------------|----------|
+| T1 | /dashboard/tenant                | TenantDashboardScreen       | BUILD    |
+| T2 | /dashboard/tenant/receipt        | ReceiptScreen               | BUILD    |
+
+### 1.4 — OWNER DASHBOARD
+| #  | Web Route                        | Mobile Screen               | Status   |
+|----|----------------------------------|-----------------------------|----------|
+| O1 | /dashboard/owner                 | OwnerDashboardScreen        | BUILD    |
+| O2 | /dashboard/owner/add-pg          | AddPGScreen                 | BUILD    |
+| O3 | /dashboard/owner/edit-pg         | EditPGScreen                | BUILD    |
+| O4 | /dashboard/owner/pg/[id]         | OwnerPGDetailScreen         | BUILD    |
+| O5 | /dashboard/owner/reviews         | OwnerReviewsScreen          | BUILD    |
+
+### 1.5 — CARETAKER DASHBOARD
+| #  | Web Route                        | Mobile Screen               | Status   |
+|----|----------------------------------|-----------------------------|----------|
+| C1 | /dashboard/caretaker             | CaretakerDashboardScreen    | BUILD    |
+
+### 1.6 — ADMIN PANEL
+| #  | Web Route                        | Mobile Screen               | Status   |
+|----|----------------------------------|-----------------------------|----------|
+| AD1| /admin                           | AdminDashboardScreen        | BUILD    |
+| AD2| /admin/verifications             | AdminVerificationsScreen    | BUILD    |
+
+### 1.7 — OPERATIONS
+| #  | Web Route                        | Mobile Screen               | Status   |
+|----|----------------------------------|-----------------------------|----------|
+| OP1| /community                       | CommunityScreen             | BUILD    |
+| OP2| /pay                             | PaymentScreen               | BUILD    |
+| OP3| /contract/[id]                   | ContractScreen              | BUILD    |
+
+### 1.8 — MOBILE-EXCLUSIVE (NEW!)
+| #  | Feature                          | Mobile Screen               | Status   |
+|----|----------------------------------|-----------------------------|----------|
+| M1 | Animated Splash + Branding       | SplashScreen                | BUILD    |
+| M2 | Biometric Auth (FaceID/Touch)    | BiometricPromptScreen       | BUILD    |
+| M3 | Push Notifications Center        | NotificationsScreen         | BUILD    |
+| M4 | Offline Saved Properties         | SavedPropertiesScreen       | BUILD    |
+
+## ──────────────────────────────────────────────────────────
+## TOTAL SCREENS: 28
+## ──────────────────────────────────────────────────────────
+
+## ──────────────────────────────────────────────────────────
+## SECTION 2: NAVIGATION ARCHITECTURE
+## ──────────────────────────────────────────────────────────
+
+RootNavigator
+├── SplashScreen (initial route, animated)
+├── AuthStack (when not logged in)
+│   ├── LoginScreen
+│   ├── SignupScreen
+│   ├── ForgotPasswordScreen
+│   └── CaretakerLoginScreen
+└── MainTabs (when logged in)
+    ├── HomeTab
+    │   ├── HomeScreen
+    │   ├── SearchScreen
+    │   ├── PGDetailScreen
+    │   └── CityListingsScreen
+    ├── SavedTab
+    │   └── SavedPropertiesScreen
+    ├── DashboardTab (role-adaptive)
+    │   ├── TenantDashboardScreen (if tenant)
+    │   ├── OwnerDashboardScreen (if owner)
+    │   ├── CaretakerDashboardScreen (if caretaker)
+    │   ├── AdminDashboardScreen (if admin)
+    │   ├── AddPGScreen
+    │   ├── EditPGScreen
+    │   ├── ReceiptScreen
+    │   ├── ContractScreen
+    │   └── PaymentScreen
+    ├── CommunityTab
+    │   └── CommunityScreen
+    └── ProfileTab
+        ├── ProfileScreen
+        ├── NotificationsScreen
+        └── InfoScreen (about, terms, privacy)
+
+## ──────────────────────────────────────────────────────────
+## SECTION 3: DESIGN SYSTEM — LUMINA SAAS
+## ──────────────────────────────────────────────────────────
+
+Colors:
+  Background:       #0b1326
+  Surface:          #171f33
+  Surface High:     #222a3d
+  On Surface:       #dae2fd
+  Primary:          #6366f1
+  Primary Container:#8083ff
+  Secondary:        #0ea5e9 / #89ceff
+  Tertiary (Warn):  #ffb783
+  Error:            #ffb4ab
+  Outline:          #464554
+
+Typography:
+  Headlines:   Inter (600/700)
+  Body:        Inter (400)
+  Labels:      Geist (500/600)
+
+Shapes:
+  Cards:       24px radius
+  Buttons:     12px radius (or pill)
+  Inputs:      12px radius
+
+## ──────────────────────────────────────────────────────────
+## SECTION 4: TECH STACK
+## ──────────────────────────────────────────────────────────
+
+- React Native 0.79+
+- Expo SDK 54
+- TypeScript 5+
+- React Navigation 7 (Native Stack + Bottom Tabs)
+- Firebase JS SDK (shared with web)
+- expo-local-authentication (Biometrics)
+- expo-notifications (Push)
+- @react-native-async-storage/async-storage (Offline)
+- expo-splash-screen + Lottie (Animated splash)
+- Shared business logic from ../shared/lib/
+
+## ──────────────────────────────────────────────────────────
+## SECTION 5: BUILD ORDER
+## ──────────────────────────────────────────────────────────
+
+Phase 1: Foundation
+  → app.json config (icon, splash, permissions)
+  → Navigation scaffolding (all stacks + tabs)
+  → Splash screen animation
+
+Phase 2: Auth Screens (Stitch MCP designed)
+  → Login, Signup, Forgot Password, Caretaker Login
+
+Phase 3: Public Screens (Stitch MCP designed)
+  → Home, Search, PG Detail, City Listings
+
+Phase 4: Dashboard Screens
+  → Tenant, Owner, Caretaker, Admin dashboards
+
+Phase 5: Operations
+  → Community, Payment, Contracts
+
+Phase 6: Mobile Exclusives
+  → Biometric auth, Push notifications, Offline saves
+
+Phase 7: Polish
+  → Animations, transitions, error handling, optimization

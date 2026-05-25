@@ -1,0 +1,217 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function userDoc(uid) {
+      return /databases/$(database)/documents/users/$(uid);
+    }
+
+    function role() {
+      return signedIn() && exists(userDoc(request.auth.uid))
+        ? get(userDoc(request.auth.uid)).data.role
+        : null;
+    }
+
+    function isAdmin() {
+      return role() == 'admin';
+    }
+
+    function isOwner() {
+      return role() == 'owner';
+    }
+
+    function isCaretaker() {
+      return role() == 'caretaker';
+    }
+
+    function unchanged(field) {
+      return !(field in request.resource.data) || request.resource.data[field] == resource.data[field];
+    }
+
+    match /users/{userId} {
+      allow read: if signedIn() && (request.auth.uid == userId || isAdmin());
+      allow create: if signedIn()
+        && request.auth.uid == userId
+        && request.resource.data.role in ['tenant', 'owner', 'student'];
+      allow update: if signedIn()
+        && (
+          isAdmin() ||
+          (request.auth.uid == userId && unchanged('role') && unchanged('uid'))
+        );
+      allow delete: if isAdmin();
+    }
+
+    match /pgs/{pgId} {
+      allow read: if true;
+      allow create: if signedIn()
+        && request.resource.data.ownerId == request.auth.uid
+        && isOwner();
+      allow update, delete: if signedIn()
+        && (
+          isAdmin() ||
+          resource.data.ownerId == request.auth.uid ||
+          resource.data.caretakerId == request.auth.uid ||
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['rooms', 'availableRooms'])
+        );
+    }
+
+    match /bookings/{bookingId} {
+      allow read: if signedIn()
+        && (
+          isAdmin() ||
+          resource.data.tenantId == request.auth.uid ||
+          resource.data.ownerId == request.auth.uid
+        );
+      allow create: if signedIn()
+        && request.resource.data.tenantId == request.auth.uid;
+      allow update: if signedIn()
+        && (
+          isAdmin() ||
+          resource.data.tenantId == request.auth.uid ||
+          resource.data.ownerId == request.auth.uid
+        )
+        && unchanged('tenantId')
+        && unchanged('ownerId');
+      allow delete: if isAdmin() || (signedIn() && resource.data.ownerId == request.auth.uid);
+    }
+
+    match /paymentSessions/{sessionId} {
+      allow read: if signedIn()
+        && (
+          isAdmin() ||
+          resource.data.tenantId == request.auth.uid ||
+          resource.data.ownerId == request.auth.uid
+        );
+      allow create: if signedIn()
+        && request.resource.data.tenantId == request.auth.uid
+        && request.resource.data.status == 'pending';
+      allow update: if signedIn()
+        && request.auth.uid == resource.data.tenantId
+        && unchanged('tenantId')
+        && unchanged('ownerId')
+        && unchanged('amount')
+        && unchanged('bookingId')
+        && request.resource.data.status in ['used', 'expired'];
+      allow delete: if isAdmin();
+    }
+
+    match /payments/{paymentId} {
+      allow read: if signedIn()
+        && (
+          isAdmin() ||
+          resource.data.tenantId == request.auth.uid ||
+          resource.data.ownerId == request.auth.uid
+        );
+      allow create: if signedIn()
+        && request.resource.data.tenantId == request.auth.uid
+        && request.resource.data.status == 'submitted';
+      allow update: if signedIn()
+        && (
+          isAdmin() ||
+          resource.data.ownerId == request.auth.uid
+        )
+        && unchanged('tenantId')
+        && unchanged('ownerId')
+        && unchanged('amount')
+        && request.resource.data.status in ['verified', 'rejected'];
+      allow delete: if isAdmin();
+    }
+
+    match /complaints/{complaintId} {
+      allow read: if signedIn()
+        && (
+          isAdmin() ||
+          resource.data.tenantId == request.auth.uid ||
+          resource.data.ownerId == request.auth.uid
+        );
+      allow create: if signedIn()
+        && request.resource.data.tenantId == request.auth.uid;
+      allow update: if signedIn()
+        && (
+          isAdmin() ||
+          resource.data.tenantId == request.auth.uid ||
+          resource.data.ownerId == request.auth.uid
+        )
+        && unchanged('tenantId')
+        && unchanged('ownerId');
+      allow delete: if isAdmin();
+    }
+
+    match /notifications/{notifId} {
+      allow read, update, delete: if signedIn()
+        && resource.data.userId == request.auth.uid;
+      allow create: if signedIn()
+        && request.resource.data.userId is string;
+    }
+
+    match /contracts/{contractId} {
+      allow read: if signedIn()
+        && (
+          isAdmin() ||
+          resource.data.tenantId == request.auth.uid ||
+          resource.data.ownerId == request.auth.uid
+        );
+      allow create: if signedIn()
+        && request.resource.data.tenantId == request.auth.uid;
+      allow update: if signedIn()
+        && (
+          isAdmin() ||
+          resource.data.tenantId == request.auth.uid ||
+          resource.data.ownerId == request.auth.uid
+        )
+        && unchanged('tenantId')
+        && unchanged('ownerId');
+      allow delete: if isAdmin();
+    }
+
+    match /caretakers/{caretakerId} {
+      allow read: if signedIn()
+        && (
+          isAdmin() ||
+          resource.data.ownerId == request.auth.uid ||
+          resource.data.email == request.auth.token.email
+        );
+      allow create, update, delete: if signedIn() && (isAdmin() || isOwner());
+    }
+
+    match /verifications/{userId} {
+      allow read: if signedIn() && (request.auth.uid == userId || isAdmin() || isOwner() || isCaretaker());
+      allow create, update: if signedIn() && request.auth.uid == userId;
+      allow delete: if isAdmin();
+    }
+
+    match /reviews/{reviewId} {
+      allow read: if true;
+      allow create: if signedIn()
+        && request.resource.data.tenantId == request.auth.uid;
+      allow update, delete: if signedIn()
+        && resource.data.tenantId == request.auth.uid;
+    }
+
+    match /communityMessages/{msgId} {
+      allow read: if signedIn();
+      allow create: if signedIn()
+        && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if signedIn()
+        && resource.data.userId == request.auth.uid;
+    }
+
+    match /communityPresence/{userId} {
+      allow read: if signedIn();
+      allow write: if signedIn() && request.auth.uid == userId;
+    }
+
+    match /platformStats/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

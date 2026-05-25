@@ -1,0 +1,137 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helper: Check if the current user is an admin ──────────────────────
+    function isAdmin() {
+      return request.auth != null &&
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // ── Helper: Check if caller is an owner ────────────────────────────────
+    function isOwner() {
+      return request.auth != null &&
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'owner';
+    }
+
+    // ── ADMIN BYPASS ───────────────────────────────────────────────────────
+    match /{document=**} {
+      allow read, write: if isAdmin();
+    }
+
+    // ── Users ──────────────────────────────────────────────────────────────
+    // BUG-S3 FIX: Block role field change on updates (client-side guard + DB rule)
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      // Allow user to create own profile, OR allow an owner to create a caretaker's profile
+      allow create: if request.auth != null && (
+        request.auth.uid == userId || 
+        (isOwner() && request.resource.data.role == 'caretaker')
+      );
+      allow update: if request.auth != null && request.auth.uid == userId
+        && (!request.resource.data.keys().hasAny(['role']) ||
+             request.resource.data.role == resource.data.role);
+    }
+
+    // ── PGs (Properties) ───────────────────────────────────────────────────
+    match /pgs/{pgId} {
+      allow read: if true;
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null && (
+        resource.data.ownerId == request.auth.uid ||
+        resource.data.caretakerId == request.auth.uid
+      );
+    }
+
+    // ── Bookings ───────────────────────────────────────────────────────────
+    match /bookings/{bookingId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null && (
+        resource.data.ownerId == request.auth.uid ||
+        resource.data.tenantId == request.auth.uid
+      );
+    }
+
+    // ── Payment Sessions ──────────────────────────────────────────────────
+    match /paymentSessions/{sessionId} {
+      allow create: if request.auth != null
+        && request.resource.data.tenantId == request.auth.uid;
+      allow read, update: if request.auth != null;
+    }
+
+    // ── Payments (Receipts) ─────────────────────────────────────────────────
+    // BUG FIX: Tenants CANNOT update payment status. Only owners can verify/reject.
+    match /payments/{paymentId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      // Only the owner can update status (verify/reject). Tenant cannot self-verify.
+      allow update: if request.auth != null &&
+        resource.data.ownerId == request.auth.uid;
+    }
+
+    // ── Complaints ─────────────────────────────────────────────────────────
+    match /complaints/{complaintId} {
+      allow read, create: if request.auth != null;
+      allow update: if request.auth != null;
+    }
+
+    // ── Notifications ──────────────────────────────────────────────────────
+    match /notifications/{notifId} {
+      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
+
+    // ── Contracts ──────────────────────────────────────────────────────────
+    match /contracts/{contractId} {
+      allow read, create, update: if request.auth != null;
+    }
+
+    // ── Caretakers ─────────────────────────────────────────────────────────
+    // BUG FIX: Only owners (or admin) can create/update caretaker records.
+    // Prevents any logged-in user from creating a caretaker account.
+    match /caretakers/{caretakerId} {
+      allow read: if request.auth != null;
+      allow create, update: if isOwner() || isAdmin();
+    }
+
+    // ── Verifications (KYC) ────────────────────────────────────────────────
+    // Tenant can read/write their own. Owner/caretaker can read any (to verify residents).
+    match /verifications/{userId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // ── Reviews ────────────────────────────────────────────────────────────
+    // Public read (shown on PG pages). Authenticated users can create/update own reviews.
+    match /reviews/{reviewId} {
+      allow read: if true;
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null && resource.data.tenantId == request.auth.uid;
+    }
+
+    // ── Community Messages (Chat + PG Reviews channel) ─────────────────────
+    match /communityMessages/{msgId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
+
+    // ── Community Presence ─────────────────────────────────────────────────
+    match /communityPresence/{userId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // ── Platform Stats (homepage counters) ─────────────────────────────────
+    // Public read. Only admin can write (via admin panel or Cloud Functions).
+    match /platformStats/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+  }
+}

@@ -1,0 +1,55 @@
+SAVION - PREMIUM PG BOOKING PLATFORM
+====================================
+COMPLETE FEATURE SET & QUALITY LOG (A to Z)
+
+1. GLOBAL ARCHITECTURE & SYSTEM DESIGN
+--------------------------------------
+• Next.js App Router: Full utilization of Next.js 14 server components and client-side interweaving for lightning-fast page loads and SEO.
+• Firebase Backend: Serverless, robust infrastructure handling Authentication, Firestore (NoSQL database), and Storage mechanisms.
+• Global Auth Loading State: A refined client-wrapper system that elegantly guards all private routes with zero layout-shift or flickering, ensuring state synchronization before the UI mounts.
+• Robust Role-Based Access Control (RBAC): Every component and route strictly enforces user roles (Tenant, Owner, Admin, Student) preventing unauthorized access globally.
+
+2. AUTHENTICATION & SECURITY
+----------------------------
+• Passwordless & OAuth Integrations: Google and Apple Sign-in flows implemented with deep Firestore syncing, capturing essential profile parameters natively.
+• Firestore Security Rules: Hardened backend rules prevent direct data dumping. Users can only edit their own profile, Owners can only see their properties, and Tenants can only see their respective bookings/contracts.
+• Zero API Key Leakage Policy: Absolute strict client-side isolation ensuring no sensitive API keys physically reside in open code.
+
+3. ADVANCED AADHAAR VERIFICATION (PURE ALGORITHM)
+-------------------------------------------------
+• Tesseract.js Edge Processing: Real-time, in-browser background worker OCR processing of Aadhaar cards without making external network calls (saving costs and securing user privacy).
+• High-Accuracy Canvas Image Processing: Automatic scaling, grayscaling, and contrast adjustments drastically increase OCR reliability on low-quality uploads.
+• Verhoeff Checksum Logic: A mathematical algorithm baked directly into the Next.js client that validates the mathematical integrity of the 12-digit Aadhaar to reject fake/random numbers.
+• Heuristic Data Extraction: Automatically identifies and flags exactly where the Name and Date of Birth lie within the physical card structure, mapping it directly to the digital contract.
+
+4. END-TO-END DIGITAL CONTRACTS & RENTAL AGREEMENTS
+---------------------------------------------------
+• Automated Document Generation: Dynamic populating of rental agreements including Property Name, Term Limits, Deposit amounts, and Owner details.
+• In-Browser Signature Pad: A smooth, canvas-based digital signature collector for the tenant to digitally sign on their phone/desktop.
+• Visual KYC Display: The exact extracted Aadhaar Number and Date of Birth print clearly on the final digital contract rather than just raw image links.
+• Legal Exporting: Browser-native print-to-PDF formatting specifically honed with CSS (@media print) to exclude web UI elements, making the output look exactly like a genuine legal paper standard.
+
+5. PREMIUM FRONTEND UX/UI & AESTHETICS
+--------------------------------------
+• Vanilla CSS & Tailwind Synchronization: Extensive use of modern, beautiful color palettes, subtle glassmorphism, dynamic glowing shadows, and micro-interactions.
+• Lucide React Icons: Entire platform purged of emojis completely, replaced with premium SVG vector icons for a highly professional edge.
+• Fluid Loading States & Skeletons: Complex data fetches never jump or glitch. Skeleton placeholders, pulse animations, and interactive spinners provide luxury feedback.
+• Responsive Fluid Navigation: Fully responsive mobile-tailored floating bottom menus that transition smoothly at various viewport breakpoints.
+
+6. SECURE UPI PAYMENT ALGORITHM & QR GENERATION
+-----------------------------------------------
+• Direct Zero-API Settlement: Rent collection flows directly into the Owner's customized UPI via local state string generation (`upi://pay?pa=...`).
+• Real-time QR Mapping: `qrcode.react` creates highly scannable, dynamic QR codes matching the precise rent amount immediately.
+• Locked Payment Session Management: Payment intents are locked inside server-validated Firestore nodes to completely prevent users from altering the rent amount in the URL or payload.
+• Countdown Timer Security: Artificial 05:00-minute localized expiration windows create urgency and close loops gracefully.
+
+7. DASHBOARDS & CORE ENTITIES
+-----------------------------
+• Owner Dashboard: Complete oversight grid to add, edit, or delete PGs. Includes visual room availability, automated earning calculations, and granular tenant screening flags.
+• Tenant Dashboard: Unified view of Active Contracts, Pending Bookings, Upcoming Payments, Profile management, and instant owner notifications.
+• Advanced Search Engine: Fluid keyword filtering matching specific location parameters, budget caps, and filtering logic that snaps instantly without full page reloads.
+
+8. MEDIA & ASSET MANAGEMENT
+---------------------------
+• Cloudinary Integration: Direct-to-bucket integrations handling PG photo arrays and encrypted KYC uploads.
+• Pre-Flight Verification: Zero files touch the cloud unless they have first successfully cleared the local Verhoeff algorithm. Ensures a perfectly clean storage environment.

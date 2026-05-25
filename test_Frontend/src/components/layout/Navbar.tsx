@@ -1,0 +1,347 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuGroup,
+} from "@/components/ui/dropdown-menu";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { Menu, Home, BookOpen, LogOut, PlusCircle, ShieldCheck, LayoutDashboard, Bell, Sun, Moon, MapPin, Building, Info, ChevronRight, User } from "lucide-react";
+import { useTheme } from "next-themes";
+import { signOut } from "firebase/auth";
+import { auth } from "@/lib/firebase/client";
+import { useAuth } from "@/lib/context/AuthContext";
+import { getUserNotifications, markNotificationAsRead, markAllNotificationsAsRead, Notification } from "@/lib/db/notifications";
+
+function getInitials(name?: string | null, email?: string | null) {
+  if (name) {
+    return name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
+  }
+  if (email) return email[0].toUpperCase();
+  return "?";
+}
+
+function getRoleBadgeColor(role?: string) {
+  if (role === "admin") return "bg-violet-100 text-violet-800";
+  if (role === "owner") return "bg-amber-100 text-amber-800";
+  if (role === "caretaker") return "bg-emerald-100 text-emerald-800";
+  return "bg-blue-100 text-blue-800";
+}
+
+function getDashboardLink(role?: string) {
+  if (role === "admin") return "/admin";
+  if (role === "owner") return "/dashboard/owner";
+  if (role === "caretaker") return "/dashboard/caretaker";
+  return "/dashboard/tenant";
+}
+
+export function Navbar() {
+  const router = useRouter();
+  const { user, profile } = useAuth();
+  const { theme, setTheme } = useTheme();
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [isOpen, setIsOpen] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      getUserNotifications(user.uid)
+        .then(setNotifications)
+        .catch((err) => {
+          console.warn("Navbar: Could not fetch notifications:", err);
+          setNotifications([]);
+        });
+    } else {
+      setNotifications([]);
+    }
+  }, [user]);
+
+  const handleSignOut = async () => {
+    await signOut(auth);
+    router.push("/");
+  };
+
+  const displayName = profile?.name || user?.displayName || user?.email?.split("@")[0] || "User";
+  const displayEmail = user?.email || user?.phoneNumber || "";
+  const role = profile?.role;
+
+  return (
+    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
+        {/* Left: Logo + Nav */}
+        <div className="flex items-center gap-6">
+          <Link href="/" className="flex items-center gap-2">
+            <span className="text-2xl font-bold text-primary tracking-tight">Savion</span>
+          </Link>
+          <nav className="hidden md:flex gap-6">
+            <Link href="/search" className="text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary transition-colors">
+              Destinations
+            </Link>
+            <Link href="/search" className="text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary transition-colors">
+              Listings
+            </Link>
+            <Link href="/about" className="text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary transition-colors">
+              About
+            </Link>
+            <Link href="/community" className="text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary transition-colors">
+              Community
+            </Link>
+          </nav>
+        </div>
+
+        {/* Right: Auth State */}
+        <div className="flex items-center gap-1 sm:gap-3">
+          <Button variant="ghost" size="icon" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="mr-1">
+            <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+            <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+            <span className="sr-only">Toggle theme</span>
+          </Button>
+
+          {user ? (
+            /* ─── LOGGED IN: Notifications & Profile ─── */
+            <div className="flex items-center gap-2 sm:gap-4">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="relative p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus:outline-none">
+                    <Bell className="w-5 h-5 text-slate-700 dark:text-slate-300" />
+                    {notifications.filter(n => !n.read).length > 0 && (
+                      <span className="absolute top-1 right-1.5 w-2 h-2 bg-red-500 rounded-full animate-pulse border border-white"></span>
+                    )}
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-80 max-h-[80vh] overflow-y-auto">
+                  <div className="flex items-center justify-between px-3 py-2 border-b">
+                    <span className="font-bold">Notifications</span>
+                    {notifications.some(n => !n.read) && (
+                      <button
+                        onClick={async () => {
+                          if (user) await markAllNotificationsAsRead(user.uid, notifications);
+                          setNotifications(notifications.map(n => ({ ...n, read: true })));
+                        }}
+                        className="text-xs text-primary hover:underline font-medium"
+                      >
+                        Mark all read
+                      </button>
+                    )}
+                  </div>
+                  {notifications.length === 0 ? (
+                    <div className="p-4 text-center text-sm text-muted-foreground">No recent notifications.</div>
+                  ) : (
+                    notifications.map(n => (
+                      <DropdownMenuItem
+                        key={n.id}
+                        className={`flex flex-col items-start p-3 focus:bg-slate-50 dark:bg-zinc-800/50 cursor-pointer ${!n.read ? 'bg-orange-50/50 dark:bg-orange-950/30' : ''}`}
+                        onClick={async () => {
+                          if (!n.read) {
+                            await markNotificationAsRead(n.id);
+                            setNotifications(notifications.map(nt => nt.id === n.id ? { ...nt, read: true } : nt));
+                          }
+                        }}
+                      >
+                        <div className="flex w-full justify-between gap-2 mb-1">
+                          <span className={`font-semibold text-sm ${!n.read ? 'text-slate-900 dark:text-slate-100' : 'text-slate-700 dark:text-slate-300'}`}>{n.title}</span>
+                          <span className="text-[10px] text-muted-foreground shrink-0">{new Date(n.createdAt).toLocaleDateString()}</span>
+                        </div>
+                        <p className={`text-xs block w-full whitespace-normal ${!n.read ? 'text-slate-700 dark:text-slate-300' : 'text-muted-foreground'}`}>{n.message}</p>
+                      </DropdownMenuItem>
+                    ))
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    className="flex items-center gap-2.5 rounded-full pl-3 pr-1.5 py-1.5 border border-border shadow-sm dark:shadow-slate-900/50 hover:shadow-md hover:border-primary/40 transition-all bg-background focus:outline-none focus:ring-2 focus:ring-primary/40"
+                    aria-label="Open profile menu"
+                  >
+                    <span className="text-sm font-semibold text-foreground hidden sm:block max-w-[120px] truncate">
+                      {displayName}
+                    </span>
+                    <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white text-xs font-bold shrink-0">
+                      {getInitials(displayName, displayEmail)}
+                    </div>
+                  </button>
+                </DropdownMenuTrigger>
+
+                <DropdownMenuContent align="end" className="w-64">
+                  {/* User Info Header */}
+                  <div className="px-3 pt-3 pb-2">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white text-sm font-bold shrink-0">
+                        {getInitials(displayName, displayEmail)}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-foreground truncate">{displayName}</p>
+                        {displayEmail && (
+                          <p className="text-xs text-muted-foreground truncate">{displayEmail}</p>
+                        )}
+                      </div>
+                    </div>
+                    {role && (
+                      <span className={`inline-block mt-2 text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full ${getRoleBadgeColor(role)}`}>
+                        {role}
+                      </span>
+                    )}
+                  </div>
+
+                  <DropdownMenuSeparator />
+                  <DropdownMenuGroup>
+                    <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                    <Link href={getDashboardLink(role)}>
+                      <DropdownMenuItem>
+                        <Home className="mr-2.5 h-4 w-4 text-muted-foreground" />
+                        Dashboard
+                      </DropdownMenuItem>
+                    </Link>
+                    {role === "admin" && (
+                      <Link href="/admin">
+                        <DropdownMenuItem className="text-violet-700 hover:!text-violet-700 hover:!bg-violet-50 dark:bg-violet-950/30">
+                          <LayoutDashboard className="mr-2.5 h-4 w-4 text-violet-500" />
+                          Admin Panel
+                        </DropdownMenuItem>
+                      </Link>
+                    )}
+                    {(role === "student" || role === "tenant") && (
+                      <Link href="/dashboard/tenant">
+                        <DropdownMenuItem>
+                          <BookOpen className="mr-2.5 h-4 w-4 text-muted-foreground" />
+                          My Bookings
+                        </DropdownMenuItem>
+                      </Link>
+                    )}
+                    {role === "owner" && (
+                      <Link href="/dashboard/owner/add-pg">
+                        <DropdownMenuItem>
+                          <PlusCircle className="mr-2.5 h-4 w-4 text-muted-foreground" />
+                          Add New Property
+                        </DropdownMenuItem>
+                      </Link>
+                    )}
+                    {role === "caretaker" && (
+                      <Link href="/dashboard/caretaker">
+                        <DropdownMenuItem>
+                          <ShieldCheck className="mr-2.5 h-4 w-4 text-muted-foreground" />
+                          Staff Operations
+                        </DropdownMenuItem>
+                      </Link>
+                    )}
+                  </DropdownMenuGroup>
+
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleSignOut} className="text-red-600 hover:!text-red-600 hover:!bg-red-50 dark:bg-red-950/30 cursor-pointer">
+                    <LogOut className="mr-2.5 h-4 w-4" />
+                    Sign Out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          ) : (
+            /* ─── GUEST: CTA Buttons ─── */
+            <div className="hidden md:flex items-center gap-3">
+              <Link href="/signup" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+                List your property
+              </Link>
+              <Link href="/login">
+                <Button variant="outline">Log In</Button>
+              </Link>
+              <Link href="/signup">
+                <Button>Sign Up</Button>
+              </Link>
+            </div>
+          )}
+
+          {/* Mobile Hamburger */}
+          <Sheet open={isOpen} onOpenChange={setIsOpen}>
+            <SheetTrigger render={<Button variant="ghost" size="icon" className="md:hidden" />}>
+              <Menu className="h-6 w-6" />
+              <span className="sr-only">Toggle menu</span>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-[85vw] sm:w-[400px] border-l border-border/50 bg-background/95 backdrop-blur-2xl p-0 flex flex-col">
+              <div className="flex-1 overflow-y-auto">
+                <div className="p-6 pb-2 border-b border-border/50 bg-slate-50 dark:bg-zinc-800/50/50 dark:bg-slate-900/50">
+                  <SheetTitle className="text-left text-3xl font-black bg-gradient-to-br from-foreground to-foreground/70 bg-clip-text text-transparent mb-1">Savion</SheetTitle>
+                  <p className="text-sm text-muted-foreground mb-4">Premium Student Living</p>
+                </div>
+                
+                <div className="flex flex-col p-4 gap-2">
+                  <Link href="/search" onClick={() => setIsOpen(false)} className="group flex items-center justify-between p-4 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-all cursor-pointer border border-transparent hover:border-border/50">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform group-hover:bg-primary group-hover:text-white">
+                        <MapPin className="w-5 h-5" />
+                      </div>
+                      <span className="text-lg font-semibold group-hover:text-primary transition-colors">Destinations</span>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
+                  </Link>
+                  
+                  <Link href="/search" onClick={() => setIsOpen(false)} className="group flex items-center justify-between p-4 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-all cursor-pointer border border-transparent hover:border-border/50">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-full bg-orange-500/10 flex items-center justify-center text-orange-500 group-hover:scale-110 transition-transform group-hover:bg-orange-500 group-hover:text-white">
+                        <Building className="w-5 h-5" />
+                      </div>
+                      <span className="text-lg font-semibold group-hover:text-orange-500 transition-colors">Listings</span>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-orange-500 group-hover:translate-x-1 transition-all" />
+                  </Link>
+
+                  <Link href="/about" onClick={() => setIsOpen(false)} className="group flex items-center justify-between p-4 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-all cursor-pointer border border-transparent hover:border-border/50">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500 group-hover:scale-110 transition-transform group-hover:bg-blue-500 group-hover:text-white">
+                        <Info className="w-5 h-5" />
+                      </div>
+                      <span className="text-lg font-semibold group-hover:text-blue-500 transition-colors">About Us</span>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-blue-500 group-hover:translate-x-1 transition-all" />
+                  </Link>
+                </div>
+              </div>
+
+              {!user ? (
+                <div className="p-6 bg-slate-50 dark:bg-slate-900 border-t border-border/50 mt-auto">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center">
+                      <User className="w-5 h-5 text-slate-500 dark:text-slate-400" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold">Guest User</p>
+                      <p className="text-xs text-muted-foreground">Log in to manage bookings</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Link href="/login" onClick={() => setIsOpen(false)}>
+                      <Button variant="outline" className="w-full h-12 font-bold rounded-xl border-border/60 hover:bg-white dark:hover:bg-slate-800">Log In</Button>
+                    </Link>
+                    <Link href="/signup" onClick={() => setIsOpen(false)}>
+                      <Button className="w-full h-12 font-bold rounded-xl shadow-lg dark:shadow-zinc-900/50 hover:shadow-primary/25 transition-all hover:-translate-y-0.5">Sign Up</Button>
+                    </Link>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-6 bg-slate-50 dark:bg-slate-900 border-t border-border/50 mt-auto">
+                  <Button variant="outline" onClick={handleSignOut} className="w-full h-12 font-bold rounded-xl text-red-600 hover:text-red-700 hover:bg-red-50 dark:bg-red-950/30 border-red-200">
+                    <LogOut className="w-4 h-4 mr-2" /> Sign Out
+                  </Button>
+                </div>
+              )}
+            </SheetContent>
+          </Sheet>
+        </div>
+      </div>
+    </header>
+  );
+}
+
