@@ -89,7 +89,7 @@ export default function LoginPage() {
         throw new Error("db_timeout");
       }
       
-      await refreshProfile();
+      await refreshProfile(user.uid);
       
       const role = profile.role || "tenant";
 

@@ -94,9 +94,12 @@ export default function SignupPage() {
     formState.current = { name, role, email, phoneCode, phoneNumber };
   }, [name, role, email, phoneCode, phoneNumber]);
 
+  const alreadyRouted = useRef(false);
+
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (user) => {
-      if (user) {
+      if (user && !alreadyRouted.current) {
+        alreadyRouted.current = true;
         handlePostAuth(user);
       }
     });
@@ -123,7 +126,7 @@ export default function SignupPage() {
         throw new Error("db_timeout");
       }
 
-      await refreshProfile();
+      await refreshProfile(user.uid);
 
       if (profile.role === "tenant" || profile.role === "student") {
         const bookings = await withTimeout(getUserBookings(user.uid), 3000, []);

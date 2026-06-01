@@ -14,7 +14,7 @@ interface AuthContextValue {
   authLoading: boolean;
   profileLoading: boolean;
   ready: boolean;
-  refreshProfile: () => Promise<void>;
+  refreshProfile: (uid?: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue>({
@@ -23,7 +23,7 @@ const AuthContext = createContext<AuthContextValue>({
   authLoading: true,
   profileLoading: false,
   ready: false,
-  refreshProfile: async () => {},
+  refreshProfile: async (uid?: string) => {},
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -47,8 +47,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const refreshProfile = async () => {
-    if (user) await fetchProfile(user.uid);
+  const refreshProfile = async (uid?: string) => {
+    const targetUid = uid || auth.currentUser?.uid;
+    if (targetUid) await fetchProfile(targetUid);
   };
 
   useEffect(() => {

@@ -60,7 +60,7 @@ export default function CaretakerLoginPage() {
         throw new Error("db_timeout");
       }
       
-      await refreshProfile();
+      await refreshProfile(user.uid);
       
       if (profile.role === "caretaker") {
         router.push("/dashboard/caretaker");
