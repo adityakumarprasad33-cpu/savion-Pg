@@ -107,6 +107,8 @@ export default function CaretakerDashboard() {
   }
 
   const openComplaints = complaints.filter(c => c.status !== "resolved");
+  const resolvedComplaints = complaints.filter(c => c.status === "resolved");
+
   return (
     <div className="flex flex-col min-h-screen bg-slate-50 dark:bg-[#030712] selection:bg-primary/10 selection:text-primary relative overflow-x-hidden">
       {/* Aurora Background Mesh */}
